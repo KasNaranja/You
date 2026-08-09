@@ -10,7 +10,8 @@ como registro de la evolución del proyecto.
 
 | Carpeta | Qué va dentro |
 |---|---|
-| `herramientas/` | Copias auditadas del código de terceros que se usa en local, con la versión fijada en un `PROCEDENCIA.md` |
+| `Transcriptions/` | Un vídeo archivado por carpeta numerada: audio, fotogramas y transcripción |
+| `herramientas/` | Utilidades propias, y copias auditadas del código de terceros con la versión fijada en un `PROCEDENCIA.md` |
 | `auditorias/` | Informes de seguridad de cada herramienta antes de instalarla |
 
 `CLAUDE.md` en la raíz recoge las reglas de trabajo del repositorio.
