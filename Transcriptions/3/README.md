@@ -3,8 +3,8 @@
 - **URL:** https://www.youtube.com/watch?v=vd6VqPDPn2U
 - **Canal:** Danny Why
 - **Duración:** 1675s
-- **Guardado:** 2026-08-09 23:38 UTC
-- **Fotogramas:** 11 (balanced)
+- **Guardado:** 2026-08-09 23:43 UTC
+- **Fotogramas:** 88 (balanced)
 - **Transcripción:** sí — subtítulos del vídeo
 
 `frames/index.txt` relaciona cada imagen con su segundo del vídeo.
