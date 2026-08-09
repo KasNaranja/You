@@ -15,6 +15,11 @@ Uso:
 
 Requiere `yt-dlp` y `ffmpeg` en el PATH. Pensado para ejecutarse en una máquina
 con IP doméstica: YouTube bloquea las IPs de centros de datos.
+
+Opcionalmente, `pip install faster-whisper` habilita la transcripción en local
+de los vídeos que no traigan subtítulos. Es gratis, sin claves ni cuotas, y el
+audio no sale de la máquina. Sin ese paquete el script sigue funcionando: esos
+vídeos se archivan con audio y fotogramas, pero sin transcripción.
 """
 from __future__ import annotations
 
@@ -32,6 +37,12 @@ DESTINO = RAIZ / "Transcriptions"
 
 # Tope de fotogramas por nivel de detalle.
 DETALLE = {"efficient": 50, "balanced": 100, "token-burner": 0}  # 0 = sin tope
+
+ETIQUETA_FUENTE = {
+    "subtitulos": "sí — subtítulos del vídeo",
+    "whisper-local": "sí — Whisper en local",
+    "ninguna": "no — solo audio",
+}
 
 
 def comprobar_dependencias() -> None:
@@ -166,28 +177,78 @@ def vtt_a_texto(vtt: str) -> str:
     return "\n".join(lineas)
 
 
-def guardar_transcripcion(trabajo: Path, destino: Path) -> bool:
+def transcribir_local(audio: Path, destino: Path, modelo: str) -> bool:
+    """Transcribe el audio con Whisper en local (faster-whisper).
+
+    Sin claves de API, sin red y sin cuotas: el audio no sale de la máquina.
+    El modelo se descarga una sola vez y queda en la caché de Hugging Face.
+    """
+    if not audio.exists():
+        return False
+    try:
+        from faster_whisper import WhisperModel
+    except ImportError:
+        print("  faster-whisper no está instalado: pip install faster-whisper")
+        return False
+
+    print(f"→ Sin subtítulos: transcribiendo en local con Whisper «{modelo}»…")
+    lineas: list[str] = []
+    try:
+        wm = WhisperModel(modelo, device="cpu", compute_type="int8")
+        segmentos, info = wm.transcribe(str(audio), vad_filter=True)
+        for s in segmentos:
+            texto = s.text.strip()
+            if not texto:
+                continue
+            h, resto = divmod(int(s.start), 3600)
+            m, seg = divmod(resto, 60)
+            lineas.append(f"[{h:02d}:{m:02d}:{seg:02d}] {texto}")
+    except Exception as e:  # cualquier fallo degrada a "sin transcripción"
+        print(f"  Whisper local falló: {e}")
+        return False
+
+    if not lineas:
+        return False
+    destino.mkdir(parents=True, exist_ok=True)
+    cabecera = f"# Transcrito en local con Whisper «{modelo}» (idioma: {info.language})"
+    (destino / "transcript.txt").write_text(
+        cabecera + "\n" + "\n".join(lineas) + "\n", encoding="utf-8"
+    )
+    return True
+
+
+def guardar_transcripcion(trabajo: Path, destino: Path, audio: Path, modelo: str) -> str:
+    """Devuelve la fuente: `subtitulos`, `whisper-local` o `ninguna`."""
     destino.mkdir(parents=True, exist_ok=True)
     vtts = sorted(trabajo.glob("video*.vtt"))
-    if not vtts:
-        (destino / "SIN-SUBTITULOS.txt").write_text(
-            "Este vídeo no tenía subtítulos disponibles.\n"
-            "El audio está en ../audio/audio.mp3 para transcribirlo aparte.\n",
-            encoding="utf-8",
-        )
-        return False
-    for v in vtts:
-        shutil.copy2(v, destino / v.name)
-    principal = vtts[0]
-    texto = vtt_a_texto(principal.read_text(encoding="utf-8", errors="replace"))
-    (destino / "transcript.txt").write_text(texto + "\n", encoding="utf-8")
-    return True
+    if vtts:
+        for v in vtts:
+            shutil.copy2(v, destino / v.name)
+        texto = vtt_a_texto(vtts[0].read_text(encoding="utf-8", errors="replace"))
+        (destino / "transcript.txt").write_text(texto + "\n", encoding="utf-8")
+        return "subtitulos"
+
+    if modelo != "no" and transcribir_local(audio, destino, modelo):
+        return "whisper-local"
+
+    (destino / "SIN-SUBTITULOS.txt").write_text(
+        "Este vídeo no tenía subtítulos y no se pudo transcribir en local.\n"
+        "El audio está en ../audio/audio.mp3 para transcribirlo aparte.\n",
+        encoding="utf-8",
+    )
+    return "ninguna"
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("url")
     ap.add_argument("--detail", choices=list(DETALLE), default="balanced")
+    ap.add_argument(
+        "--modelo",
+        default="small",
+        help="modelo de Whisper local para vídeos sin subtítulos "
+             "(tiny, base, small, medium, large-v3; «no» lo desactiva)",
+    )
     ap.add_argument("--push", action="store_true", help="commitea y sube a main")
     args = ap.parse_args()
 
@@ -205,7 +266,9 @@ def main() -> None:
 
     extraer_audio(video, carpeta / "audio")
     frames = extraer_frames(video, carpeta / "frames", DETALLE[args.detail])
-    hay_subs = guardar_transcripcion(trabajo, carpeta / "transcript")
+    fuente = guardar_transcripcion(
+        trabajo, carpeta / "transcript", carpeta / "audio" / "audio.mp3", args.modelo
+    )
 
     meta = {
         "n": n,
@@ -217,7 +280,8 @@ def main() -> None:
         "guardado": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "detalle": args.detail,
         "fotogramas": len(frames),
-        "con_subtitulos": hay_subs,
+        "con_subtitulos": fuente == "subtitulos",
+        "transcripcion": fuente,
     }
     (carpeta / "metadata.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -235,7 +299,7 @@ def main() -> None:
     filas += [
         f"- **Guardado:** {meta['guardado']}",
         f"- **Fotogramas:** {len(frames)} ({args.detail})",
-        f"- **Subtítulos:** {'sí' if hay_subs else 'no — solo audio'}",
+        f"- **Transcripción:** {ETIQUETA_FUENTE[fuente]}",
         "",
         "`frames/index.txt` relaciona cada imagen con su segundo del vídeo.",
     ]
@@ -243,7 +307,7 @@ def main() -> None:
 
     shutil.rmtree(trabajo, ignore_errors=True)
 
-    print(f"✓ {len(frames)} fotogramas · subtítulos: {'sí' if hay_subs else 'no'}")
+    print(f"✓ {len(frames)} fotogramas · transcripción: {ETIQUETA_FUENTE[fuente]}")
     print(f"  {carpeta}")
 
     if args.push:

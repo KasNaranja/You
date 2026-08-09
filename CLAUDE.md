@@ -39,6 +39,15 @@ El script se encarga de todo: numera la carpeta, baja el vídeo, extrae audio y
 fotogramas, guarda los subtítulos y sube el resultado a `main`. No hay que
 crear carpetas ni numerarlas a mano.
 
+Si el vídeo **no trae subtítulos**, lo transcribe en local con Whisper
+(`faster-whisper`): gratis, sin claves ni cuotas, y el audio no sale de la
+máquina. Requiere `pip install faster-whisper` una vez; el modelo se descarga
+solo la primera vez. Se elige con `--modelo` (`small` por defecto; `medium` o
+`large-v3` afinan más y tardan más, `no` lo desactiva).
+
+`metadata.json` deja constancia en `transcripcion`: `subtitulos`,
+`whisper-local` o `ninguna`.
+
 **Solo funciona en sesiones locales** (Desktop o CLI en la máquina del usuario).
 YouTube bloquea las IPs de centros de datos con un 429 y un «Sign in to confirm
 you're not a bot», así que **desde una sesión en la nube no se puede** — no
