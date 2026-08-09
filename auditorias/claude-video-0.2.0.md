@@ -120,6 +120,46 @@ para poder comparar el diff antes de actualizar.
 Descargar vídeos de YouTube incumple sus términos de servicio. Sin relevancia
 práctica para uso personal, pero conviene saberlo.
 
+## Huellas de verificación
+
+Instalación verificada el 2026-08-09 en Windows: coincidencia exacta por dos
+vías independientes.
+
+**Vía 1 — commit del marketplace:**
+
+```powershell
+git -C "$env:USERPROFILE\.claude\plugins\marketplaces\claude-video" rev-parse HEAD
+# → 83da59fa78c3eee9e20f515fe75c438bb5166efd
+```
+
+**Vía 2 — SHA256 de los ficheros ejecutables.**
+
+Ojo: git convierte LF a CRLF al descargar en Windows, así que **los hashes
+difieren según el sistema aunque el contenido sea idéntico**. Por eso van las
+dos columnas. Comparar contra la que corresponda.
+
+| Fichero | SHA256 (LF, Linux/macOS) | SHA256 (CRLF, Windows) |
+|---|---|---|
+| `SKILL.md` | `10dc8e56699e99a9…` | `1cb6fca53bf444fe…` |
+| `config.py` | `a672f1b3b888ee90…` | `377db1bd524e6537…` |
+| `download.py` | `e3db8c8418a0372a…` | `018c43434b4377e8…` |
+| `frames.py` | `ad317574facd619f…` | `c6cf760d2d86b253…` |
+| `setup.py` | `c8d2906fc4e80479…` | `b4bc14748bc01871…` |
+| `transcribe.py` | `f9736e126d3f3c41…` | `9260a2c8b4375dd0…` |
+| `watch.py` | `22a617de94978106…` | `f8f27db11d9a6f22…` |
+| `whisper.py` | `4845e95d7467b1d4…` | `b00a7cd8dd57e0cf…` |
+
+Para recalcular las tuyas en Windows:
+
+```powershell
+Get-ChildItem "$env:USERPROFILE\.claude\plugins\cache\claude-video\watch\0.2.0\skills\watch" -Recurse -Include *.py,SKILL.md |
+  Get-FileHash -Algorithm SHA256 |
+  ForEach-Object { "{0}  {1}" -f $_.Hash.ToLower(), (Split-Path $_.Path -Leaf) } | Sort-Object
+```
+
+**Si alguna huella no coincide con ninguna de las dos columnas, no usar el
+plugin** hasta revisar qué ha cambiado.
+
 ## Cómo repetir esta auditoría
 
 ```bash
