@@ -1,0 +1,14 @@
+frame_001.jpg	0.00s
+frame_002.jpg	3.00s
+frame_003.jpg	6.00s
+frame_004.jpg	9.00s
+frame_005.jpg	12.00s
+frame_006.jpg	15.00s
+frame_007.jpg	18.00s
+frame_008.jpg	21.00s
+frame_009.jpg	24.00s
+frame_010.jpg	27.00s
+frame_011.jpg	30.00s
+frame_012.jpg	33.00s
+frame_013.jpg	36.00s
+frame_014.jpg	39.00s
