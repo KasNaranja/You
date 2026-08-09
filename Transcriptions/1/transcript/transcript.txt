@@ -1,0 +1,26 @@
+[00:00:00] Cómo podemos comprender mejor el terreno
+[00:00:02] al pasar el cursor con el fantasma de la
+[00:00:04] edificación notamos que la animación da
+[00:00:06] pequeños saltos Esto se debe a que el
+[00:00:08] juego se divide en secciones cada una de
+[00:00:11] estas cuadrículas puede estar despejada
+[00:00:13] u obstruida esta característica nos
+[00:00:15] ayuda a proyectar y así obtener una
+[00:00:17] mejor percepción de las zonas ocupadas y
+[00:00:19] de las que no lo están esto nos permite
+[00:00:21] dejar liberada una zona que necesitamos
+[00:00:23] para que los aldeanos puedan recolectar
+[00:00:25] o para obstruir un peligroso hueco en la
+[00:00:27] muralla y evitar que el ejército rival
+[00:00:29] se inf
+[00:00:30] en zonas con inclinaciones la
+[00:00:32] visualización se complica aún más ya que
+[00:00:34] es fácil confundirse con las animaciones
+[00:00:36] de las estructuras Por ello es vital el
+[00:00:39] uso de las cuadrículas para detectar que
+[00:00:41] algo aquí no cuadra podemos activarlas
+[00:00:43] en opciones interfaz red y elegir Si
+[00:00:47] queremos que estén siempre activadas
+[00:00:49] También tenemos la opción de seleccionar
+[00:00:51] el color y su
+[00:00:53] intensidad
