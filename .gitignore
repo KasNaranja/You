@@ -1,0 +1,53 @@
+# Sistema operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+Desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.\#*
+\#*\#
+
+# Secretos y configuración local
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets.*
+
+# Logs y temporales
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Dependencias y artefactos de build
+node_modules/
+dist/
+build/
+out/
+.cache/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Ofimática (ficheros de bloqueo)
+~$*
+.~lock.*
