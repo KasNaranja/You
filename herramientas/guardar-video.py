@@ -75,11 +75,16 @@ def descargar(url: str, trabajo: Path) -> dict:
         "--sub-format", "vtt",
         "--convert-subs", "vtt",
         "--merge-output-format", "mp4",
+        # Una pista de subtítulos que falle (típicamente un 429 de YouTube en un
+        # idioma secundario) no debe abortar la descarga del vídeo.
+        "--ignore-errors",
         "-o", plantilla,
         "--",
         url,
     ]
-    if subprocess.run(cmd).returncode != 0:
+    codigo = subprocess.run(cmd).returncode
+    hay_video = any(trabajo.glob(f"video*{e}") for e in (".mp4", ".mkv", ".webm", ".mov"))
+    if codigo != 0 and not hay_video:
         sys.exit("yt-dlp falló. Si es un 429 o pide iniciar sesión, reintenta más tarde.")
 
     info_path = trabajo / "video.info.json"
