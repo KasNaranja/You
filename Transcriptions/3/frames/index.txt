@@ -1,0 +1,11 @@
+frame_001.jpg	0.00s
+frame_002.jpg	173.56s
+frame_003.jpg	182.88s
+frame_004.jpg	186.60s
+frame_005.jpg	234.24s
+frame_006.jpg	242.70s
+frame_007.jpg	253.44s
+frame_008.jpg	258.00s
+frame_009.jpg	263.12s
+frame_010.jpg	270.30s
+frame_011.jpg	1674.48s
