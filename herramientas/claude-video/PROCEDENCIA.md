@@ -44,6 +44,57 @@ La copia incluye el workflow de release del proyecto original. **No se ejecuta:*
 GitHub Actions solo lee workflows de `.github/workflows/` en la raíz del
 repositorio, y aquí está anidado. Se conserva por fidelidad con el original.
 
+## Incidencias conocidas
+
+### `-vsync` eliminado en ffmpeg 8+ (rompe la extracción de fotogramas)
+
+**Detectado:** 2026-08-09, en la primera ejecución real con ffmpeg 9.0.
+
+`skills/watch/scripts/frames.py` invoca ffmpeg con `-vsync vfr` en dos sitios:
+
+| Línea | Ruta afectada |
+|---|---|
+| 256 | selección por escenas (`balanced`, `token-burner`) |
+| 615 | keyframes rápidos (`efficient`) |
+
+`-vsync` se eliminó de ffmpeg en la versión 8; su sustituto es `-fps_mode`. Con
+ffmpeg 9.0 **ambas llamadas fallan**, así que el plugin no extrae fotogramas por
+ninguno de sus modos. El vídeo se descarga bien; lo que rompe es el paso de
+fotogramas.
+
+**Arreglo** (sustitución literal, misma semántica):
+
+```
+"-vsync", "vfr"   →   "-fps_mode", "vfr"
+```
+
+Aplicado sobre la instalación local en Windows:
+
+```powershell
+$f = "$env:USERPROFILE\.claude\plugins\cache\claude-video\watch\0.2.0\skills\watch\scripts\frames.py"
+Copy-Item $f "$f.bak"
+$c = [System.IO.File]::ReadAllText($f)
+$c = $c.Replace('"-vsync", "vfr"', '"-fps_mode", "vfr"')
+[System.IO.File]::WriteAllText($f, $c, (New-Object System.Text.UTF8Encoding $false))
+Select-String -Path $f -Pattern "vsync|fps_mode"
+```
+
+**Consecuencias a tener en cuenta:**
+
+- El parche **cambia el hash** de `frames.py`, así que dejará de coincidir con
+  las huellas de `auditorias/claude-video-0.2.0.md`. Es esperado: el único
+  cambio es esa sustitución, verificable con `Select-String`.
+- Una actualización del plugin **pisa el parche**. Habrá que reaplicarlo, o
+  esperar a que lo arreglen aguas arriba.
+- La copia de este repositorio **se deja sin parchear** a propósito, para que
+  siga siendo el reflejo exacto del commit auditado.
+
+### Descarga de subtítulos limitada por YouTube (HTTP 429)
+
+También en la primera ejecución. YouTube limita la descarga de subtítulos por
+volumen de peticiones. No es un fallo del plugin. Reintentar más tarde, o tener
+configurada una clave de Whisper para que caiga en la transcripción por audio.
+
 ## Esta copia no es la instalación
 
 El plugin se instala aparte, en la máquina donde se use:
