@@ -21,6 +21,19 @@ hay algo real que meter dentro, no por adelantado.
 
 ## Herramientas
 
+### guardar-video.py
+
+Utilidad propia. Archiva un vídeo en `Transcriptions/` — carpeta numerada,
+audio, fotogramas, transcripción y `metadata.json` — y lo sube a `main`.
+
+```
+python herramientas/guardar-video.py <url> --push
+```
+
+Si el vídeo no trae subtítulos nativos, lo transcribe **en local** con Whisper
+(`pip install faster-whisper`): gratis, sin claves ni cuotas, y el audio no sale
+de la máquina. Detalles en `Transcriptions/README.md`.
+
 ### claude-video (`/watch`)
 
 Le da a Claude la capacidad de ver vídeo: descarga de YouTube, TikTok, Loom, X,
@@ -28,8 +41,9 @@ Instagram y cientos de sitios más, extrae fotogramas y obtiene la transcripció
 
 - **Código auditado:** `herramientas/claude-video/` (v0.2.0, commit `83da59f`)
 - **Informe:** `auditorias/claude-video-0.2.0.md` — apto, sin malware
-- **Ojo:** la transcripción **no es local**. Si el vídeo no trae subtítulos
-  nativos, el audio se sube a Groq o a OpenAI y hace falta API key.
+- **Ojo:** la transcripción del skill **no es local**. Si el vídeo no trae
+  subtítulos nativos, el audio se sube a Groq o a OpenAI y hace falta API key.
+  Es la diferencia con `guardar-video.py`, que transcribe en la propia máquina.
 
 Instalación, en la máquina donde se vaya a usar:
 

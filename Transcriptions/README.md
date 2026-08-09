@@ -39,5 +39,16 @@ fotogramas.
 
 ## Si un vídeo no tiene subtítulos
 
-Aparecerá `transcript/SIN-SUBTITULOS.txt` en vez de la transcripción. El audio
-sigue guardado en `audio/audio.mp3` para transcribirlo por otra vía.
+Se transcribe **en local** con Whisper (`faster-whisper`): gratis, sin claves ni
+cuotas de API, y el audio no sale de la máquina. Requiere `pip install
+faster-whisper` una vez; el modelo se descarga solo la primera vez.
+
+El modelo se elige con `--modelo`: `small` por defecto, `medium` o `large-v3`
+afinan más a cambio de tardar más, y `no` desactiva la transcripción local.
+
+`metadata.json` deja constancia de la vía en el campo `transcripcion`:
+`subtitulos`, `whisper-local` o `ninguna`.
+
+Solo si no hay subtítulos **y** falla o se desactiva Whisper aparece
+`transcript/SIN-SUBTITULOS.txt`. El audio sigue en `audio/audio.mp3` para
+transcribirlo por otra vía.
