@@ -73,12 +73,19 @@ def siguiente_numero() -> int:
     return max(usados, default=0) + 1
 
 
-def descargar(url: str, trabajo: Path) -> dict:
-    """Baja vídeo, subtítulos y metadatos. Devuelve el info.json como dict."""
+def descargar(url: str, trabajo: Path, alto_max: int) -> dict:
+    """Baja vídeo, subtítulos y metadatos. Devuelve el info.json como dict.
+
+    Se limita la resolución de origen porque los fotogramas se escalan luego a
+    1280 px de ancho: bajar 4K no mejora el resultado y multiplica por cuatro el
+    trabajo de decodificación. Un vídeo de 28 min en 4K50 son 780 MB y decenas
+    de minutos de ffmpeg para producir exactamente los mismos JPEG que 1080p.
+    """
     plantilla = str(trabajo / "video.%(ext)s")
     cmd = [
         "yt-dlp",
         "--no-playlist",
+        "-S", f"res:{alto_max}",
         "--write-info-json",
         "--write-subs",
         "--write-auto-subs",
@@ -121,11 +128,31 @@ def extraer_audio(video: Path, destino: Path) -> None:
     subprocess.run(cmd, capture_output=True)
 
 
-def extraer_frames(video: Path, destino: Path, tope: int) -> list[tuple[str, float]]:
-    """Fotogramas por cambio de escena. Devuelve [(fichero, segundo), ...]."""
+def extraer_frames(
+    video: Path, destino: Path, tope: int, duracion: float | None
+) -> list[tuple[str, float]]:
+    """Fotogramas por cambio de escena, con cobertura temporal garantizada.
+
+    La detección de escenas por sí sola agrupa los fotogramas donde hay cortes y
+    deja el resto a oscuras: en un vídeo de 28 min de charla a cámara, 9 de 11
+    fotogramas caían dentro del mismo minuto y 23 minutos se quedaban sin una
+    sola imagen. Por eso, además de los cortes, se fuerza un fotograma cada
+    `intervalo` segundos — `prev_selected_t` es el segundo del último fotograma
+    seleccionado, así que la condición cubre cualquier hueco demasiado largo.
+    """
     destino.mkdir(parents=True, exist_ok=True)
     patron = str(destino / "frame_%03d.jpg")
-    vf = "select='eq(n\\,0)+gt(scene\\,0.3)',scale=1280:-2,showinfo"
+
+    # El intervalo se calcula para que el muestreo uniforme por sí solo ocupe
+    # ~el 80% del tope, dejando sitio a los cambios de escena. El suelo de 5 s
+    # evita que un vídeo corto se llene de fotogramas casi idénticos.
+    efectivo = tope or 100
+    intervalo = max(duracion / (efectivo * 0.8), 5.0) if duracion else 30.0
+
+    vf = (
+        f"select='eq(n\\,0)+gt(scene\\,0.3)+gte(t-prev_selected_t\\,{intervalo:.2f})'"
+        ",scale=1280:-2,showinfo"
+    )
     cmd = ["ffmpeg", "-y", "-i", str(video), "-vf", vf, *flag_fps()]
     if tope:
         cmd += ["-frames:v", str(tope)]
@@ -249,6 +276,14 @@ def main() -> None:
         help="modelo de Whisper local para vídeos sin subtítulos "
              "(tiny, base, small, medium, large-v3; «no» lo desactiva)",
     )
+    ap.add_argument(
+        "--alto-max",
+        type=int,
+        default=1080,
+        help="tope de resolución de origen en px de alto (por defecto 1080). "
+             "Los fotogramas se escalan a 1280 de ancho, así que bajar más "
+             "resolución no mejora nada y encarece mucho la decodificación",
+    )
     ap.add_argument("--push", action="store_true", help="commitea y sube a main")
     args = ap.parse_args()
 
@@ -261,11 +296,13 @@ def main() -> None:
 
     print(f"→ Guardando en Transcriptions/{n}/")
 
-    info = descargar(args.url, trabajo)
+    info = descargar(args.url, trabajo, args.alto_max)
     video = localizar_video(trabajo)
 
     extraer_audio(video, carpeta / "audio")
-    frames = extraer_frames(video, carpeta / "frames", DETALLE[args.detail])
+    frames = extraer_frames(
+        video, carpeta / "frames", DETALLE[args.detail], info.get("duration")
+    )
     fuente = guardar_transcripcion(
         trabajo, carpeta / "transcript", carpeta / "audio" / "audio.mp3", args.modelo
     )

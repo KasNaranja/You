@@ -27,6 +27,16 @@ python3 herramientas/guardar-video.py <url> --push
 Opciones de `--detail`: `efficient` (50 fotogramas), `balanced` (100, por
 defecto) o `token-burner` (sin tope).
 
+Los fotogramas combinan **cambios de escena** con un **muestreo uniforme** que
+garantiza cobertura: ningún tramo largo se queda sin imagen aunque el vídeo no
+tenga cortes. Solo con detección de escenas, un vídeo de charla a cámara de
+28 min daba 11 fotogramas apelotonados en 100 segundos.
+
+`--alto-max` limita la resolución de origen (1080 por defecto). Los fotogramas
+se escalan a 1280 px de ancho, así que bajar 4K no mejora el resultado: solo
+multiplica por cuatro la descarga y la decodificación. El mismo vídeo de 28 min
+pasó de 779 MB y >25 min a 204 MB y 3 min.
+
 ## Dos avisos
 
 **No funciona desde sesiones en la nube.** YouTube bloquea las IPs de centros de
