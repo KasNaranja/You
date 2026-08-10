@@ -338,6 +338,13 @@ def main() -> None:
         "fotogramas": len(frames),
         "con_subtitulos": fuente == "subtitulos",
         "transcripcion": fuente,
+        # Los capitulos que el autor pone en la descripcion. Vienen en el
+        # info.json, que se borra con el directorio de trabajo, asi que hay que
+        # copiarlos aqui o se pierden.
+        "capitulos": [
+            {"segundo": int(c.get("start_time", 0)), "titulo": c.get("title", "")}
+            for c in (info.get("chapters") or [])
+        ],
     }
     (carpeta / "metadata.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -359,6 +366,13 @@ def main() -> None:
         "",
         "`frames/index.txt` relaciona cada imagen con su segundo del vídeo.",
     ]
+    if meta["capitulos"]:
+        filas += ["", "## Capítulos", ""]
+        for c in meta["capitulos"]:
+            h, resto = divmod(c["segundo"], 3600)
+            m, s = divmod(resto, 60)
+            sello = f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+            filas.append(f"- `{sello}` {c['titulo']}")
     (carpeta / "README.md").write_text("\n".join(filas) + "\n", encoding="utf-8")
 
     shutil.rmtree(trabajo, ignore_errors=True)

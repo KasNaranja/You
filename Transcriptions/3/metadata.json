@@ -9,5 +9,6 @@
   "detalle": "balanced",
   "fotogramas": 88,
   "con_subtitulos": true,
-  "transcripcion": "subtitulos"
+  "transcripcion": "subtitulos",
+  "capitulos": []
 }

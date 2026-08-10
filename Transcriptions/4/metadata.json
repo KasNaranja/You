@@ -9,5 +9,43 @@
   "detalle": "balanced",
   "fotogramas": 175,
   "con_subtitulos": true,
-  "transcripcion": "subtitulos"
+  "transcripcion": "subtitulos",
+  "capitulos": [
+    {
+      "segundo": 0,
+      "titulo": "INTRO"
+    },
+    {
+      "segundo": 30,
+      "titulo": "Channel Overview"
+    },
+    {
+      "segundo": 62,
+      "titulo": "Monthly Revenue"
+    },
+    {
+      "segundo": 71,
+      "titulo": "Total Views"
+    },
+    {
+      "segundo": 108,
+      "titulo": "Step 1"
+    },
+    {
+      "segundo": 138,
+      "titulo": "Step 2"
+    },
+    {
+      "segundo": 225,
+      "titulo": "Step 3"
+    },
+    {
+      "segundo": 357,
+      "titulo": "Step 4"
+    },
+    {
+      "segundo": 516,
+      "titulo": "9:53 Step 5"
+    }
+  ]
 }
