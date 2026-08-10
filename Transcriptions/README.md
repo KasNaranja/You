@@ -27,10 +27,14 @@ python3 herramientas/guardar-video.py <url> --push
 Opciones de `--detail`: `efficient` (50 fotogramas), `balanced` (100, por
 defecto) o `token-burner` (sin tope).
 
-Los fotogramas combinan **cambios de escena** con un **muestreo uniforme** que
-garantiza cobertura: ningún tramo largo se queda sin imagen aunque el vídeo no
-tenga cortes. Solo con detección de escenas, un vídeo de charla a cámara de
-28 min daba 11 fotogramas apelotonados en 100 segundos.
+Los fotogramas combinan **cambios de escena** con un **muestreo uniforme cada
+5 segundos** (`--cada`), que garantiza cobertura: ningún tramo se queda sin
+imagen aunque el vídeo no tenga cortes. Solo con detección de escenas, un vídeo
+de charla a cámara de 28 min daba 11 fotogramas apelotonados en 100 segundos.
+
+`--cada` levanta el tope de `--detail`; con `--cada 0` se vuelve al intervalo
+automático calculado por duración. Cuenta **50–90 KB por imagen** según lo
+movido que sea el vídeo: uno de 9 min salió a 175 fotogramas y 15 MB.
 
 `--alto-max` limita la resolución de origen (1080 por defecto). Los fotogramas
 se escalan a 1280 px de ancho, así que bajar 4K no mejora el resultado: solo

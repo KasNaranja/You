@@ -129,7 +129,7 @@ def extraer_audio(video: Path, destino: Path) -> None:
 
 
 def extraer_frames(
-    video: Path, destino: Path, tope: int, duracion: float | None
+    video: Path, destino: Path, tope: int, duracion: float | None, cada: float | None
 ) -> list[tuple[str, float]]:
     """Fotogramas por cambio de escena, con cobertura temporal garantizada.
 
@@ -143,11 +143,21 @@ def extraer_frames(
     destino.mkdir(parents=True, exist_ok=True)
     patron = str(destino / "frame_%03d.jpg")
 
-    # El intervalo se calcula para que el muestreo uniforme por sí solo ocupe
-    # ~el 80% del tope, dejando sitio a los cambios de escena. El suelo de 5 s
-    # evita que un vídeo corto se llene de fotogramas casi idénticos.
-    efectivo = tope or 100
-    intervalo = max(duracion / (efectivo * 0.8), 5.0) if duracion else 30.0
+    # Con `cada` (5 s por defecto) el intervalo es fijo y el tope se levanta: si
+    # pides un fotograma cada N segundos, el tope no debe recortarte el final
+    # del vídeo. En disco salen 50-90 KB por imagen segun lo movido que sea, asi
+    # que la densidad es barata; lo caro es leerlas luego todas de golpe, y para
+    # eso esta `index.txt`, que permite ir solo a los tramos que interesen.
+    # Con `--cada 0` se vuelve al intervalo automatico por duracion.
+    if cada:
+        intervalo = float(cada)
+        tope = 0
+    else:
+        # Si no, se calcula para que el muestreo uniforme ocupe ~el 80% del
+        # tope y quede sitio a los cambios de escena. El suelo de 5 s evita
+        # que un vídeo corto se llene de fotogramas casi idénticos.
+        efectivo = tope or 100
+        intervalo = max(duracion / (efectivo * 0.8), 5.0) if duracion else 30.0
 
     vf = (
         f"select='eq(n\\,0)+gt(scene\\,0.3)+gte(t-prev_selected_t\\,{intervalo:.2f})'"
@@ -277,6 +287,15 @@ def main() -> None:
              "(tiny, base, small, medium, large-v3; «no» lo desactiva)",
     )
     ap.add_argument(
+        "--cada",
+        type=float,
+        default=5.0,
+        metavar="SEGUNDOS",
+        help="un fotograma cada N segundos, además de los cambios de escena "
+             "(5 por defecto). Levanta el tope de --detail. Con 0 vuelve al "
+             "intervalo automático calculado a partir de la duración",
+    )
+    ap.add_argument(
         "--alto-max",
         type=int,
         default=1080,
@@ -301,7 +320,7 @@ def main() -> None:
 
     extraer_audio(video, carpeta / "audio")
     frames = extraer_frames(
-        video, carpeta / "frames", DETALLE[args.detail], info.get("duration")
+        video, carpeta / "frames", DETALLE[args.detail], info.get("duration"), args.cada
     )
     fuente = guardar_transcripcion(
         trabajo, carpeta / "transcript", carpeta / "audio" / "audio.mp3", args.modelo
