@@ -11,7 +11,7 @@ como registro de la evolución del proyecto.
 | Carpeta | Qué va dentro |
 |---|---|
 | `Transcriptions/` | Un vídeo archivado por carpeta numerada: audio, fotogramas y transcripción |
-| `herramientas/` | Utilidades propias, y copias auditadas del código de terceros con la versión fijada en un `PROCEDENCIA.md` |
+| `herramientas/` | Utilidades propias y sus skills, y copias auditadas del código de terceros con la versión fijada en un `PROCEDENCIA.md` |
 | `auditorias/` | Informes de seguridad de cada herramienta antes de instalarla |
 
 `CLAUDE.md` en la raíz recoge las reglas de trabajo del repositorio.
@@ -33,6 +33,15 @@ python herramientas/guardar-video.py <url> --push
 Si el vídeo no trae subtítulos nativos, lo transcribe **en local** con Whisper
 (`pip install faster-whisper`): gratis, sin claves ni cuotas, y el audio no sale
 de la máquina. Detalles en `Transcriptions/README.md`.
+
+### skill `guardar-video`
+
+`herramientas/skills/guardar-video/SKILL.md` — la copia **canónica** de la skill
+que envuelve al script: cuándo se dispara, qué hacen los flags y por qué están
+en el valor que están, qué comprobar antes de dar un archivado por bueno.
+
+Se instala copiándola a `~/.claude/skills/guardar-video/SKILL.md`. Si tocas una,
+sincroniza la otra.
 
 ### claude-video (`/watch`)
 
