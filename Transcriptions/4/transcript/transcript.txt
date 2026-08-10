@@ -1,0 +1,290 @@
+[00:00:00] All right, so I just found a faceless
+[00:00:02] YouTube channel that was created just 2
+[00:00:03] months ago. Now, the goal of this video
+[00:00:05] was to see if I can recreate this
+[00:00:07] channel by using AI. Now, if you want to
+[00:00:09] learn how to use AI and how to use AI
+[00:00:10] automation in order to create a YouTube
+[00:00:12] channel like this one and start your
+[00:00:14] YouTube journey, in this video I'm
+[00:00:16] basically going to show you everything.
+[00:00:17] So, if you want to learn, this video is
+[00:00:19] for you. So, let's start. Now, once you
+[00:00:20] have Cloud Code installed on your
+[00:00:22] computer, go ahead and open Cloud Code
+[00:00:24] just like this. As you can see, this is
+[00:00:25] Cloud Code on computer. And what you
+[00:00:27] want to do is click over here to the top
+[00:00:28] left on code. Make sure you're not on
+[00:00:30] co-work, you're not on chat, you want to
+[00:00:32] be on code. Now, in order for us to be
+[00:00:35] able to automate the creation of these
+[00:00:37] videos, we need to install the
+[00:00:39] Hicksfield skill. For that, I want you
+[00:00:41] to go back to your browser and search
+[00:00:42] for Hicksfield over here. Go to
+[00:00:44] Hicksfield and create an account. Once
+[00:00:46] you've created an account on Hicksfield,
+[00:00:48] I want you to click over here where it
+[00:00:49] says MCP and CLI. Once you click on
+[00:00:51] this, make sure you click on CLI over
+[00:00:53] here. Then, what I want you to do is
+[00:00:55] copy this first command over here just
+[00:00:57] by clicking on it. Then, over here on
+[00:00:59] your search bar on your computer, type
+[00:01:01] terminal like this, terminal, click on
+[00:01:03] it, and then paste this command over
+[00:01:06] here and hit enter. Once you hit enter,
+[00:01:08] it's going to install the CLI. Then,
+[00:01:11] what I want you to do is go back to
+[00:01:12] Hicksfield, copy the second command over
+[00:01:14] here, copy it, go back to your terminal,
+[00:01:17] and paste the second command and press
+[00:01:18] enter. It's going to ask you to
+[00:01:20] authorize access to Hicksfield with your
+[00:01:22] computer. So, basically, you need an
+[00:01:23] account on Hicksfield. Then, you have to
+[00:01:25] go back to Hicksfield and copy this last
+[00:01:27] command over here, which will install
+[00:01:28] the Hicksfield skill, which will help us
+[00:01:30] generate these images. So, copy this
+[00:01:31] command, go back to your terminal, paste
+[00:01:33] the command, press enter, and install
+[00:01:35] the skill. It's really that simple. Now,
+[00:01:37] I'm not pressing enter because I've
+[00:01:39] already installed those things, and it's
+[00:01:41] actually pretty simple. As you can see,
+[00:01:42] you just copy, paste them, press enter,
+[00:01:44] press enter, press enter, and that's it.
+[00:01:46] Now, once you have all of those things
+[00:01:47] installed, we can start creating the
+[00:01:49] videos. Now, let me show you how to do
+[00:01:51] that. Now, what you need is the YouTube
+[00:01:53] script. Now, depending on what type of
+[00:01:55] videos you want to make, maybe you don't
+[00:01:56] want to talk about primitive humans,
+[00:01:58] maybe you want to talk about space, or
+[00:02:00] maybe you want to talk about aliens, or
+[00:02:01] maybe you want to talk about animals.
+[00:02:03] Depending on your niche, you need a
+[00:02:05] script. You need to create a script for
+[00:02:06] the video. Now, what I want you to do is
+[00:02:08] copy this prompt over here. Let me show
+[00:02:10] you the prompt.
+[00:02:12] So, this is the master prompt we're
+[00:02:14] going to be using. As you can see, the
+[00:02:15] prompt says, "You are going to generate
+[00:02:17] images for a YouTube script, one image
+[00:02:19] for every timestamp in the script." This
+[00:02:22] is the most important part over here,
+[00:02:24] which says, "One image for every
+[00:02:25] timestamp in the script." Over here, it
+[00:02:28] says, "Your job is to read the script
+[00:02:29] carefully and create a separate image
+[00:02:31] for each timestamp. If the script has
+[00:02:32] timestamps like 0 seconds, 3 seconds, 7
+[00:02:35] seconds, 10 seconds, 12 seconds, 20
+[00:02:36] seconds, then you must generate one
+[00:02:38] image for each of those timestamps."
+[00:02:40] This is the most important part of the
+[00:02:42] prompt, right? Because this is what's
+[00:02:44] going to help us automate the process of
+[00:02:45] creating these videos. Then, over here,
+[00:02:48] it says the style requirements, and it
+[00:02:50] says the image must look like it's
+[00:02:51] extremely simple beginner drawing made
+[00:02:53] in MS Paint. It should look like someone
+[00:02:54] who is not good at drawing created it
+[00:02:56] quickly by hand, right? This part of the
+[00:02:58] prompt is also super important because
+[00:02:59] it's telling Higgs Field how the image
+[00:03:01] should look like, right? And over here,
+[00:03:03] we have white background, blah blah blah
+[00:03:04] blah blah, no 3D, no cinematic, blah
+[00:03:06] blah blah. This is the entire prompt.
+[00:03:08] What I want you to do is write a prompt
+[00:03:10] like this one, or ask ChatGPT or Claude
+[00:03:12] to write you a prompt like this one. And
+[00:03:14] after you write this prompt, I want you
+[00:03:15] to copy this prompt
+[00:03:17] and then paste it into Claude code. So,
+[00:03:19] go back to Claude code over here and
+[00:03:21] paste this prompt in the message box.
+[00:03:22] Then, what I want you to do is copy the
+[00:03:24] script with the timestamps and paste it
+[00:03:27] below this prompt. Now, all you have to
+[00:03:28] do is send this message to Claude code.
+[00:03:30] As you can see, Claude code is going to
+[00:03:32] run the skill over here, and this is the
+[00:03:34] Higgs Field skill. Then, it's going to
+[00:03:36] ask you to allow access to the terminal
+[00:03:38] a bunch of times. You just click allow,
+[00:03:41] and once that's ready, Claude code is
+[00:03:43] going to start generating the images. As
+[00:03:44] you can see over here, running skill
+[00:03:46] Higgs Field generate, and it's
+[00:03:48] generating the images. As you can see,
+[00:03:50] it's asking me to allow access. I don't
+[00:03:51] think you can see it. Let me Yeah, you
+[00:03:53] can't actually see it because of my
+[00:03:54] webcam, so I'm going to take my webcam.
+[00:03:55] So, as you can see over here, allow once
+[00:03:57] or allow always. Click always allow.
+[00:04:00] Right? As you can see, now I'll generate
+[00:04:01] 38 images. Now, it's only going to
+[00:04:03] generate 38 images because I've copied
+[00:04:05] just a little part of the script. If you
+[00:04:07] copy the entire script, it's going to
+[00:04:09] generate you more than 100 images, which
+[00:04:11] is absolutely insane. You're You're
+[00:04:13] basically going to have footage for your
+[00:04:14] video every few seconds. And this
+[00:04:16] process over here literally takes you
+[00:04:19] like 10 minutes. And basically, this is
+[00:04:21] how it looks. As you can see over here,
+[00:04:23] it's generating the images in batches,
+[00:04:25] and it's doing it pretty fast. Now, to
+[00:04:28] check your images, all you have to do is
+[00:04:30] go back to your Higgs Field account. So,
+[00:04:31] back to Higgs Field over here, as you
+[00:04:33] can see, all you have to do is click
+[00:04:35] over here at the top left where it says
+[00:04:37] image. Click on this, and over here, you
+[00:04:39] should have all the images that are
+[00:04:40] being generated right now. As you can
+[00:04:42] see, if I scroll down, we have all the
+[00:04:44] images for the script. And they have the
+[00:04:47] exact same style like that channel. So,
+[00:04:49] if we go back to this channel, and if I
+[00:04:51] click on one video, let me mute it. I
+[00:04:53] have YouTube Premium. I have no idea why
+[00:04:55] I'm receiving ads. So, YouTube is a
+[00:04:57] little bit sneaky.
+[00:04:58] As you can see, this is how the videos
+[00:05:00] look. These are literally just images of
+[00:05:02] bad drawings. But the secret is that
+[00:05:05] there's tons of images. As you can see,
+[00:05:06] the images are changing almost every 2
+[00:05:08] seconds, almost every 3 seconds. That's
+[00:05:11] the secret. Now, if we look at the
+[00:05:12] views, we see that the video was
+[00:05:13] uploaded literally on April 16, 2026. It
+[00:05:16] has almost 1 million views, 26,000
+[00:05:18] likes, almost 3,000 comments, and people
+[00:05:20] are actually enjoying the videos. And I
+[00:05:23] can scroll through the video and show
+[00:05:24] you that all the images look identical.
+[00:05:26] It's the exact same style we're
+[00:05:28] generating using Cloud Code and Higgs
+[00:05:30] Field. If I go back to Higgs Field, we
+[00:05:31] will see that our images look exactly
+[00:05:33] the same. We have this image over here.
+[00:05:35] What else we have? We have these images
+[00:05:37] over here, right? And what's awesome is
+[00:05:38] that all these images actually fit with
+[00:05:40] the script because each image was
+[00:05:42] generated for a specific timestamp of
+[00:05:44] your script. Now, let me show you how
+[00:05:46] you can edit these images super fast.
+[00:05:48] So, what you want to do is go back to
+[00:05:49] Claude Code over here, and I'm going to
+[00:05:51] stop the process of generating these
+[00:05:52] images. And basically, what you have to
+[00:05:55] type is link me the folder with the
+[00:05:58] images, right? And it's going to link
+[00:06:01] you the folder where all these images
+[00:06:03] were created, were stored. Now, if you
+[00:06:05] get this message where it says the
+[00:06:06] images are generated on Hexfield, hosted
+[00:06:08] online, not saved locally, you can ask
+[00:06:10] him to do the following. Please download
+[00:06:12] these images locally and make their
+[00:06:16] titles fit with the timestamp. So, if a
+[00:06:20] an image was created for zero 0.00
+[00:06:24] seconds, that's the title of the image.
+[00:06:28] If an image was created for 0:20,
+[00:06:32] that's the title of the image. This is
+[00:06:34] super important because having the
+[00:06:36] timestamps as the title of the image is
+[00:06:39] what's going to help us create these
+[00:06:41] videos super fast because we know
+[00:06:42] exactly where to place them to actually
+[00:06:44] sync with the voiceover. So, send this
+[00:06:46] message to Claude, and as you can see,
+[00:06:48] it's going to create a folder for us,
+[00:06:49] which is super awesome. Just click
+[00:06:50] allow, and then it's going to download
+[00:06:53] all the images for you, which again
+[00:06:54] automates the work and saves you a lot
+[00:06:56] of time because even if you have to
+[00:06:57] download each image, you have to go
+[00:06:59] click and download, click download. Not
+[00:07:01] only that, but they don't have the right
+[00:07:03] titles, and it's going to be hard to
+[00:07:04] edit them. This way, Claude Code
+[00:07:06] downloads all the images, but also
+[00:07:08] changes their titles to fit with the
+[00:07:10] timestamps. And why that's important is
+[00:07:12] because we know where to place them on
+[00:07:14] the timeline when we edit the video. So,
+[00:07:16] basically, it's going to create you a
+[00:07:18] folder like this one over here, and as
+[00:07:20] you can see, inside the folder, all the
+[00:07:22] images are going to slowly start to be
+[00:07:24] downloaded. As you can see, this is the
+[00:07:26] first image, now the second one. So,
+[00:07:28] basically, how you edit the video now,
+[00:07:29] it's super straightforward. You open
+[00:07:31] your video editing program over here,
+[00:07:33] and if I hit play, you can listen to the
+[00:07:35] voiceover.
+[00:07:35] &gt;&gt; Imagine waking up at 2:00 a.m. and not
+[00:07:37] reaching for your phone.
+[00:07:39] No glow, no notifications, no
+[00:07:40] notifications, no clock.
+[00:07:43] Just absolute darkness.
+[00:07:45] &gt;&gt; So and now basically based on the title
+[00:07:48] of the image, this one over here is 0
+[00:07:49] seconds, you add it until 7 seconds over
+[00:07:53] here. Because the next image should
+[00:07:55] start at 7 seconds. As you can see the
+[00:07:58] the second image says 0.07, which is 7
+[00:08:00] seconds. Then the third image starts at
+[00:08:03] 0.15 seconds. That means we need to drag
+[00:08:06] the second image until 15 seconds over
+[00:08:08] here. We can see over here. Then we're
+[00:08:10] going to drag the third image and when
+[00:08:12] is the fourth image going to appear?
+[00:08:13] It's going to appear at 23 seconds. So
+[00:08:16] we're going to drag this image until 20
+[00:08:19] 3 seconds. Just like that. Then we add
+[00:08:21] the next image and we're going to drag
+[00:08:23] it until 29 seconds because the next
+[00:08:25] image is going to appear at 29 seconds.
+[00:08:27] And basically editing the video like
+[00:08:28] this is going to literally take you 10
+[00:08:30] minutes. Like it's super easy. AI is
+[00:08:33] doing most of the work. Now if I hit
+[00:08:35] play, you will notice how the voiceover
+[00:08:38] syncs with each image without me needing
+[00:08:40] to listen to the voiceover and spending
+[00:08:42] hours thinking and editing. Imagine
+[00:08:44] waking up at 2:00 a.m. and not reaching
+[00:08:46] for your phone. Just absolute darkness.
+[00:08:49] You listen
+[00:08:50] for 300,000
+[00:08:52] years.
+[00:08:53] &gt;&gt; Right. So that's how you can create
+[00:08:55] these videos by using AI automation. Now
+[00:08:58] if you're struggling to grow on YouTube,
+[00:09:00] if your videos get zero views or 50
+[00:09:01] views or 200 views or they can't get
+[00:09:03] past 1,000 views, you might want to
+[00:09:05] watch this video over here because
+[00:09:07] inside this video I explain why some
+[00:09:10] channels feel shadow banned. Why some of
+[00:09:12] you think YouTube is shadow banning you
+[00:09:14] and literally ignoring your channel. So
+[00:09:16] if you want to learn about the algorithm
+[00:09:17] and how to escape that, you might want
+[00:09:19] to watch this video over here.
