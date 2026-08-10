@@ -128,39 +128,41 @@ def extraer_audio(video: Path, destino: Path) -> None:
     subprocess.run(cmd, capture_output=True)
 
 
-def extraer_frames(
-    video: Path, destino: Path, tope: int, duracion: float | None, cada: float | None
-) -> list[tuple[str, float]]:
-    """Fotogramas por cambio de escena, con cobertura temporal garantizada.
+def sello(seg: float) -> str:
+    h, resto = divmod(int(seg), 3600)
+    m, s = divmod(resto, 60)
+    return f"{h:02d}:{m:02d}:{s:02d}"
 
-    La detección de escenas por sí sola agrupa los fotogramas donde hay cortes y
-    deja el resto a oscuras: en un vídeo de 28 min de charla a cámara, 9 de 11
-    fotogramas caían dentro del mismo minuto y 23 minutos se quedaban sin una
-    sola imagen. Por eso, además de los cortes, se fuerza un fotograma cada
-    `intervalo` segundos — `prev_selected_t` es el segundo del último fotograma
-    seleccionado, así que la condición cubre cualquier hueco demasiado largo.
+
+def extraer_frames(
+    video: Path, destino: Path, tope: int, umbral: float, hueco_max: float
+) -> list[tuple[str, float]]:
+    """Un fotograma en cada cambio de escena, con una red de seguridad.
+
+    El criterio es el corte de escena: cada imagen guardada corresponde a un
+    momento en que el vídeo cambia de verdad, no a una rejilla arbitraria.
+
+    Pero la detección de escenas sola es traicionera, porque depende del montaje
+    y no se sabe de antemano: un vídeo de animación de 8 min dio 165 cortes,
+    mientras que uno de 28 min de charla a cámara dio 11, dejando 23 minutos sin
+    una sola imagen. De ahí `hueco_max`: si pasan tantos segundos sin ningún
+    corte, se fuerza un fotograma igualmente. `prev_selected_t` es el segundo
+    del último fotograma seleccionado, así que la condición cubre exactamente
+    ese caso sin tocar los vídeos que sí tienen montaje.
     """
     destino.mkdir(parents=True, exist_ok=True)
     patron = str(destino / "frame_%03d.jpg")
 
-    # Con `cada` (5 s por defecto) el intervalo es fijo y el tope se levanta: si
-    # pides un fotograma cada N segundos, el tope no debe recortarte el final
-    # del vídeo. En disco salen 50-90 KB por imagen segun lo movido que sea, asi
-    # que la densidad es barata; lo caro es leerlas luego todas de golpe, y para
-    # eso esta `index.txt`, que permite ir solo a los tramos que interesen.
-    # Con `--cada 0` se vuelve al intervalo automatico por duracion.
-    if cada:
-        intervalo = float(cada)
-        tope = 0
-    else:
-        # Si no, se calcula para que el muestreo uniforme ocupe ~el 80% del
-        # tope y quede sitio a los cambios de escena. El suelo de 5 s evita
-        # que un vídeo corto se llene de fotogramas casi idénticos.
-        efectivo = tope or 100
-        intervalo = max(duracion / (efectivo * 0.8), 5.0) if duracion else 30.0
+    # El tope de --detail se levanta: si el criterio es "una imagen por escena",
+    # recortar por número dejaría el final del vídeo sin cubrir. En disco salen
+    # 50-90 KB por imagen segun lo movido que sea, asi que la densidad es
+    # barata; lo caro es leerlas luego todas de golpe, y para eso esta
+    # `index.txt`, que permite ir solo a los tramos que interesen.
+    tope = 0
 
     vf = (
-        f"select='eq(n\\,0)+gt(scene\\,0.3)+gte(t-prev_selected_t\\,{intervalo:.2f})'"
+        f"select='eq(n\\,0)+gt(scene\\,{umbral})"
+        f"+gte(t-prev_selected_t\\,{hueco_max:.2f})'"
         ",scale=1280:-2,showinfo"
     )
     cmd = ["ffmpeg", "-y", "-i", str(video), "-vf", vf, *flag_fps()]
@@ -254,6 +256,39 @@ def transcribir_local(audio: Path, destino: Path, modelo: str) -> bool:
     return True
 
 
+def anotar_transcripcion(destino: Path, frames: list[tuple[str, float]]) -> bool:
+    """Escribe `transcript-anotado.txt`: la transcripción con los cortes dentro.
+
+    Sirve para leer qué se dice y ver a la vez qué imagen hay delante en ese
+    momento, sin ir cruzando a mano `index.txt` con las marcas de tiempo.
+    """
+    origen = destino / "transcript.txt"
+    if not origen.exists() or not frames:
+        return False
+
+    cabecera: list[str] = []
+    # (segundo, prioridad, texto). A igualdad de segundo el corte va primero:
+    # la imagen cambia y después se habla sobre ella.
+    eventos: list[tuple[float, int, str]] = []
+    for linea in origen.read_text(encoding="utf-8").splitlines():
+        m = re.match(r"\[(\d+):(\d+):(\d+)\]\s*(.*)", linea)
+        if m:
+            seg = int(m[1]) * 3600 + int(m[2]) * 60 + int(m[3])
+            eventos.append((seg, 1, f"[{m[1]}:{m[2]}:{m[3]}] {m[4]}"))
+        elif linea.strip():
+            cabecera.append(linea)
+
+    for i, (fichero, seg) in enumerate(frames, 1):
+        eventos.append(
+            (seg, 0, f"\n=== ESCENA {i:03d} · {sello(seg)} · frames/{fichero} ===")
+        )
+
+    eventos.sort(key=lambda e: (e[0], e[1]))
+    texto = "\n".join(cabecera + [e[2] for e in eventos]).strip()
+    (destino / "transcript-anotado.txt").write_text(texto + "\n", encoding="utf-8")
+    return True
+
+
 def guardar_transcripcion(trabajo: Path, destino: Path, audio: Path, modelo: str) -> str:
     """Devuelve la fuente: `subtitulos`, `whisper-local` o `ninguna`."""
     destino.mkdir(parents=True, exist_ok=True)
@@ -287,13 +322,20 @@ def main() -> None:
              "(tiny, base, small, medium, large-v3; «no» lo desactiva)",
     )
     ap.add_argument(
-        "--cada",
+        "--umbral",
         type=float,
-        default=5.0,
+        default=0.3,
+        help="sensibilidad de la detección de escenas, de 0 a 1 (0.3 por "
+             "defecto). Más bajo detecta más cortes",
+    )
+    ap.add_argument(
+        "--hueco-max",
+        type=float,
+        default=30.0,
         metavar="SEGUNDOS",
-        help="un fotograma cada N segundos, además de los cambios de escena "
-             "(5 por defecto). Levanta el tope de --detail. Con 0 vuelve al "
-             "intervalo automático calculado a partir de la duración",
+        help="red de seguridad: si pasan tantos segundos sin ningún corte de "
+             "escena, se fuerza un fotograma igualmente (30 por defecto). Evita "
+             "que un vídeo de plano fijo se quede sin imágenes",
     )
     ap.add_argument(
         "--alto-max",
@@ -320,11 +362,12 @@ def main() -> None:
 
     extraer_audio(video, carpeta / "audio")
     frames = extraer_frames(
-        video, carpeta / "frames", DETALLE[args.detail], info.get("duration"), args.cada
+        video, carpeta / "frames", DETALLE[args.detail], args.umbral, args.hueco_max
     )
     fuente = guardar_transcripcion(
         trabajo, carpeta / "transcript", carpeta / "audio" / "audio.mp3", args.modelo
     )
+    anotada = anotar_transcripcion(carpeta / "transcript", frames)
 
     meta = {
         "n": n,
@@ -364,15 +407,21 @@ def main() -> None:
         f"- **Fotogramas:** {len(frames)} ({args.detail})",
         f"- **Transcripción:** {ETIQUETA_FUENTE[fuente]}",
         "",
-        "`frames/index.txt` relaciona cada imagen con su segundo del vídeo.",
+        "Cada fotograma corresponde a un cambio de escena; `frames/index.txt` "
+        "lo relaciona con su segundo del vídeo.",
     ]
+    if anotada:
+        filas.append(
+            "`transcript/transcript-anotado.txt` lleva los cortes intercalados "
+            "en la transcripción."
+        )
     if meta["capitulos"]:
         filas += ["", "## Capítulos", ""]
         for c in meta["capitulos"]:
             h, resto = divmod(c["segundo"], 3600)
             m, s = divmod(resto, 60)
-            sello = f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
-            filas.append(f"- `{sello}` {c['titulo']}")
+            marca = f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+            filas.append(f"- `{marca}` {c['titulo']}")
     (carpeta / "README.md").write_text("\n".join(filas) + "\n", encoding="utf-8")
 
     shutil.rmtree(trabajo, ignore_errors=True)

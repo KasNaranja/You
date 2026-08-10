@@ -8,7 +8,8 @@ Transcriptions/
   1/
     audio/        audio.mp3 (mono 16 kHz)
     frames/       frame_001.jpg… + index.txt (imagen → segundo del vídeo)
-    transcript/   .vtt originales + transcript.txt con marcas de tiempo
+    transcript/   .vtt originales, transcript.txt con marcas de tiempo y
+                  transcript-anotado.txt con los cortes de escena intercalados
     metadata.json título, canal, duración, URL, fecha
     README.md     resumen de la ficha
   2/
@@ -27,14 +28,17 @@ python3 herramientas/guardar-video.py <url> --push
 Opciones de `--detail`: `efficient` (50 fotogramas), `balanced` (100, por
 defecto) o `token-burner` (sin tope).
 
-Los fotogramas combinan **cambios de escena** con un **muestreo uniforme cada
-5 segundos** (`--cada`), que garantiza cobertura: ningún tramo se queda sin
-imagen aunque el vídeo no tenga cortes. Solo con detección de escenas, un vídeo
-de charla a cámara de 28 min daba 11 fotogramas apelotonados en 100 segundos.
+**Un fotograma por cada cambio de escena.** Cada imagen guardada corresponde a
+un momento en que el vídeo cambia de verdad, no a una rejilla arbitraria.
+`--umbral` ajusta la sensibilidad (0.3 por defecto; más bajo, más cortes).
 
-`--cada` levanta el tope de `--detail`; con `--cada 0` se vuelve al intervalo
-automático calculado por duración. Cuenta **50–90 KB por imagen** según lo
-movido que sea el vídeo: uno de 9 min salió a 175 fotogramas y 15 MB.
+Con una red de seguridad: si pasan más de `--hueco-max` segundos (30 por
+defecto) sin ningún corte, se fuerza un fotograma igualmente. Hace falta porque
+la densidad de cortes depende del montaje y no se sabe de antemano — un vídeo de
+animación de 8 min dio 165, y uno de 28 min de charla a cámara dio 11, dejando
+23 minutos sin una sola imagen.
+
+Cuenta **50–90 KB por imagen** según lo movido que sea el vídeo.
 
 `--alto-max` limita la resolución de origen (1080 por defecto). Los fotogramas
 se escalan a 1280 px de ancho, así que bajar 4K no mejora el resultado: solo
