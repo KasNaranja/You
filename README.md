@@ -13,6 +13,7 @@ como registro de la evolución del proyecto.
 | `Transcriptions/` | Un vídeo archivado por carpeta numerada: audio, fotogramas y transcripción |
 | `herramientas/` | Utilidades propias y sus skills, y copias auditadas del código de terceros con la versión fijada en un `PROCEDENCIA.md` |
 | `auditorias/` | Informes de seguridad de cada herramienta antes de instalarla |
+| `configuracion/` | Copia versionada de lo que vive en `~/.claude/` y no cubre ningún repo |
 
 `CLAUDE.md` en la raíz recoge las reglas de trabajo del repositorio.
 
