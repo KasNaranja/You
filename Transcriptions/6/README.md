@@ -3,13 +3,9 @@
 - **URL:** https://www.youtube.com/watch?v=iUplvHv1YKE
 - **Canal:** Los Ecomonos
 - **Duración:** 544s
-- **Visitas:** 416,398
-- **Guardado:** 2026-08-12 UTC
-- **Transcripción:** sí (subtítulos)
-- **Fotogramas:** no — descarga de vídeo bloqueada desde la nube
+- **Guardado:** 2026-08-12 07:38 UTC
+- **Fotogramas:** 135 (balanced)
+- **Transcripción:** sí — subtítulos del vídeo
 
-Archivo parcial. Para completarlo con audio y fotogramas, reejecutar en local:
-
-```
-python herramientas/guardar-video.py https://www.youtube.com/watch?v=iUplvHv1YKE --push
-```
+Cada fotograma corresponde a un cambio de escena; `frames/index.txt` lo relaciona con su segundo del vídeo.
+`transcript/transcript-anotado.txt` lleva los cortes intercalados en la transcripción.
