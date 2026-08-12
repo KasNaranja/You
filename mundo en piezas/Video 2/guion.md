@@ -6,12 +6,28 @@
 - **Tesis:** el modelo que la hizo rica es exactamente el que la hunde.
 - **Estado:** guion escrito. **Cifras pendientes de verificar antes de grabar.**
 
-## Aviso sobre las cifras
+## Verificación pendiente
 
-El guion usa comparaciones y órdenes de magnitud, no datos exactos, allí donde
-no hay una cifra que se pueda defender sin fuente. Antes de publicar hay que
-comprobar una por una las que sí aparecen. Un dato mal en un vídeo de
-divulgación se paga caro y no se puede corregir después de subirlo.
+El guion nombra empresas, países y fechas concretas, porque la abstracción
+mataba la retención. Eso mejora el vídeo y sube la deuda de comprobación.
+
+**Estas afirmaciones hay que confirmarlas antes de grabar:**
+
+| Marca de tiempo | Afirmación |
+|---|---|
+| 1:16 | El Nord Stream pasa bajo el mar Báltico |
+| 3:45 | El Nord Stream se cerró tras la invasión rusa de Ucrania de 2022 |
+| 4:38 | BYD vende hoy más coches eléctricos que Tesla |
+| 5:50 | BASF ha cerrado líneas en Ludwigshafen |
+| 5:56 | BASF ha abierto una planta nueva en China |
+| 6:04 | Volkswagen anunció recortes |
+| 6:08 | Volkswagen se planteó cerrar plantas en Alemania |
+| 6:12 | No había pasado en sus casi noventa años de historia |
+| 6:15 | Han caído los pedidos de maquinaria industrial |
+
+Una cifra mal en divulgación se paga caro y no se puede corregir después de
+subir el vídeo. El resto del guion usa órdenes de magnitud a propósito, que no
+necesitan fuente.
 
 ## Estructura
 
@@ -25,7 +41,20 @@ divulgación se paga caro y no se puede corregir después de subirlo.
 | Ya se ve | 5:35 | Señales concretas, no teoría |
 | Por qué no se arregla | 6:55 | El problema no es el diagnóstico |
 | La lección | 7:45 | Lo que enseña más allá de Alemania |
-| Cierre que abre | 8:16 | Al siguiente vídeo |
+| Cierre | 8:20 | Remata la tesis y enlaza con el vídeo 1 |
+
+## Estilo visual
+
+Corte único en **3:35**, cuando caen las tres patas. Ver `estilos/README.md`.
+
+| Tramo | Estilo |
+|---|---|
+| 0:00 – 0:13 | Pixel sobrio — el gancho, la locomotora ya parada |
+| 0:13 – 3:35 | Pixel alegre — los veinte años buenos |
+| 3:35 – 8:32 | Pixel sobrio — todo lo que se rompe |
+
+Banderas y logos verificados: el modelo los dibuja bien. Pruebas en
+`prueba-estilo/marcas/`.
 
 ---
 
@@ -53,16 +82,16 @@ divulgación se paga caro y no se puede corregir después de subirlo.
 1:00 Empecemos por lo que hacía tan bien.
 1:03 El modelo alemán se apoyaba en tres patas.
 1:07 Nada más. Tres.
-1:09 La primera: energía barata.
-1:12 Muy barata. Y venía casi toda del mismo sitio.
-1:16 De un solo vecino, por unas tuberías.
-1:19 La segunda: un cliente enorme al otro lado del mundo.
+1:09 La primera: gas ruso barato.
+1:12 Muy barato. Y llegaba casi todo por el mismo sitio.
+1:16 Por el Nord Stream, un tubo bajo el mar Báltico.
+1:19 La segunda: China.
 1:24 Un país que crecía sin parar y necesitaba máquinas.
-1:28 Máquinas para construir sus propias fábricas.
-1:31 Y Alemania se las vendía.
-1:34 La tercera: el coche de motor de explosión.
-1:38 No un coche cualquiera.
-1:40 El mejor motor del mundo, después de un siglo perfeccionándolo.
+1:28 Máquinas de Siemens y de mil fábricas alemanas más
+1:31 para construir sus propias fábricas.
+1:34 La tercera: el motor de explosión.
+1:38 Volkswagen, BMW, Mercedes, Porsche, Audi.
+1:40 Un siglo perfeccionando el mismo motor.
 1:45 Ahí no competía nadie.
 1:47 Junta las tres y tienes la fórmula.
 1:50 Energía barata para fabricar.
@@ -97,9 +126,9 @@ divulgación se paga caro y no se puede corregir después de subirlo.
 
 3:35 Entonces, en muy poco tiempo, cayeron las tres patas.
 3:40 Casi a la vez.
-3:42 La primera fue la energía.
-3:45 Las tuberías se cerraron.
-3:47 De un día para otro, la energía barata dejó de ser barata.
+3:42 La primera fue el gas.
+3:45 En 2022 Rusia invadió Ucrania y el Nord Stream se cerró.
+3:47 De un día para otro, el gas barato dejó de ser barato.
 3:52 Y las fábricas que la necesitaban se encontraron con la factura.
 3:57 No un poco más alta. Varias veces más alta.
 4:01 Cuando fabricas acero, vidrio o productos químicos,
@@ -108,14 +137,14 @@ divulgación se paga caro y no se puede corregir después de subirlo.
 4:10 Y si tu vecino la tiene más barata, ya no puedes competir.
 4:15 Algunas fábricas no subieron precios.
 4:18 Simplemente pararon.
-4:20 La segunda pata fue el cliente.
-4:23 Ese país que compraba máquinas para construir sus fábricas
-4:28 terminó de construirlas.
-4:30 Y entonces hizo algo que nadie había previsto.
-4:34 Empezó a fabricar él lo que antes compraba.
-4:38 El cliente se convirtió en competidor.
-4:41 No en cualquier competidor.
-4:43 En uno que fabrica más barato y en más cantidad.
+4:20 La segunda pata fue China.
+4:23 Terminó de construir sus fábricas.
+4:28 Y entonces hizo algo que nadie había previsto.
+4:30 Empezó a fabricar ella lo que antes compraba.
+4:34 Coches incluidos.
+4:38 BYD vende hoy más coches eléctricos que Tesla.
+4:41 El cliente se convirtió en competidor.
+4:43 Y fabrica más barato y en más cantidad.
 4:47 Y la tercera pata fue el coche.
 4:50 Durante un siglo, el motor de explosión fue una obra de arte.
 4:55 Miles de piezas encajando a la perfección.
@@ -134,12 +163,12 @@ divulgación se paga caro y no se puede corregir después de subirlo.
 5:39 La economía alemana lleva años sin crecer.
 5:43 No en caída libre. Parada.
 5:46 Que para un país que vivía de exportar es lo mismo.
-5:50 Fábricas químicas que llevaban décadas abiertas han cerrado líneas.
-5:56 Algunas se han mudado a países con energía más barata.
+5:50 BASF, la mayor química del mundo, ha cerrado líneas en Ludwigshafen.
+5:56 Y ha montado una planta nueva en China.
 6:00 Y una vez que una fábrica se muda, no vuelve.
-6:04 Las marcas de coches han anunciado recortes.
-6:08 Alguna se planteó cerrar plantas dentro del propio país.
-6:12 Cosa que no había pasado en décadas.
+6:04 Volkswagen anunció recortes.
+6:08 Y se planteó cerrar plantas en Alemania.
+6:12 Cosa que no había pasado en sus casi noventa años de historia.
 6:15 Los pedidos de máquinas industriales han caído.
 6:19 Y cuando caen los pedidos de máquinas,
 6:22 es que nadie está construyendo fábricas nuevas.
@@ -176,7 +205,8 @@ divulgación se paga caro y no se puede corregir después de subirlo.
 8:13 En qué eres muy bueno desde hace mucho.
 8:16 Y pregúntate si sigue importando tanto como antes.
 
-8:20 Pero hay algo que no te he contado.
-8:23 Porque Alemania tenía una salida.
-8:26 Y decidió no usarla, por una regla que ella misma se puso.
-8:30 Te lo cuento en el vídeo que tienes en pantalla.
+8:20 Alemania no perdió porque alguien la adelantara.
+8:24 Perdió porque el mundo cambió de pregunta.
+8:28 Y ella seguía dando la mejor respuesta a la anterior.
+8:32 Si quieres ver la otra cara de esto, un sitio que sí sigue siendo
+     insustituible, te lo cuento en el vídeo que tienes en pantalla.
