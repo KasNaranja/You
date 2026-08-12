@@ -20,8 +20,14 @@ cambiar de máquina.
 
 ## Sincronizar
 
-Son copias, no enlaces: Windows no permite enlaces simbólicos sin activar el
-modo desarrollador. Si tocas una, copia a la otra y súbelo.
+Son copias. Si tocas una, copia a la otra y súbelo.
+
+Corrección (2026-08-12): aquí decía que Windows no permite enlaces sin modo
+desarrollador. Eso solo vale para los **enlaces simbólicos**; las **junctions**
+de directorio sí funcionan sin permisos de administrador — comprobado. O sea que
+`~/.claude/skills/guardar-video` podría ser una junction al repo y dejar de
+depender de que alguien se acuerde de copiar. Para `CLAUDE.md` no sirve: es un
+fichero suelto, y ahí la junction no aplica.
 
 ```
 Copy-Item C:\Users\oriol\.claude\CLAUDE.md C:\Users\oriol\You\configuracion\CLAUDE.md
