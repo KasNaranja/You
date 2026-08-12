@@ -1,0 +1,24 @@
+Por qué Alemania, la locomotora de Europa, se ha parado
+
+--- alternativas ---
+
+Alemania hizo todo bien durante 20 años. Por eso se ha parado.
+El país más industrial de Europa lleva años sin crecer. Nadie le adelantó.
+Alemania no se equivocó. Y ese es exactamente el problema.
+
+--- notas ---
+
+El propuesto en la lista original aguanta bien: 52 caracteres, nombra el país
+—que es lo que la gente busca— y «locomotora parada» da una imagen concreta
+sin explicar nada.
+
+La segunda alternativa es la más agresiva en curiosidad: plantea la paradoja en
+el propio título. Tiene más gancho pero puede leerse como clickbait si el vídeo
+no la resuelve rápido. Aquí sí la resuelve, en el minuto 0:41.
+
+Si el primer vídeo funciona en búsqueda, mantener «Alemania» al principio del
+título ayuda. Si funciona en sugeridos, la paradoja tira más.
+
+Merece una prueba A/B a las 48 horas, cuando haya impresiones suficientes:
+empezar con el conservador y cambiar al de la paradoja si el CTR se queda por
+debajo del 3%.
