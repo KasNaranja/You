@@ -51,3 +51,12 @@ venv/
 # Ofimática (ficheros de bloqueo)
 ~$*
 .~lock.*
+
+# Vídeos montados: se quedan en local, no en el repo.
+# Pesan del orden de 50-200 MB cada uno y no hacen falta para rehacer nada:
+# con las imágenes, la voz y el guion se vuelve a montar en minutos.
+# La ruta local de cada uno está en el UBICACION.md de su carpeta.
+*.mp4
+*.mov
+*.mkv
+*.webm
