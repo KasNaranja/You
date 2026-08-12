@@ -9,7 +9,8 @@ previo, en `../prompt-imagenes.md`. Aquí queda lo que se ejecutó de verdad, qu
 difiere del plan: salieron **145 imágenes**, no las ~165 previstas.
 
 - **Duración:** 8:32 (511,81 s)
-- **Formato:** 1920×1080, 30 fps, H.264 + AAC 192k
+- **Formato:** 1920×1080 · 30 fps · H.264 High L4.0, yuv420p, GOP cerrado de 2 s
+  · AAC-LC 48 kHz estéreo · `faststart`. Ajustado a lo que recomienda YouTube.
 - **Imágenes:** 145, una por cada timestamp del guion
 - **Voz:** edge-tts `es-ES-AlvaroNeural`, calibrada y masterizada a −16 LUFS
 - **Producido:** 2026-08-12
@@ -53,6 +54,30 @@ esperada. Se arregló montando en WAV, que no tiene ese relleno.
    cada clip (~0,23 s delante, ~0,85 s detrás) y se calibra la velocidad línea
    a línea hasta que cabe en su hueco. Solo 4 de las 145 hubo que acelerar.
 3. **Montaje** — ffmpeg. Cada imagen dura lo que el guion asigna a su frase.
+
+## Formato de salida
+
+El primer montaje salió a 208 kbps de vídeo, 96 kHz mono de audio y sin
+`faststart`. Funcionaba, pero no era lo que YouTube pide.
+
+La versión final se codifica así:
+
+```
+-c:v libx264 -profile:v high -preset slow -crf 14
+-x264-params keyint=60:min-keyint=60:scenecut=0:bframes=2
+-pix_fmt yuv420p
+-af aresample=48000 -ac 2 -c:a aac -b:a 256k -ar 48000
+-movflags +faststart
+```
+
+El bitrate resultante (~600 kbps) sigue muy por debajo de los 8 Mbps que
+recomienda YouTube, y **está bien**: esa cifra asume grabaciones con grano y
+detalle real. Aquí son colores planos, y a CRF 14 la imagen es prácticamente
+sin pérdida. Forzar 8 Mbps solo engordaría el fichero sin mejorar nada.
+
+Lo que sí importaba era subir de CRF 20 a 14: en dibujos de color plano, un
+origen pobre hace que el reencodeo de YouTube saque bandas alrededor de las
+líneas negras gruesas.
 
 ## Coste
 
