@@ -48,11 +48,55 @@ Hay tres salidas:
 3. **Reservarlo para otros vídeos.** El 4 (precio de la luz) o el 7 (canal de
    Panamá) aguantan mejor una estética luminosa.
 
+## Variante sobria — la que funciona
+
+Probada la salida 2. **Es claramente mejor para este vídeo.**
+
+```
+Colorful digital illustration with pixel art influence. Crisp clean pixel
+rendering, saturated but restrained colors, rich detailed background. Serious
+documentary mood, not cheerful, not playful, no whimsy. Clean dark outlines,
+soft shading inside flat color areas. Overcast muted sky in grey and pale blue,
+no bright sunshine. Industrial palette: rust, steel grey, brick red, soot black,
+muted dark green. Simple stylized figures seen from a distance, small in the
+frame, no detailed faces. Everything readable and well composed, generous
+margins, nothing cropped. Absolutely no text, no letters, no words, no numbers
+anywhere in the image. Scene: <la escena>
+```
+
+Cuatro cambios respecto a la alegre:
+
+| Fuera | Dentro |
+|---|---|
+| `Cheerful storybook mobile game aesthetic` | `Serious documentary mood, not cheerful` |
+| `Vivid blue sky, strong sunlight, lush vivid greens` | `Overcast muted sky, no bright sunshine` |
+| (paleta libre) | `rust, steel grey, brick red, soot black` |
+| `characters with friendly proportions` | `figures seen from a distance, no detailed faces` |
+
+Ese último cambio importa para un canal faceless: la versión alegre metía caras
+definidas y sonrientes, la sobria deja figuras pequeñas y anónimas.
+
+## Lo que hay que decidir antes de comprometerse
+
+Este estilo es **mucho más detallado** que el 1. Eso trae dos cosas:
+
+**A favor** — es bonito, distinto de lo que hay en el nicho en español, y la
+locomotora oxidada bajo cielo gris cuenta la tesis del vídeo sin narración.
+
+**En contra** — el fondo compite con la idea. La virtud del estilo 1 es que es
+tan simple que el concepto entra de golpe. Aquí el ojo se va a las chimeneas,
+las vías y los detalles. En un vídeo explicativo eso puede restar.
+
+Y a más detalle, más superficie de fallo: manos raras, caras deformes,
+perspectivas imposibles. En 145 imágenes eso se acumula.
+
 ## Coste
 
 Igual que el estilo 1: 1 crédito por imagen a 1k. 145 imágenes ≈ 145 créditos.
 
 ## Estado
 
-Probado con las 5 primeras escenas del vídeo 2. Resultados en
-`Video 2/prueba-estilo/`.
+Ambas variantes probadas con las 5 primeras escenas del vídeo 2:
+
+- `Video 2/prueba-estilo/alegre/` — descartada por tono
+- `Video 2/prueba-estilo/sobrio/` — candidata
