@@ -66,6 +66,15 @@ Cuenta 50–90 KB por imagen según lo movido que sea el vídeo.
 
 ## Transcripción
 
+Se elige la pista **en el idioma hablado**: primero la marcada `-orig`, si no la
+que declara el vídeo, y solo como último recurso la primera por orden. La
+cabecera de `transcript.txt` dice cuál se usó.
+
+No es un detalle menor: por orden alfabético, un vídeo en español con pistas
+`en`, `es-orig` y `es` acababa transcrito con la **traducción automática al
+inglés**, marcas de censura incluidas. Si el texto no cuadra con el idioma del
+vídeo, mira esa cabecera.
+
 1. **Subtítulos nativos** si el vídeo los trae — es lo normal.
 2. **Whisper en local** si no (`faster-whisper`): gratis, sin claves ni cuotas,
    y el audio no sale de la máquina. Requiere `pip install faster-whisper`.

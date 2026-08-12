@@ -289,15 +289,43 @@ def anotar_transcripcion(destino: Path, frames: list[tuple[str, float]]) -> bool
     return True
 
 
-def guardar_transcripcion(trabajo: Path, destino: Path, audio: Path, modelo: str) -> str:
+def elegir_vtt(vtts: list[Path], idioma: str | None) -> Path:
+    """Elige la pista de subtítulos en el idioma hablado en el vídeo.
+
+    Orden alfabético no vale: en un vídeo en español con pistas `en`, `es-orig`
+    y `es`, `video.en.vtt` gana el sorted() y la transcripción acaba siendo la
+    traducción automática al inglés, con marcas de censura incluidas. YouTube
+    marca la pista original con el sufijo `-orig`, y si no está, el idioma que
+    declara el propio vídeo es mejor pista que el abecedario.
+    """
+    for v in vtts:
+        if "-orig" in v.name:
+            return v
+    if idioma:
+        corto = idioma.split("-")[0]
+        for v in vtts:
+            if v.name == f"video.{idioma}.vtt":
+                return v
+        for v in vtts:
+            if v.name.startswith(f"video.{corto}"):
+                return v
+    return vtts[0]
+
+
+def guardar_transcripcion(
+    trabajo: Path, destino: Path, audio: Path, modelo: str, idioma: str | None
+) -> str:
     """Devuelve la fuente: `subtitulos`, `whisper-local` o `ninguna`."""
     destino.mkdir(parents=True, exist_ok=True)
     vtts = sorted(trabajo.glob("video*.vtt"))
     if vtts:
         for v in vtts:
             shutil.copy2(v, destino / v.name)
-        texto = vtt_a_texto(vtts[0].read_text(encoding="utf-8", errors="replace"))
-        (destino / "transcript.txt").write_text(texto + "\n", encoding="utf-8")
+        principal = elegir_vtt(vtts, idioma)
+        texto = vtt_a_texto(principal.read_text(encoding="utf-8", errors="replace"))
+        (destino / "transcript.txt").write_text(
+            f"# Pista: {principal.name}\n" + texto + "\n", encoding="utf-8"
+        )
         return "subtitulos"
 
     if modelo != "no" and transcribir_local(audio, destino, modelo):
@@ -365,7 +393,8 @@ def main() -> None:
         video, carpeta / "frames", DETALLE[args.detail], args.umbral, args.hueco_max
     )
     fuente = guardar_transcripcion(
-        trabajo, carpeta / "transcript", carpeta / "audio" / "audio.mp3", args.modelo
+        trabajo, carpeta / "transcript", carpeta / "audio" / "audio.mp3",
+        args.modelo, info.get("language"),
     )
     anotada = anotar_transcripcion(carpeta / "transcript", frames)
 
