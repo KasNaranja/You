@@ -10,7 +10,8 @@ como registro de la evolución del proyecto.
 
 | Carpeta | Qué va dentro |
 |---|---|
-| `Transcriptions/` | Un vídeo archivado por carpeta numerada: audio, fotogramas y transcripción |
+| `Transcriptions/` | Un vídeo de terceros archivado por carpeta numerada: audio, fotogramas y transcripción |
+| `Videos/` | Vídeos **producidos** para el canal: montaje, imágenes, guion, miniaturas y textos de publicación |
 | `herramientas/` | Utilidades propias y sus skills, y copias auditadas del código de terceros con la versión fijada en un `PROCEDENCIA.md` |
 | `auditorias/` | Informes de seguridad de cada herramienta antes de instalarla |
 | `configuracion/` | Copia versionada de lo que vive en `~/.claude/` y no cubre ningún repo |

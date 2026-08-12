@@ -1,0 +1,135 @@
+0:31	031.png	A simple desktop computer with a monitor, and next to it a brain shape. A big red X over each.
+0:34	034.png	A simple round globe with a sad face, and beside it a wall calendar with several pages.
+0:37	037.png	A small stick figure standing alone with one hand raised, and a small red question mark above its head.
+0:40	040.png	One enormous red question mark filling most of the frame, with a tiny stick figure standing beneath it.
+0:43	043.png	Several stick figures all reaching towards a factory building, arms stretched out.
+0:46	046.png	A stick figure pushing a huge pile of money bags that is much taller than the figure.
+0:49	049.png	A factory building with a big red X over it, and a sad stick figure sitting on the ground beside it.
+0:52	052.png	A big magnifying glass held over a plain map, with one tiny green island visible through the lens.
+0:56	056.png	A shopping basket with a phone and a car in it, and a large price tag hanging from the basket.
+1:00	100.png	One plain black rectangle alone in the centre of an empty white frame.
+1:03	103.png	A black rectangle with a red question mark drawn on top of it, and a puzzled stick figure looking at it.
+1:06	106.png	One smooth flat black rectangle drawn simply in the centre, with small even legs along its two long sides.
+1:10	110.png	A black rectangle drawn opened up, showing a rough messy tangle of lines inside it.
+1:13	113.png	A grid of small squares and straight lines seen from above, like streets and buildings of a town.
+1:15	115.png	A rectangle completely filled with very many tiny black squares, drawn crudely and densely.
+1:20	120.png	One large simple light switch on a wall, surrounded by a swarm of tiny identical switches.
+1:23	123.png	Left half: a dark blue night sky with a few small stars. Right half: white space covered in tiny black dots.
+1:27	127.png	A large multiplication sign in the centre with dense clouds of tiny black dots on both sides of it.
+1:29	129.png	A grid of small squares, every single one with a small green tick mark drawn inside it.
+1:32	132.png	A grid of small squares where one is red, and a red arrow pointing from the grid to a rubbish bin.
+1:36	136.png	A stick figure scratching its round head with a red question mark above it, a black rectangle in front.
+1:40	140.png	A screwdriver and bolt with a big red X over them, and beside them a yellow beam drawing a line.
+1:43	143.png	A tall stack of flat rectangles piled on top of each other seen from the side, red arrow pointing up.
+1:47	147.png	A round virus shape with small spikes on the left, and a much thinner straight line on the right.
+1:51	151.png	A yellow light bulb with a big red X over it, next to a very thin line it cannot reach.
+1:55	155.png	A plain empty white room with one stick figure in a full white suit standing inside it.
+1:59	159.png	Two boxes side by side: the left full of small grey floating dots, the right completely empty and white.
+2:03	203.png	One single small grey dot falling onto a black rectangle, with a big red X over the rectangle.
+2:06	206.png	A stick figure in a full white suit with a helmet, standing straight, arms at its sides.
+2:11	211.png	A stick figure in a white suit holding a small black rectangle far away from its body, red arrow pointing from figure to rectangle.
+2:13	213.png	A wall calendar with several pages, and a red arrow curving across it from left to right.
+2:17	217.png	A calendar on the left, a big red arrow pointing right, and a hand with one tiny black square on the fingertip.
+2:21	221.png	A stick figure climbing a steep hill, with a small flag at the top.
+2:24	224.png	Several stick figures at the bottom of a steep hill, and only one standing at the top.
+2:28	228.png	Many stick figures standing together in a row, all with neutral faces.
+2:30	230.png	A large simple clock face with a red arrow curving backwards around it, anticlockwise.
+2:34	234.png	One building with two arrows coming out of it, one pointing left and one pointing right.
+2:38	238.png	A pencil drawing a rectangle on the left, and a factory producing the same rectangle on the right.
+2:41	241.png	One stick figure standing alone with a light bulb drawn above its round head.
+2:45	245.png	A pencil with a big red X over it, standing alone in an empty white frame.
+2:48	248.png	One factory building in the centre with arrows going out from it towards several small buildings around.
+2:51	251.png	A group of stick figures with downturned mouths, all facing one separate stick figure.
+2:54	254.png	Left: a pencil on a small pedestal. Right: a factory building with grey smudges around it.
+2:58	258.png	Many stick figures scattered across the frame, each holding a pencil.
+3:01	301.png	One single stick figure beside a factory, with a very long red arrow running across the whole frame.
+3:05	305.png	One large simple key drawn in the centre of an empty white frame.
+3:08	308.png	A large empty rectangle frame with a red arrow pointing into it, on plain white.
+3:11	311.png	A tray of small black squares, with a green tick above some and a red cross above others.
+3:13	313.png	A tray holding several small black squares, with a red question mark drawn above the tray.
+3:17	317.png	A factory on the left and a rubbish bin on the right overflowing with small black squares.
+3:21	321.png	A factory on the left and a neat tall pile of black squares on the right, with an almost empty bin.
+3:25	325.png	A simple balance scale with a stack of coins on one side and an empty bowl on the other.
+3:29	329.png	A bag of money with a big red X over it, next to an open book.
+3:32	332.png	A long row of small red crosses running across the frame, ending in one green tick.
+3:35	335.png	An hourglass in the centre with a bag of money beside it and a big red X over the money.
+3:38	338.png	A printing machine producing banknotes, and beside it an hourglass with a big red X over it.
+3:42	342.png	One large red exclamation mark alone in the centre of a white frame.
+3:45	345.png	A small green island with a stick figure on it holding both empty hands out to the sides.
+3:48	348.png	A large simple grey box machine with a beam of light coming out of one side.
+3:53	353.png	One single small building drawn alone in the middle of a very large empty white frame.
+3:57	357.png	A row of empty spaces with only one small building present, and red crosses where the others would be.
+4:00	400.png	A simple windmill with four blades next to a plain building, standing on flat green ground.
+4:03	403.png	A grey box machine on the left with a very large price tag, and stacks of coins on the right.
+4:08	408.png	Two piles of coins side by side, the right pile more than twice as tall as the left one.
+4:11	411.png	A truck with a big red X over it on the left, and three simple aeroplanes flying in a row on the right.
+4:15	415.png	Many plain square boxes stacked in a big pile, with one small stick figure standing beside them.
+4:19	419.png	A grey box machine drawn open with a red question mark inside it.
+4:23	423.png	One single grey round droplet falling through a completely empty black rectangle.
+4:26	426.png	A straight red beam hitting a round grey droplet from the side, flattening it into an oval.
+4:30	430.png	A red beam hitting a flat grey oval which bursts into a small yellow spiky star shape.
+4:34	434.png	A small yellow spiky star sending thin straight yellow lines out in all directions.
+4:39	439.png	A stopwatch face on the left and a dense cluster of tiny yellow flashes on the right.
+4:43	443.png	A yellow line bouncing at angles between two flat grey rectangles facing each other.
+4:46	446.png	One perfectly straight flat grey bar drawn alone, with a straight ruler line above it matching exactly.
+4:51	451.png	One large plain flat land shape filling most of the frame, drawn empty and smooth.
+4:54	454.png	A wide flat grey bar with one extremely tiny bump on it, and a red arrow pointing at the bump.
+4:58	458.png	A stick figure looking at a grey box machine, with a red question mark above the figure's head.
+5:02	502.png	A grey box machine drawn open and completely filled inside with many small shapes and squares.
+5:06	506.png	A round globe in the centre with many thin lines running towards it from small boxes all around.
+5:11	511.png	Several small buildings in a row, each with a small padlock drawn on its front.
+5:15	515.png	One grey box machine on the left, an equals sign, and a large red question mark on the right.
+5:19	519.png	Half a round globe covered in many small stick figures, with a large clock face beside it.
+5:23	523.png	A large red exclamation mark with a small stick figure beside it pointing up at it.
+5:26	526.png	A small building with a shop counter and a barrier bar drawn across its front.
+5:29	529.png	A large stick figure standing behind a barrier, holding one hand up in a stop gesture.
+5:32	532.png	A grey box machine on one side, a barrier across the middle, a stick figure on the far side, red X between.
+5:36	536.png	One stick figure holding an enormous bag of money, much bigger than the figure itself.
+5:38	538.png	A stick figure with a money bag on one side of a closed barrier, and a small building with a windmill on the other.
+5:43	543.png	A round globe far away on the left, and a red arrow curving from it towards a small house on the right.
+5:47	547.png	A wall calendar with one recent date circled in red.
+5:49	549.png	An empty shelf with a red X where a black rectangle should be.
+5:54	554.png	Several arrows crossing over each other in a tangle, with a lorry and a box drawn among them.
+5:58	558.png	A factory building with a chimney and no smoke, and a red stop sign shape beside it.
+6:02	602.png	A row of four factory buildings, each one with a red X over it.
+6:05	605.png	A long empty factory belt drawn with nothing on it.
+6:09	609.png	Many simple cars parked in neat rows filling a large flat area.
+6:13	613.png	One simple car on the left and one tiny black square with a small coin on the right, with a red arrow between.
+6:17	617.png	An empty shop with a large window and nothing inside, and a sad stick figure in the doorway.
+6:19	619.png	A simple car with a price tag, and a red arrow pointing steeply upwards beside it.
+6:23	623.png	Two cars on a balance scale, the older looking one sitting lower than the newer one.
+6:26	626.png	A stick figure with a very surprised round face, both arms raised in the air.
+6:28	628.png	A stick figure tripping over one very small stone on the ground.
+6:32	632.png	A small green island with a large power switch beside it, switched down to the off position.
+6:36	636.png	A very tall stack of coins with a red arrow pointing steeply downwards beside it.
+6:41	641.png	A long row of many zeros drawn large across the frame with a red arrow underneath.
+6:43	643.png	A line chart with a jagged line falling sharply off the bottom right corner.
+6:46	646.png	A small green island with a large shield shape drawn in front of it.
+6:50	650.png	One large simple shield shape with a small black rectangle drawn in the middle of it.
+6:54	654.png	A small green island with a simple sword shape beside it and a big red X over the sword.
+6:57	657.png	A small green island in the centre with many hands reaching towards it from all sides.
+7:01	701.png	A small green island standing on a pedestal with a shield drawn in front of it.
+7:05	705.png	A stick figure with a spanner working on a large machine, with a clock face beside it.
+7:09	709.png	A very large bag of money with a red arrow pointing from it towards a factory building.
+7:13	713.png	A half built factory with a crane beside it, on flat sandy ground with a cactus.
+7:16	716.png	A factory building with a very large price tag hanging from it.
+7:20	720.png	A calendar with many pages and a long red arrow running across it from left to right.
+7:24	724.png	Two stick figure runners on a track, one far ahead of the other.
+7:29	729.png	A small green island with a house on it, and a black rectangle kept inside behind a fence.
+7:33	733.png	One large bag of money with a big red X drawn over it.
+7:37	737.png	A large hourglass with most of the sand already fallen to the bottom.
+7:41	741.png	An open book lying flat with a small light bulb drawn above it.
+7:45	745.png	A row of shapes of different sizes with the smallest circled in red and then crossed out.
+7:49	749.png	A chain of linked rings where one single ring is red and broken open.
+7:51	751.png	One large land shape balanced on top of one very small green island.
+7:55	755.png	A small green island balanced on top of a small building with a windmill beside it.
+7:58	758.png	One small building at the top with many thin lines running down to many tiny boxes below.
+8:03	803.png	A chain of grey rings with one broken red ring, and a red arrow pointing at the broken one.
+8:06	806.png	A stick figure sitting at a plain desk with a red question mark above its head.
+8:09	809.png	A group of stick figures standing together with one of them circled in red.
+8:12	812.png	One stick figure alone inside a red circle, with an empty dashed outline drawn beside it.
+8:16	816.png	A book drawn open with a red arrow pointing to the second page.
+8:19	819.png	Many stick figures all turned to face one small green island on the right of the frame.
+8:22	822.png	A simple bottle lying on its side with many small shapes stuck at its narrow neck.
+8:26	826.png	A round globe with a red arrow curving from the far side around towards the viewer.
+8:30	830.png	A large empty rectangle frame like a video player with a triangular play button in the middle.

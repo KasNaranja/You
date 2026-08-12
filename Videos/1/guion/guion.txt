@@ -1,0 +1,145 @@
+0:00	Ahora mismo tienes un móvil a menos de un metro.
+0:03	Puede que lo estés sujetando con la mano.
+0:06	Dentro hay una pieza del tamaño de tu uña.
+0:09	Sin ella, ese aparato es un trozo de cristal y plástico.
+0:12	Esa pieza no se fabrica en tu país.
+0:15	Ni en Estados Unidos. Ni en China.
+0:18	Nueve de cada diez piezas como esa salen de una sola isla.
+0:22	Una isla más pequeña que Andalucía.
+0:25	Y si esa isla dejara de fabricarlas mañana,
+0:28	no habría móviles nuevos. Ni coches nuevos.
+0:31	Ni ordenadores. Ni inteligencia artificial.
+0:34	El mundo entero tardaría años en recuperarse.
+0:37	Y aquí viene la pregunta que casi nadie se hace.
+0:40	¿Por qué nadie más es capaz de fabricarlas?
+0:43	No es que no quieran. Lo han intentado.
+0:46	Con más dinero del que te puedes imaginar.
+0:49	Y han fracasado.
+0:52	La respuesta explica por qué un sitio que casi no ves en el mapa
+0:56	decide el precio de las cosas que compras.
+1:00	Empecemos por lo que es realmente esa pieza.
+1:03	Porque casi nadie sabe lo que hay dentro.
+1:06	La llamamos chip. Un rectángulo negro y liso.
+1:10	Pero por dentro no es liso.
+1:13	Es una ciudad.
+1:15	En el chip de tu móvil hay más de quince mil millones de transistores.
+1:20	Quince mil millones de interruptores diminutos.
+1:23	Más interruptores que estrellas ves en una noche despejada.
+1:27	Multiplicado por miles.
+1:29	Y todos tienen que funcionar. Todos.
+1:32	Si falla uno solo, el chip va a la basura.
+1:36	Ahora la parte difícil de creer: cómo se fabrican.
+1:40	No se montan. Se dibujan con luz.
+1:43	Capa sobre capa, más de mil pasos distintos.
+1:47	Las líneas que se dibujan son más estrechas que un virus.
+1:51	Tan pequeñas que la luz normal no sirve para dibujarlas.
+1:55	Todo eso ocurre en salas más limpias que un quirófano.
+1:59	Diez mil veces más limpias que el aire que respiras.
+2:03	Porque una sola mota de polvo arruina el trabajo.
+2:06	Los operarios van con traje integral. No para protegerse ellos.
+2:11	Para proteger la pieza de ellos.
+2:13	Y el proceso completo tarda entre tres y cuatro meses.
+2:17	Tres meses para fabricar algo del tamaño de tu uña.
+2:21	Con eso ya se entiende que sea difícil.
+2:24	Pero difícil no explica por qué solo puede uno.
+2:28	Difícil lo hace mucha gente.
+2:30	Para entenderlo hay que volver a 1987.
+2:34	En esa época, las empresas de electrónica hacían las dos cosas.
+2:38	Diseñaban el chip y lo fabricaban ellas mismas.
+2:41	Entonces un ingeniero de Taiwán propuso algo raro.
+2:45	Una empresa que no diseñara nada.
+2:48	Que solo fabricara. Para los demás.
+2:51	A la mayoría le pareció mal negocio.
+2:54	El prestigio estaba en diseñar. Fabricar era la parte sucia.
+2:58	Pero mientras el resto del mundo diseñaba,
+3:01	ellos pasaron cuarenta años haciendo una sola cosa.
+3:05	Y aquí está la clave que casi nadie explica.
+3:08	En esta industria hay un número que lo decide todo.
+3:11	Se llama rendimiento.
+3:13	De cada tanda que fabricas, ¿cuántos chips salen buenos?
+3:17	Una fábrica nueva empieza tirando la mayoría.
+3:21	Una fábrica con décadas de experiencia aprovecha casi todo.
+3:25	Y esa diferencia es la que decide si ganas dinero o lo pierdes.
+3:29	El rendimiento no se compra. Se aprende.
+3:32	Fallo a fallo. Durante años.
+3:35	Y ese tiempo no lo puedes acelerar con dinero.
+3:38	Es lo único que ni el país más rico del mundo puede imprimir.
+3:42	Pero hay un detalle que lo cambia todo.
+3:45	Esa isla tampoco puede hacerlo sola.
+3:48	Para dibujar líneas más finas que un virus hace falta una máquina.
+3:53	Y esa máquina la fabrica una única empresa en todo el mundo.
+3:57	No la mejor. La única.
+4:00	Está en Países Bajos y se llama ASML.
+4:03	Cada máquina cuesta más de ciento cincuenta millones de euros.
+4:08	Las más avanzadas, bastante más del doble.
+4:11	No caben en un camión. Se entregan en varios aviones.
+4:15	Cientos de cajas que luego se montan durante meses.
+4:19	Y lo que hace por dentro parece de ciencia ficción.
+4:23	Suelta una gota de estaño en el vacío.
+4:26	Un láser la golpea una vez para aplastarla.
+4:30	Y la golpea otra vez para convertirla en plasma.
+4:34	Ese plasma emite una luz especial, la única capaz de dibujar tan fino.
+4:39	Y todo eso ocurre cincuenta mil veces por segundo.
+4:43	La luz rebota en unos espejos.
+4:46	Y esos espejos son los objetos más planos jamás fabricados por el ser humano.
+4:51	Si uno de ellos tuviera el tamaño de España,
+4:54	su montaña más alta mediría menos de un milímetro.
+4:58	Ahora la pregunta obvia: ¿por qué no la copian?
+5:02	Porque esa máquina lleva dentro decenas de miles de piezas.
+5:06	Y esas piezas vienen de miles de proveedores repartidos por el mundo.
+5:11	Cada uno con su propio secreto y sus propias décadas de experiencia.
+5:15	Copiar la máquina no es copiar una máquina.
+5:19	Es copiar treinta años de medio planeta trabajando a la vez.
+5:23	Y falta el último detalle, el más importante.
+5:26	Esa empresa no vende a quien quiere.
+5:29	Estados Unidos decide quién puede comprarlas.
+5:32	Y a China le ha prohibido las más avanzadas.
+5:36	El país con más dinero del mundo,
+5:38	al que no le dejan comprar una máquina que hace un país pequeño.
+5:43	Todo esto suena lejano. Pero ya ha pasado.
+5:47	En pequeño. Y hace muy poco.
+5:49	En 2021 faltaron chips. No por una guerra.
+5:54	Por un lío de pedidos y de transporte. Nada más.
+5:58	Y las fábricas de coches del mundo empezaron a parar.
+6:02	Una detrás de otra. En todos los continentes.
+6:05	Millones de coches que no se fabricaron.
+6:09	Coches terminados aparcados en explanadas enormes,
+6:13	esperando una pieza que cuesta menos de un euro.
+6:17	Concesionarios sin nada que vender.
+6:19	Y los coches de segunda mano subiendo de precio.
+6:23	Un coche usado valiendo más que uno nuevo.
+6:26	Eso no había pasado nunca.
+6:28	Y todo por un tropiezo pequeño y temporal.
+6:32	Ahora imagina que esa isla se apaga del todo.
+6:36	Las estimaciones más citadas hablan de billones de euros perdidos.
+6:41	Billones. Con be.
+6:43	Más que ninguna crisis que hayas vivido.
+6:46	Y por eso mismo, nadie puede permitirse que le pase nada.
+6:50	A esto se le llama el escudo de silicio.
+6:54	Esa isla no está protegida por sus armas.
+6:57	Está protegida porque el mundo entero la necesita funcionando.
+7:01	Su mejor defensa es ser imprescindible.
+7:05	Estados Unidos lleva años intentando arreglarlo.
+7:09	Ha aprobado unos cincuenta mil millones para fabricar en casa.
+7:13	Se están construyendo fábricas en Arizona.
+7:16	Pero cada fábrica cuesta unos veinte mil millones.
+7:20	Y tarda entre tres y cinco años en producir.
+7:24	Para cuando esté lista, en la isla ya harán la siguiente generación.
+7:29	Porque lo más avanzado siempre se queda en casa. Siempre.
+7:33	No es un problema de dinero. Nunca lo fue.
+7:37	Es un problema de tiempo acumulado.
+7:41	Y aquí está lo que de verdad enseña esta historia.
+7:45	Lo más frágil de un sistema no es lo más pequeño.
+7:49	Es lo que no tiene repuesto.
+7:51	Un país entero puede depender de una isla.
+7:55	Una isla puede depender de una empresa holandesa.
+7:58	Y esa empresa depende de miles de proveedores que nadie conoce.
+8:03	Nada de esto se ve hasta que se rompe.
+8:06	Piénsalo en tu trabajo. En tu empresa.
+8:09	Probablemente haya alguien o algo así.
+8:12	Alguien sin repuesto que nadie ha identificado todavía.
+8:16	Pero hay una segunda parte de esta historia.
+8:19	Porque mientras todos miran a esa isla,
+8:22	hay otro cuello de botella del que casi nadie habla.
+8:26	Y este no está en Asia. Está mucho más cerca de ti.
+8:30	Te lo cuento en el vídeo que tienes en pantalla.
