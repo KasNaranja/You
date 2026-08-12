@@ -74,15 +74,40 @@ No es una asignación cerrada. La pregunta que hay que hacerse en cada guion es
 si la historia **gira** en algún punto. Si gira, dos estilos. Si es un mecanismo
 que se explica de principio a fin, uno solo.
 
-## Lo que no se ha probado todavía
+## Cómo escribir escenas para el pixel art
 
-Los dos estilos de pixel se han probado con escenas fáciles: locomotoras,
-fábricas, objetos físicos.
+Probado con tres frases abstractas del vídeo 2. Dos funcionaron y una falló, y
+el fallo da la regla:
 
-**Falta probarlos con una idea abstracta.** Frases como «el cliente se convirtió
-en competidor» o «depender del éxito» se resuelven en MS Paint con una flecha y
-dos monigotes. En pixel art no está claro cómo se dibujan sin caer en el
-literalismo.
+> **El pixel art resuelve una abstracción cuando se puede expresar como una
+> relación física entre dos objetos presentes. Falla cuando exige imaginar lo
+> que no está.**
 
-Esa es la prueba que decide si el pixel sirve para todo el guion o solo para los
-tramos con objetos.
+**Funcionó** — «¿Cómo puede arruinarte lo mismo que te hizo rico?»: un engranaje
+dorado encadenado al tobillo de una figura que tira hacia el lado contrario. Dos
+objetos, una relación, los dos a la vista.
+
+**Funcionó** — «El cliente se convirtió en competidor»: dos fábricas espejo con
+contenedores idénticos a ambos lados y un carguero vacío en medio. La simetría
+es la idea.
+
+**Falló** — «Depender del éxito»: un desvío ferroviario comido por la maleza. Se
+lee como un paisaje bonito. La frase pide imaginar *el camino que no tomaste*, y
+eso es una ausencia. El pixel art dibuja muy bien lo que hay; no puede dibujar
+lo que falta. El MS Paint sí, porque una flecha tachada es un símbolo y no una
+escena.
+
+**Es un problema de diseño de escena, no del estilo.** El mismo concepto
+funciona si se convierte en objetos presentes: una locomotora avanzando por una
+vía cuyos raíles, por detrás, están arrancados y apilados.
+
+### Al escribir las 145 escenas
+
+- Nada de ausencias, negaciones ni condicionales. Todo tiene que ser cosas que
+  se ven.
+- Dos objetos y una relación entre ellos: encadenado a, frente a, encima de,
+  aplastado por, idéntico a.
+- Si una frase solo se puede dibujar con un símbolo —una flecha, una cruz, una
+  interrogación—, es señal de que ese tramo pide MS Paint, no pixel.
+
+Ejemplos en `Video 2/prueba-estilo/abstractas/`.
