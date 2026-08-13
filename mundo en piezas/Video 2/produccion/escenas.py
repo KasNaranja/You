@@ -158,9 +158,9 @@ GUION = [
  ("8-13","sob","En qué eres muy bueno desde hace mucho.","One tool on that desk, worn smooth and shiny from decades of use."),
  ("8-16","sob","Y pregúntate si sigue importando tanto como antes.","The same worn tool lying beside a brand new tool of a completely different shape."),
 
- ("8-20","sob","Alemania no perdió porque alguien la adelantara.","Two runners on a track, the German one still running steadily in its own lane, not overtaken."),
- ("8-24","sob","Perdió porque el mundo cambió de pregunta.","A running track that ends, and beside it a swimming pool where the other runners are already swimming."),
- ("8-28","sob","Y ella seguía dando la mejor respuesta a la anterior.","One runner still running perfectly along the old track, alone, while the pool beside it is full."),
+ ("8-20","sob","Alemania no perdió porque alguien la adelantara.","A steam locomotive running steadily along its rails, polished and working perfectly, completely alone on the track with no other train anywhere near it."),
+ ("8-24","sob","Perdió porque el mundo cambió de pregunta.","The railway track simply ends in the grass, and right beside it runs a new electrified line with overhead cables, where a modern train is already moving."),
+ ("8-28","sob","Y ella seguía dando la mejor respuesta a la anterior.","The steam locomotive still running immaculately along its own short piece of old track, alone, while the electrified line beside it carries traffic in both directions."),
  ("8-32","sob","Si quieres ver la otra cara de esto, un sitio que sí sigue siendo insustituible, te lo cuento en el vídeo que tienes en pantalla.","One small green island alone in blue water with a black chip resting on it, and beside it an empty video player frame with a triangular play button."),
 ]
 

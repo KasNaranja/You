@@ -1,7 +1,10 @@
 # Dónde está el vídeo montado
 
-El `.mp4` **no está en el repositorio**. Pesa unos 190 MB y no hace falta para
-rehacer nada: con las imágenes, la voz y el guion se vuelve a montar en minutos.
+El `.mp4` **no está en el repositorio**. Pesa 213 MB y no hace falta para rehacer
+nada: con las imágenes, los clips y la voz se vuelve a montar en minutos.
+
+Los 16 primeros segundos van en movimiento. Los clips **sí** están versionados,
+en `clips/`, porque esos no son reproducibles.
 
 ## Ruta en tu PC
 

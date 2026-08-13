@@ -60,3 +60,8 @@ venv/
 *.mov
 *.mkv
 *.webm
+
+# Excepción: los clips generados SÍ se versionan. El montaje se puede rehacer
+# desde las imágenes y la voz, pero un clip de vídeo no es reproducible —la
+# generación no es determinista— y cada uno cuesta 8 créditos.
+!*/clips/*.mp4
