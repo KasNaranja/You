@@ -1,24 +1,41 @@
-Por qué Alemania, la locomotora de Europa, se ha parado
-
---- alternativas ---
-
 Alemania hizo todo bien durante 20 años. Por eso se ha parado.
-El país más industrial de Europa lleva años sin crecer. Nadie le adelantó.
-Alemania no se equivocó. Y ese es exactamente el problema.
 
---- notas ---
+--- las diez opciones, por rendimiento estimado ---
 
-El propuesto en la lista original aguanta bien: 52 caracteres, nombra el país
-—que es lo que la gente busca— y «locomotora parada» da una imagen concreta
-sin explicar nada.
+ 1  Alemania hizo todo bien durante 20 años. Por eso se ha parado.
+ 2  Alemania construyó las fábricas de China. Ahora China le come el mercado.
+ 3  Tres cosas hicieron rica a Alemania. Las tres se rompieron a la vez.
+ 4  Nadie adelantó a Alemania. Y aun así perdió.
+ 5  Alemania no está en crisis. Es peor que eso.
+ 6  Volkswagen quiere cerrar fábricas en Alemania. No pasaba en 90 años.
+ 7  El país más rico de Europa lleva 5 años sin crecer. Nadie le hizo nada.
+ 8  Alemania es la mejor del mundo en algo que ya no importa
+ 9  El día que Alemania se quedó sin gas barato
+10  Por qué Alemania, la locomotora de Europa, se ha parado
 
-La segunda alternativa es la más agresiva en curiosidad: plantea la paradoja en
-el propio título. Tiene más gancho pero puede leerse como clickbait si el vídeo
-no la resuelve rápido. Aquí sí la resuelve, en el minuto 0:41.
+--- por qué el 1 ---
 
-Si el primer vídeo funciona en búsqueda, mantener «Alemania» al principio del
-título ayuda. Si funciona en sugeridos, la paradoja tira más.
+Es el único que planta la paradoja entera en el título, y el vídeo la resuelve
+en el segundo 41. La promesa se cumple antes del minuto, que es lo que separa un
+buen gancho del clickbait.
 
-Merece una prueba A/B a las 48 horas, cuando haya impresiones suficientes:
-empezar con el conservador y cambiar al de la paradoja si el CTR se queda por
-debajo del 3%.
+El 2 es la alternativa si se quiere tirar de búsqueda: lleva «China» y
+«Alemania», que es lo que la gente teclea.
+
+El 10 es el original de la lista de ideas. Seguro y descriptivo, pero no crea
+tensión.
+
+--- dos avisos ---
+
+El 6 es de los más llamativos, pero el vídeo no cuenta ese dato hasta el minuto
+6. Quien entre por ese titular se pasa seis minutos esperando. Si se usa, hay que
+adelantar el dato al primer minuto.
+
+El 5 es una interpretación, no una cita. El guion dice «no en caída libre,
+parada», y para un país que vive de exportar eso es peor. Defendible, pero más
+agresivo que el resto.
+
+--- nota ---
+
+La primera línea de la descripción tiene que confirmar la promesa del título
+elegido. Si se cambia de título, hay que ajustarla.
