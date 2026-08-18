@@ -1,21 +1,26 @@
+La INVASIÓN de CEUTA: Todo lo que pasó y nadie te contó
+
+--- publicado con este ---
+
+Elegido por el usuario. 54 caracteres.
+
+--- alternativas que quedaron fuera ---
+
 La invasión de Ceuta y la frontera que España no vigilaba
-
---- alternativas ---
-
 La invasión de Ceuta: 72.000 personas en 24 horas
 La invasión de Ceuta: 24 horas, 72.000 personas, cero disparos
 72.000 personas invadieron Ceuta en un día. La valla ni se rompió.
 Por qué España no pudo parar la invasión de Ceuta
 
---- notas ---
+--- qué vigilar en Analytics ---
 
-56 caracteres. Lleva las dos palabras que tienen que estar —invasión y Ceuta—
-y añade la promesa estructural en la segunda mitad.
+El título publicado promete exhaustividad («todo lo que pasó») en vez de una
+revelación concreta. Eso suele dar buen CTR de entrada y peor retención, porque
+el espectador no sabe qué está esperando.
 
-Quien busque «invasión Ceuta» encuentra el vídeo por la primera parte. Quien lo
-vea en sugeridos clica por la segunda, que es la que crea la pregunta: si no la
-vigilaba España, ¿quién?
+Las alternativas apuntaban a la tesis del vídeo —la frontera que vigilaba otro—
+y esa promesa se cumple en 2:44.
 
-El título se cumple pronto: en el segundo 15 el narrador dice «sino quién dejó
-de vigilarla», y en 2:44 se responde. La promesa no se hace esperar ocho
-minutos, que es lo que distingue un gancho de un clickbait.
+Si a las 48 horas el CTR va bien pero la retención de los primeros 30 segundos
+cae, merece la pena probar la primera alternativa. Se cambia el título sin tocar
+el vídeo y YouTube lo reevalúa.
