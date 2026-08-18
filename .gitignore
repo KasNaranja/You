@@ -66,3 +66,9 @@ venv/
 # generación no es determinista— y cada uno cuesta 8 créditos.
 !*/clips/*.mp4
 __pycache__/
+
+# Imágenes generadas de cada vídeo: se quedan en local.
+# Son el 80% del peso del repo y se regeneran desde produccion/plan.json con
+# herramientas/generar-imagenes.ps1. Eso sí cuesta créditos, al contrario que
+# remontar el vídeo, que es gratis: haz copia de seguridad de estas carpetas.
+mundo en piezas/*/imagenes/
