@@ -26,9 +26,9 @@ function Registrar($txt) {
   Add-Content -Path $log -Value $linea -Encoding UTF8
 }
 
-$plan = Get-Content $Plan -Raw -Encoding UTF8 | ConvertFrom-Json
-$pendientes = @($plan | Where-Object { -not (Test-Path (Join-Path $Destino ($_.id + ".png"))) })
-Registrar "pendientes: $($pendientes.Count) de $($plan.Count)"
+$items = Get-Content $Plan -Raw -Encoding UTF8 | ConvertFrom-Json
+$pendientes = @($items | Where-Object { -not (Test-Path (Join-Path $Destino ($_.id + ".png"))) })
+Registrar "pendientes: $($pendientes.Count) de $($items.Count)"
 if ($pendientes.Count -eq 0) { Registrar "nada que hacer"; exit 0 }
 
 $cola = New-Object System.Collections.Queue

@@ -1,0 +1,10 @@
+﻿[15:43:35] pendientes: 1 de 1
+[15:57:17] pendientes: 72 de 140
+[15:57:38] 1/72 (ultima: 4-20)
+[15:59:04] 15/72 (ultima: 5-12)
+[16:00:46] 30/72 (ultima: 6-13)
+[16:02:37] 45/72 (ultima: 7-06)
+[16:07:25] 60/72 (ultima: 8-04)
+[16:08:35] TERMINADO  hechas: 72  fallos: 0
+[16:08:35] total png: 140
+[16:08:36] resilienciajourney@gmail.com — plus plan, 708.5 credits
