@@ -1,6 +1,6 @@
 # Dónde está el vídeo montado
 
-El `.mp4` **no está en el repositorio**. Pesa 181 MB y no hace falta para
+El `.mp4` **no está en el repositorio**. Pesa 238 MB y no hace falta para
 rehacer nada: con las imágenes, la voz y el guion se remonta en minutos.
 
 ## Ruta en tu PC
