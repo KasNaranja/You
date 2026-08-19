@@ -1,0 +1,2 @@
+file 'C:/Users/oriol/You/mundo en piezas/Video 5/audio/cuerpo/parte0.mp3'
+file 'C:/Users/oriol/You/mundo en piezas/Video 5/audio/cuerpo/parte1.mp3'

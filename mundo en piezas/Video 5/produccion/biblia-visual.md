@@ -155,3 +155,118 @@ inventa otro edificio.
 
 **Si un objeto sale más de una vez, entra en esta biblia antes de escribir
 ninguna escena.** Añadirlo después obliga a regenerar todo lo anterior.
+
+---
+
+# Ampliación para el cuerpo (146 escenas)
+
+## Regla de oro
+
+**Lo que ya salió en el gancho no se toca.** El banco central tiene cuatro
+columnas, tres puertas verdes y emblema redondo para siempre. La cámara
+acorazada tiene su rueda de radios para siempre. Las colas visten como visten.
+Los elementos nuevos de abajo quedan igual de congelados desde su primera
+aparición.
+
+## Banderas y logos
+
+Cuando el guion nombra un país, aparece **su bandera real**, fiel: EE. UU.,
+Reino Unido, Japón y la UE ya están establecidas en LOS MÁSTILES y se replican
+idénticas. Alemania (cierre) con su tricolor real. Si un guion futuro nombra
+una marca, su logo real, lo más fidedigno que el modelo permita.
+
+## Elementos nuevos
+
+### EL PARQUÉ — el mercado de deuda
+```
+a large open trading hall seen in high isometric view, rows of dark wooden
+desks with small dark monitors, small anonymous figures at them, and on the
+far wall one huge dark display board showing a single dark line chart
+```
+La línea del TABLÓN es el estado del mercado: hundida, plana o subiendo.
+
+### LA SALA — donde se decide el tipo a corto
+```
+a grand interior room with tall windows, a long dark wooden table with
+anonymous figures seated around it, and the round brass emblem of the central
+bank mounted on the stone wall behind
+```
+El emblema es el mismo del frontispicio del BANCO CENTRAL.
+
+### EL CAMINO — el largo plazo
+```
+a long straight empty road receding to the horizon across a flat plain, with
+evenly spaced small stone milestones along its edge
+```
+
+### LA FÁBRICA — la inversión que retorna
+```
+a red brick factory with a single tall chimney and a sawtooth roof
+```
+En obras: `wrapped in wooden scaffolding, with a small crane beside it`.
+
+### EL PISO — la hipoteca
+```
+a beige apartment building with iron balconies, and a large white sign with
+the words SE VENDE in dark capital letters by its entrance
+```
+
+### LA IMPRENTA — imprimir dinero
+```
+a heavy dark green industrial printing press with brass fittings, feeding out
+a long sheet of pale banknotes onto a roller table
+```
+
+### LA RUEDA — la espiral de la deuda
+```
+a large iron wheel mounted on a dark machine frame, with a leather belt
+running from its rim back into its own axle
+```
+La voz dice literalmente «es una rueda que gira sola»: aquí es literal.
+
+### EL DESPACHO — la factura de intereses
+```
+a wooden desk with a brass lamp inside a grand stone room, piled with tall
+stacks of pale paper bills
+```
+La altura de las pilas es el estado de la factura.
+
+### EL AGUJERO — el déficit
+```
+a dark round hole in a stone floor, with gold coins spilling over its edge and
+falling inside
+```
+
+### LA BÁSCULA — el precio de prestar
+```
+an old brass balance scale on a dark wooden table
+```
+
+### EL SUPERMERCADO
+Es **la tienda de toldo verde de LA CALLE**, la misma esquina del gancho. No se
+inventa un supermercado nuevo.
+
+## Gramática de efectos
+
+Cada escena lleva uno de tres efectos, elegido por lo que dice la frase:
+
+| Efecto | Cuándo |
+|---|---|
+| `in` (zoom lento hacia dentro) | La frase estrecha el foco: un problema, un detalle, una amenaza que crece |
+| `out` (zoom lento hacia fuera) | La frase abre el plano: revelación, contexto, consecuencia grande |
+| `fijo` | Afirmaciones y remates. Y **siempre** al abrir un bloque nuevo del argumento |
+
+Reglas duras:
+
+- **Nunca tres movimientos seguidos.** Después de dos `in`/`out`, toca `fijo`.
+- Los pares de contraste (A contra B) van los dos `fijo`, mismo encuadre, para
+  que el corte seco sea el que habla.
+- Máximo 4 s por imagen. Entre 4,0 y 4,5 s se tolera solo con movimiento.
+- Las líneas de menos de ~1,8 s se fusionan con su vecina **solo si forman un
+  mismo pensamiento visual**; si son un remate, se quedan solas como corte seco.
+
+## El montaje manda el audio
+
+Las duraciones reales salen de `audio/cuerpo/tramos.json` (alineación carácter
+a carácter de la voz clonada), no de las marcas escritas del guion. La media
+real es 2,5 s por línea. El cuerpo dura 5:24; el vídeo completo, ~5:52.

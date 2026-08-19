@@ -196,7 +196,7 @@ def main():
         desfase += duracion(parte)
 
     lista = salida / "lista.txt"
-    lista.write_text("\n".join(f"file '{p.as_posix()}'" for p in partes) + "\n",
+    lista.write_text("\n".join(f"file '{p.resolve().as_posix()}'" for p in partes) + "\n",
                      encoding="utf-8")
     crudo = salida / "crudo.mp3"
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0",

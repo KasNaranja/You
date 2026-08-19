@@ -90,19 +90,19 @@ Sin corte de estilo.
 2:15 Ahora hay que entender de dónde sale ese dinero prestado.
 2:20 Sale del ahorro.
 2:22 Del tuyo, del de tu vecino, del de las empresas.
-2:26 Imagínatelo como un depósito grande.
+2:26 Imagínatelo como una gran cámara acorazada.
 2:29 Todo el mundo echa dentro lo que no gasta.
 2:33 Y de ahí sacan los que necesitan financiarse.
 2:37 Empresas que quieren construir una fábrica.
 2:40 Gobiernos que gastan más de lo que ingresan.
 2:44 Familias que piden una hipoteca.
-2:47 Durante la década pasada, ese depósito estaba lleno.
+2:47 Durante la década pasada, esa cámara estaba llena.
 2:52 Y casi nadie iba a sacar.
 2:54 Después de la crisis de dos mil ocho,
 2:57 familias y empresas estaban muy endeudadas.
 3:01 Y lo que hicieron durante años fue lo contrario de invertir.
 3:06 Ahorrar para quitarse deuda de encima.
-3:09 Mucho dinero entrando al depósito.
+3:09 Mucho dinero entrando en la cámara.
 3:12 Poca gente sacando.
 3:14 Y cuando sobra dinero y falta quien lo pida,
 3:18 el precio de pedirlo se hunde.
@@ -111,7 +111,7 @@ Sin corte de estilo.
 3:29 Fue que sobraba ahorro.
 
 3:33 Y aquí está lo que ha cambiado.
-3:36 El depósito sigue igual de lleno.
+3:36 La cámara sigue igual de llena.
 3:39 Pero ahora hay dos colas enormes esperando para sacar.
 3:44 La primera cola es privada.
 3:47 Después de años sin invertir, las empresas han encontrado
@@ -119,7 +119,7 @@ Sin corte de estilo.
 3:55 La inteligencia artificial.
 3:58 Centros de datos. Chips. Energía para alimentarlos.
 4:03 Son inversiones de miles de millones cada una.
-4:07 Y esa gente no viene a dejar dinero en el depósito.
+4:07 Y esa gente no viene a dejar dinero en la cámara.
 4:11 Viene a sacarlo.
 4:13 La segunda cola son los gobiernos.
 4:16 Después de la pandemia se acumuló muchísima deuda pública.
@@ -128,7 +128,7 @@ Sin corte de estilo.
 4:26 Cada año vencen préstamos antiguos
 4:29 y hay que pedir dinero nuevo para devolver el viejo.
 4:33 Más lo que se gasta de más ese año.
-4:36 Así que ahora, en la ventanilla del depósito,
+4:36 Así que ahora, a las puertas de la cámara,
 4:40 hay dos colas gigantes en vez de ninguna.
 4:44 Y el que presta ya no tiene que aceptar lo que le ofrezcan.
 4:49 Puede elegir. Y cobra más por elegir.
