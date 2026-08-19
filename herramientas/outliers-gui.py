@@ -78,13 +78,17 @@ class App(tk.Tk):
 
         self.n_canales = tk.IntVar(value=5)
         self.n_videos = tk.IntVar(value=30)
+        self.min_vistas = tk.IntVar(value=5000)
         spins = {}
         for clave, etiqueta, var, hasta in (
             ("canales", "Canales:", self.n_canales, 15),
             ("videos", "Últimos vídeos por canal:", self.n_videos, 200),
+            ("minimo", "Visitas mínimas:", self.min_vistas, 10_000_000),
         ):
             ttk.Label(opts, text=etiqueta).pack(side="left", padx=(0, 4))
-            s = ttk.Spinbox(opts, from_=1, to=hasta, width=5, textvariable=var)
+            s = ttk.Spinbox(opts, from_=0, to=hasta, width=8 if clave == "minimo" else 5,
+                            increment=1000 if clave == "minimo" else 1,
+                            textvariable=var)
             s.pack(side="left", padx=(0, 16))
             spins[clave] = s
         self.spin_canales = spins["canales"]
@@ -165,6 +169,10 @@ class App(tk.Tk):
             todos: list[dict] = []
             for c in canales:
                 todos.extend(core.analizar_canal(c, self.n_videos.get()))
+            # Suelo de visitas: sin él, un canal pequeño infla su ratio con
+            # vídeos que no ha visto casi nadie.
+            suelo = self.min_vistas.get()
+            todos = [v for v in todos if v["vistas"] >= suelo]
             todos.sort(key=lambda v: v["ratio"], reverse=True)
             self.cola.put(("fin", todos))
         except Exception as e:  # el hilo no debe morir en silencio

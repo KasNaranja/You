@@ -175,6 +175,12 @@ def main() -> None:
                          "más nuevo a más viejo.")
     ap.add_argument("--top", type=int, default=20)
     ap.add_argument("--min-ratio", type=float, default=0.0)
+    ap.add_argument("--min-vistas", type=int, default=5000,
+                    help="descarta vídeos por debajo de estas visitas (5000 "
+                         "por defecto). Sin este suelo, un canal diminuto "
+                         "cuela cualquier vídeo: con 3.000 suscriptores, 800 "
+                         "visitas ya dan un ratio alto sin haber llegado a "
+                         "nadie.")
     ap.add_argument("--csv", help="guarda el resultado completo en un CSV")
     args = ap.parse_args()
 
@@ -188,7 +194,10 @@ def main() -> None:
     for c in canales:
         todos.extend(analizar_canal(c, args.videos))
 
-    todos = [v for v in todos if v["ratio"] >= args.min_ratio]
+    # El filtro va DESPUÉS de calcular la mediana de cada canal, para que la
+    # mediana siga reflejando el rendimiento real y no solo los vídeos grandes.
+    todos = [v for v in todos
+             if v["ratio"] >= args.min_ratio and v["vistas"] >= args.min_vistas]
     todos.sort(key=lambda v: v["ratio"], reverse=True)
 
     tabla(todos, args.top)
