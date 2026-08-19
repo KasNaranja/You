@@ -124,7 +124,31 @@ Alternarlas al azar parece de dos autores. Usarlas por tipo de escena convierte
 el corte en argumento: cuando el vídeo pasa de tu calle al edificio donde se
 decide, la cámara lo dice sin una palabra.
 
-### 8. Cámara fija en todos los clips
+### 8. Coherencia por referencia, no por descripción
+
+La frase literal de la biblia da **parecido de familia, no identidad**: tres
+tiradas del banco central dieron tres edificios distintos. Con objetos muy
+distintivos (la cámara acorazada, una báscula) el texto aguanta; con edificios
+—que tienen mil grados de libertad— deriva siempre.
+
+**El arreglo: pasarle la imagen canónica como referencia.** Y el hallazgo de
+coste: `flux_2 --image ref.png` cuesta **lo mismo que sin referencia, 1
+crédito**. Nano Banana hace lo mismo por 4. Medido contra el saldo real, no
+estimado.
+
+El flujo queda en dos fases:
+
+1. **Fase A — acuñar canónicas.** Los elementos que el gancho ya enseñó se
+   extraen de sus imágenes con referencia; los nuevos se acuñan desde texto.
+   **Revisar cada canónica antes de seguir**: un fallo aquí lo heredan todas
+   sus escenas. (La del centro de datos salió con la cámara acorazada colada
+   delante y hubo que reacuñarla.)
+2. **Fase B — el resto**, cada escena con las canónicas de sus elementos como
+   `--image`. `escenas.py` detecta qué referencias necesita cada escena buscando
+   la frase literal del elemento en su descripción — automático, sin lista a
+   mano.
+
+### 9. Cámara fija en todos los clips
 
 ```
 The camera is completely locked off: no pan, no zoom, no push in, no parallax.

@@ -1,0 +1,9 @@
+﻿[17:34:27] pendientes: 115 de 115
+[17:34:45] 1/115 (ultima: 1-04)
+[17:35:56] 15/115 (ultima: 2-06)
+[17:49:23] pendientes: 10 de 15
+[17:49:43] 1/10 (ultima: 2-26)
+[17:50:35] TERMINADO  hechas: 10  fallos: 0
+[17:50:35] total png: 18
+[17:50:35] resilienciajourney@gmail.com — plus plan, 553 credits
+[17:52:01] pendientes: 97 de 100

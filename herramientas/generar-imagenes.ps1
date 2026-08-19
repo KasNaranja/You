@@ -38,7 +38,11 @@ $activos = @{}; $esperas = @{}; $hechas = 0; $fallos = @()
 while ($cola.Count -gt 0 -or $activos.Count -gt 0) {
   while ($activos.Count -lt $Hilos -and $cola.Count -gt 0) {
     $item = $cola.Peek()
-    $out = higgsfield generate create flux_2 --prompt $item.prompt --aspect-ratio 16:9 --resolution 1k --variant pro 2>&1 | Out-String
+    $argumentos = @("generate","create","flux_2","--prompt",$item.prompt,"--aspect-ratio","16:9","--resolution","1k","--variant","pro")
+    if ($item.PSObject.Properties.Name -contains "refs") {
+      foreach ($r in $item.refs) { $argumentos += @("--image", $r) }
+    }
+    $out = higgsfield @argumentos 2>&1 | Out-String
     $m = [regex]::Match($out, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
     if ($m.Success) {
       $cola.Dequeue() | Out-Null

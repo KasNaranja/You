@@ -314,20 +314,91 @@ ESCENAS = [
       escena=CENTRADO + "Scene: the same dark stone wall, now with two empty picture frames side by side, softly lit, waiting to be filled."),
 ]
 
+# --- Canónicas: la imagen que define a cada elemento recurrente -------------
+# Las escenas que contienen un elemento se generan con su canónica como
+# referencia (flux_2 --image, mismo precio que sin ella). Las canónicas que no
+# existen aún se acuñan en la fase A; las escenas-canónica se generan primero
+# y el resto las referencia en la fase B.
+CANONICAS = {
+    "CALLE":    "prueba-literal/1-calle.png",
+    "BANCO":    "prueba-literal/2-banco-central.png",
+    "MASTILES": "prueba-literal/3-banderas.png",
+    "CUATRO":   "prueba-literal/4b-competencia.png",   # minis+datos+camara+colas
+    "PARQUE":   "imagenes/1-22.png",
+    "SALA":     "imagenes/1-12.png",
+    "CAMINO":   "imagenes/1-16.png",
+    "BASCULA":  "imagenes/1-36.png",
+    "MESA":     "imagenes/1-07.png",
+    # acuñadas en fase A (la escena ES la canónica):
+    "CAMARA":   "imagenes/2-26.png",
+    "MINIS":    "imagenes/5-55.png",
+    "DATOS":    "imagenes/3-55.png",
+    "COLA_E":   "imagenes/4-13.png",
+    "COLA_I":   "imagenes/3-44.png",
+    "FABRICA":  "imagenes/5-32.png",
+    "RUEDA":    "imagenes/6-33.png",
+    "DESPACHO": "imagenes/4-21.png",
+    "IMPRENTA": "imagenes/7-47.png",
+    "AGUJERO":  "imagenes/6-46.png",
+}
+
+# Escenas de la fase A que se acuñan DESDE la imagen compuesta del gancho,
+# para que hereden la identidad ya establecida en el vídeo:
+ACUNA_DESDE_CUATRO = {"2-26", "5-55", "3-55", "4-13", "3-44"}
+# El resto de canónicas nuevas (fábrica, rueda, despacho, imprenta, agujero)
+# se acuñan desde texto: son elementos que el gancho no enseñó.
+
+ELEMENTOS = dict(CALLE=CALLE, BANCO=BANCO, MASTILES=MASTILES, CAMARA=CAMARA,
+                 MINIS=MINIS, DATOS=DATOS, COLA_E=COLA_E, COLA_I=COLA_I,
+                 PARQUE=PARQUE, SALA=SALA, CAMINO=CAMINO, FABRICA=FABRICA,
+                 IMPRENTA=IMPRENTA, RUEDA=RUEDA, DESPACHO=DESPACHO,
+                 AGUJERO=AGUJERO, BASCULA=BASCULA,
+                 MESA="brass desk calendar")   # la mesa se detecta por su objeto
+
+
+def referencias(escena_txt, propio_id):
+    """Qué canónicas necesita una escena, sin referenciarse a sí misma."""
+    refs = []
+    for nombre, frase in ELEMENTOS.items():
+        if frase in escena_txt and CANONICAS[nombre].split("/")[-1] != propio_id + ".png":
+            refs.append(CANONICAS[nombre])
+    return sorted(set(refs))
+
+
 if __name__ == "__main__":
     import json, sys
     from pathlib import Path
-    plan = [{"id": e["id"], "prompt": MUNDO + e["escena"]} for e in ESCENAS]
-    destino = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).parent / "plan.json"
-    destino.write_text(json.dumps(plan, indent=1, ensure_ascii=False), encoding="utf-8")
-    ids = [e["id"] for e in ESCENAS]
-    cubiertas = [c for e in ESCENAS for c in e["cubre"]]
-    print(f"escenas: {len(ESCENAS)}   lineas cubiertas: {len(cubiertas)}")
-    print(f"duracion maxima: {max(e['dur'] for e in ESCENAS)}s   minima: {min(e['dur'] for e in ESCENAS)}s")
-    seguidos = 0
-    peor = 0
+    base = Path(__file__).parent.parent          # carpeta Video 5
+    ids_canonicas = {c.split("/")[-1][:-4] for c in CANONICAS.values()}
+
+    fase_a, fase_b = [], []
     for e in ESCENAS:
-        seguidos = seguidos + 1 if e["efecto"] != "fijo" else 0
-        peor = max(peor, seguidos)
-    print(f"movimientos seguidos (maximo): {peor}  (regla: <=2)")
-    print(f"plan.json -> {destino}")
+        prompt = MUNDO + e["escena"]
+        if e["id"] in ids_canonicas:
+            item = {"id": e["id"], "prompt": prompt}
+            if e["id"] in ACUNA_DESDE_CUATRO:
+                item["refs"] = [str(base / CANONICAS["CUATRO"])]
+                item["prompt"] += (" Take the corresponding object from the reference "
+                                   "image and keep it identical: same shape, same "
+                                   "materials, same colours.")
+            fase_a.append(item)
+        else:
+            refs = [str(base / r) for r in referencias(e["escena"], e["id"])]
+            item = {"id": e["id"], "prompt": prompt}
+            if refs:
+                item["refs"] = refs[:3]
+                item["prompt"] += (" The recurring objects and buildings must be "
+                                   "IDENTICAL to the reference images: same "
+                                   "architecture, same materials, same colours, "
+                                   "same details. Same crisp pixel art style.")
+            fase_b.append(item)
+
+    (Path(__file__).parent / "plan-a.json").write_text(
+        json.dumps(fase_a, indent=1, ensure_ascii=False), encoding="utf-8")
+    (Path(__file__).parent / "plan-b.json").write_text(
+        json.dumps(fase_b, indent=1, ensure_ascii=False), encoding="utf-8")
+    con_ref = sum(1 for i in fase_b if "refs" in i)
+    print(f"fase A (canonicas y sueltas ya definidas): {len(fase_a)}")
+    print(f"fase B: {len(fase_b)}  (con referencia: {con_ref}, sueltas: {len(fase_b)-con_ref})")
+    dobles = [i["id"] for i in fase_b if len(i.get("refs", [])) > 1]
+    print(f"escenas con 2+ referencias: {len(dobles)}: {', '.join(dobles)}")
