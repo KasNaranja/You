@@ -35,6 +35,20 @@ except ImportError:
     sys.exit("Falta yt-dlp.  Instálalo con:  pip install yt-dlp")
 
 
+# El progreso se emite por aquí para que la interfaz gráfica pueda
+# redirigirlo a su barra de estado en vez de a una consola que nadie ve.
+_emisor = print
+
+
+def fijar_log(fn) -> None:
+    global _emisor
+    _emisor = fn
+
+
+def log(msg: str) -> None:
+    _emisor(msg)
+
+
 OPCIONES = {
     "quiet": True,
     "no_warnings": True,
@@ -63,7 +77,7 @@ def buscar_canales(tema: str, cuantos: int, muestra: int = 60) -> list[str]:
     del tema y se cuentan los canales que más aparecen. Quien domina los
     resultados de una búsqueda es, a efectos prácticos, quien manda en el nicho.
     """
-    print(f"Buscando canales de «{tema}»…")
+    log(f"Buscando canales de «{tema}»…")
     info = extraer(f"ytsearch{muestra}:{tema}")
     if not info:
         return []
@@ -81,7 +95,7 @@ def buscar_canales(tema: str, cuantos: int, muestra: int = 60) -> list[str]:
 
     elegidos = [cid for cid, _ in vistos.most_common(cuantos)]
     for cid in elegidos:
-        print(f"  · {nombres[cid]}  ({vistos[cid]} vídeos en la búsqueda)")
+        log(f"  · {nombres[cid]}  ({vistos[cid]} vídeos en la búsqueda)")
     return [f"https://www.youtube.com/channel/{cid}" for cid in elegidos]
 
 
@@ -129,8 +143,8 @@ def analizar_canal(url: str, n_videos: int) -> list[dict]:
         v["ratio"] = v["vistas"] / subs if subs else 0.0
         v["x_med"] = v["vistas"] / mediana if mediana else 0.0
 
-    print(f"  · {nombre}: {len(videos)} vídeos · {subs:,} subs · "
-          f"mediana {int(mediana):,}".replace(",", "."))
+    log(f"  · {nombre}: {len(videos)} vídeos · {subs:,} subs · "
+        f"mediana {int(mediana):,}".replace(",", "."))
     return videos
 
 
