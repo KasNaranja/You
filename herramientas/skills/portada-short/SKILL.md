@@ -36,6 +36,8 @@ No entregar nada sin haberlo mirado.
 **5. Entregar los dos ficheros** e indicar **en qué altura puede empezar el
 clip** (el script lo imprime).
 
+**6. Dar las etiquetas de YouTube**, listas para copiar. Ver abajo.
+
 ## Reglas de traducción
 
 **Nunca literal.** Estos textos son ganchos, y la traducción palabra por
@@ -71,6 +73,35 @@ mejorarlo, además de evitar copiar el texto de otro:
 3. **Rematar con una lectura de cine** (qué hace el director, qué te está
    contando sin decirlo). Es lo que convierte un dato curioso en algo que se
    comparte.
+
+## Etiquetas de YouTube
+
+Se entregan **siempre**, en un bloque de código de una sola línea separadas por
+comas, para copiar y pegar directamente en el campo de YouTube. Sin almohadillas
+—el `#` es del título y la descripción, no de las etiquetas— y **sin pegar las
+palabras**: `club de la lucha`, nunca `clubdelalucha`. Una etiqueta pegada no
+coincide con ninguna búsqueda real.
+
+Entre 8 y 12, sin pasar de 500 caracteres en total. Con esta mezcla:
+
+| Qué incluir | Ejemplo |
+|---|---|
+| Título en español de España | `el club de la lucha` |
+| Título latinoamericano, si difiere | `el club de la pelea` |
+| Título original en inglés | `fight club` |
+| Actores y director | `brad pitt`, `edward norton`, `david fincher` |
+| **Erratas frecuentes de los nombres** | `dicaprio`, `di caprio`, `jaki chan`, `escorsese` |
+| La escena o el concepto | `escena final club de la lucha`, `curiosidades de cine` |
+
+**Las erratas son lo único que de verdad aporta.** YouTube lleva años restando
+peso a las etiquetas, y su propio aviso en el editor lo dice: solo sirven
+cuando la gente escribe mal lo que busca. Por eso los nombres propios
+extranjeros —Scorsese, DiCaprio, Jackie Chan— son las etiquetas más rentables
+de este nicho.
+
+No dedicarle más de dos minutos ni proponer treinta. Lo que decide el
+rendimiento de un Short son los tres primeros segundos y el titular en
+pantalla, no las etiquetas.
 
 ## Longitud
 
