@@ -1,6 +1,13 @@
 # Dónde están los ficheros del vídeo 5
 
-**Estado:** vídeo completo montado — 5:52, 196 MB.
+**Estado:** listo para publicar. Dos montajes en local:
+
+| Fichero | Qué es |
+|---|---|
+| `video-subtitulado.mp4` | **El que se sube a YouTube.** 5:52, 249 MB, subtítulos THE QUICK grabados |
+| `video.mp4` | El limpio, 196 MB. Se conserva para regrabar subtítulos sin regenerar nada |
+
+Los subtítulos también están como `publicacion/subtitulos.srt` para los CC.
 
 ## El vídeo completo
 
