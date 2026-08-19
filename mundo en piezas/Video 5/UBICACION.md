@@ -1,9 +1,18 @@
 # Dónde están los ficheros del vídeo 5
 
-**Estado:** solo el gancho está montado. El cuerpo del vídeo (146 marcas) aún no
-tiene imágenes.
+**Estado:** vídeo completo montado — 5:52, 196 MB.
 
-## El gancho
+## El vídeo completo
+
+```
+C:\Users\oriol\You\mundo en piezas\Video 5\video.mp4
+```
+
+5:52 (351,5 s), 1920×1080, 30 fps, H.264 High, AAC 48 kHz estéreo. Se remonta
+gratis con `herramientas/montar-video-efectos.py` desde las imágenes, los
+tramos y la voz.
+
+## El gancho suelto
 
 ```
 C:\Users\oriol\You\mundo en piezas\Video 5\gancho.mp4
