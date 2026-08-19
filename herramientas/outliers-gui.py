@@ -26,6 +26,7 @@ import outliers_youtube as core  # noqa: E402
 COLUMNAS = [
     ("ratio", "Ratio", 70),
     ("x_med", "× mediana", 85),
+    ("tipo", "Tipo", 60),
     ("vistas", "Visitas", 95),
     ("subs", "Subs", 95),
     ("canal", "Canal", 170),
@@ -107,7 +108,8 @@ class App(tk.Tk):
             self.tabla.heading(cid, text=titulo,
                                command=lambda c=cid: self._ordenar(c))
             self.tabla.column(cid, width=ancho,
-                              anchor="e" if cid in ("ratio", "x_med", "vistas", "subs") else "w")
+                              anchor="e" if cid in ("ratio", "x_med", "vistas", "subs")
+                              else "center" if cid == "tipo" else "w")
 
         barra = ttk.Scrollbar(marco, orient="vertical", command=self.tabla.yview)
         self.tabla.configure(yscrollcommand=barra.set)
@@ -205,7 +207,7 @@ class App(tk.Tk):
             tag = ("muy_fuerte",) if v["x_med"] >= 3 else \
                   ("fuerte",) if v["x_med"] >= 2 else ()
             self.tabla.insert("", "end", tags=tag, values=(
-                f"{v['ratio']:.2f}", f"{v['x_med']:.2f}",
+                f"{v['ratio']:.2f}", f"{v['x_med']:.2f}", v.get("tipo", ""),
                 miles(v["vistas"]), miles(v["subs"]),
                 v["canal"], v["titulo"]))
         if self.filas:
@@ -219,7 +221,8 @@ class App(tk.Tk):
         if not self.filas:
             return
         clave = {"vistas": "vistas", "subs": "subs", "ratio": "ratio",
-                 "x_med": "x_med", "canal": "canal", "titulo": "titulo"}[col]
+                 "x_med": "x_med", "canal": "canal", "titulo": "titulo",
+                 "tipo": "tipo"}[col]
         self.orden_desc = not self.orden_desc
         self.filas.sort(key=lambda v: v[clave], reverse=self.orden_desc)
         self._pintar()
@@ -235,8 +238,8 @@ class App(tk.Tk):
             initialfile="outliers.csv")
         if not ruta:
             return
-        campos = ["ratio", "x_med", "vistas", "subs", "canal", "titulo",
-                  "duracion", "url"]
+        campos = ["ratio", "x_med", "tipo", "vistas", "subs", "canal",
+                  "titulo", "duracion", "url"]
         # utf-8-sig para que Excel en Windows no destroce las tildes.
         with open(ruta, "w", newline="", encoding="utf-8-sig") as f:
             w = csv.DictWriter(f, fieldnames=campos, extrasaction="ignore")

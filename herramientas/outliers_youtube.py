@@ -49,7 +49,24 @@ def log(msg: str) -> None:
     _emisor(msg)
 
 
+# Un canal puede publicar solo en una de estas pestañas: los canales de
+# Shorts no tienen siquiera pestaña /videos.
+PESTANAS = {"videos": "vídeo", "shorts": "short", "streams": "directo"}
+
+class _Mudo:
+    """yt-dlp escribe en stderr aunque se le pida silencio.
+
+    Aquí molesta especialmente: preguntar por una pestaña que el canal no
+    tiene es parte del funcionamiento normal, no un fallo que deba verse.
+    """
+    def debug(self, m): pass
+    def info(self, m): pass
+    def warning(self, m): pass
+    def error(self, m): pass
+
+
 OPCIONES = {
+    "logger": _Mudo(),
     "quiet": True,
     "no_warnings": True,
     "skip_download": True,
@@ -109,43 +126,64 @@ def normalizar(canal: str) -> str:
 
 
 def analizar_canal(url: str, n_videos: int) -> list[dict]:
-    """Devuelve los últimos vídeos del canal con sus dos métricas."""
+    """Devuelve los últimos vídeos del canal con sus dos métricas.
+
+    Se miran las tres pestañas por separado, no solo `/videos`: hay canales
+    que publican únicamente Shorts y ahí la pestaña de vídeos ni existe.
+
+    Y la mediana se calcula **por tipo**, no sobre el total. Un Short y un
+    vídeo largo del mismo canal juegan en escalas distintas —los Shorts se
+    mueven en órdenes de magnitud más de visitas—, así que mezclarlos haría
+    que todos los Shorts parecieran outliers y ningún vídeo largo lo fuera.
+    """
     base = normalizar(url)
-    info = extraer(f"{base}/videos", limite=n_videos)
-    if not info:
+    nombre, subs = base, 0
+    por_tipo: dict[str, list[dict]] = {}
+
+    for tab, etiqueta in PESTANAS.items():
+        info = extraer(f"{base}/{tab}", limite=n_videos)
+        if not info:
+            continue  # la pestaña no existe en ese canal
+        nombre = info.get("channel") or nombre
+        subs = info.get("channel_follower_count") or subs
+
+        lote = []
+        for e in info.get("entries") or []:
+            if not e:
+                continue
+            vistas = e.get("view_count")
+            if not vistas:
+                continue  # estrenos, privados o sin contador público
+            lote.append({
+                "canal": nombre,
+                "subs": subs,
+                "tipo": etiqueta,
+                "titulo": (e.get("title") or "").strip(),
+                "url": f"https://www.youtube.com/watch?v={e.get('id')}",
+                "vistas": vistas,
+                "duracion": e.get("duration") or 0,
+            })
+        if lote:
+            por_tipo[etiqueta] = lote
+
+    if not por_tipo:
+        log(f"  ! {base}: sin vídeos con contador visible")
         return []
 
-    nombre = info.get("channel") or info.get("title") or base
-    subs = info.get("channel_follower_count") or 0
+    todos: list[dict] = []
+    resumen = []
+    for etiqueta, lote in por_tipo.items():
+        mediana = statistics.median(v["vistas"] for v in lote)
+        for v in lote:
+            v["subs"] = subs  # la pestaña de Shorts a veces no trae el dato
+            v["ratio"] = v["vistas"] / subs if subs else 0.0
+            v["x_med"] = v["vistas"] / mediana if mediana else 0.0
+        todos.extend(lote)
+        resumen.append(f"{len(lote)} {etiqueta}s (mediana {int(mediana):,})")
 
-    videos = []
-    for e in info.get("entries") or []:
-        if not e:
-            continue
-        vistas = e.get("view_count")
-        if not vistas:
-            continue  # estrenos, privados o sin contador público
-        videos.append({
-            "canal": nombre,
-            "subs": subs,
-            "titulo": (e.get("title") or "").strip(),
-            "url": f"https://www.youtube.com/watch?v={e.get('id')}",
-            "vistas": vistas,
-            "duracion": e.get("duration") or 0,
-        })
-
-    if not videos:
-        print(f"  ! {nombre}: sin vídeos con contador visible", file=sys.stderr)
-        return []
-
-    mediana = statistics.median(v["vistas"] for v in videos)
-    for v in videos:
-        v["ratio"] = v["vistas"] / subs if subs else 0.0
-        v["x_med"] = v["vistas"] / mediana if mediana else 0.0
-
-    log(f"  · {nombre}: {len(videos)} vídeos · {subs:,} subs · "
-        f"mediana {int(mediana):,}".replace(",", "."))
-    return videos
+    log(f"  · {nombre}: {' + '.join(resumen)} · {subs:,} subs"
+        .replace(",", "."))
+    return todos
 
 
 def tabla(filas: list[dict], top: int) -> None:
@@ -203,8 +241,8 @@ def main() -> None:
     tabla(todos, args.top)
 
     if args.csv:
-        campos = ["ratio", "x_med", "vistas", "subs", "canal", "titulo",
-                  "duracion", "url"]
+        campos = ["ratio", "x_med", "tipo", "vistas", "subs", "canal",
+                  "titulo", "duracion", "url"]
         with open(args.csv, "w", newline="", encoding="utf-8-sig") as f:
             w = csv.DictWriter(f, fieldnames=campos, extrasaction="ignore")
             w.writeheader()
