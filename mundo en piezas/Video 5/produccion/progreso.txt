@@ -7,3 +7,17 @@
 [17:50:35] total png: 18
 [17:50:35] resilienciajourney@gmail.com — plus plan, 553 credits
 [17:52:01] pendientes: 97 de 100
+[17:52:20] 1/97 (ultima: 1-04)
+[17:54:15] 15/97 (ultima: 2-29)
+[17:56:19] 30/97 (ultima: 3-36)
+[17:58:22] 45/97 (ultima: 4-44)
+[18:00:34] 60/97 (ultima: 6-12)
+[18:02:52] 75/97 (ultima: 7-18)
+[18:05:36] 90/97 (ultima: 8-36)
+[18:08:21] sin resolver, se abandona: 5-10
+[18:08:21] TERMINADO  hechas: 96  fallos: 1
+[18:08:21] fallaron: 5-10
+[18:08:21] total png: 114
+[18:08:22] resilienciajourney@gmail.com — plus plan, 456 credits
+[18:13:44] pendientes: 13 de 13
+[18:14:02] 1/13 (ultima: 1-12)

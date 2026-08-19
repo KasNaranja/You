@@ -270,3 +270,25 @@ Reglas duras:
 Las duraciones reales salen de `audio/cuerpo/tramos.json` (alineación carácter
 a carácter de la voz clonada), no de las marcas escritas del guion. La media
 real es 2,5 s por línea. El cuerpo dura 5:24; el vídeo completo, ~5:52.
+
+---
+
+# Registro de la revisión (19 ago 2026)
+
+Las 115 se revisaron en hojas de contacto de 24. **14 regeneradas**, todas por
+causas que ahora son reglas:
+
+| Causa | Escenas | Regla que deja |
+|---|---|---|
+| Logo o texto inventado | 1-00 (Bitcoin en la moneda), 1-12 (CENTRAL BANK), 2-54 (TOG BANK) | Los objetos «en blanco» hay que pedirlos en blanco: *completely smooth and blank, no symbol, no letters* |
+| Material o forma mutados | 3-33 (cámara azul), 8-26 (cámara oxidada), 8-36 (caja cuadrada), 2-52 (empotrada en muro), 2-47 (fajos blancos) | Repetir en el prompt el material y la forma aunque vaya la referencia: *stays GOLD, ROUND, freestanding* |
+| Paleta rota | 7-11 (cielo azul) | *FLAT OVERCAST GREY SKY, no blue* en toda escena de exterior |
+| Personaje colado | 1-07 (hombre con taza) → heredado por 4-26 | Un intruso en una canónica se propaga a todas sus hijas. Pedir *nobody in the room* en canónicas de objetos |
+| Estilo roto | 2-06 (caras grandes) | Figuras: *small, distant, no facial features* |
+| Física al revés | 7-57 (la báscula contradecía la frase) | Decidir qué platillo sube ANTES de escribir el prompt |
+| Composición embarullada | 8-22 (elementos fundidos entre sí) | Los planos anchos con 2+ referencias necesitan geografía explícita: qué va delante, qué detrás, qué distancia |
+
+Lo que la revisión confirmó: la coherencia por referencia funciona — la cámara
+acorazada sale idéntica en ~17 de sus 21 planos, el banco central en todos, el
+parqué en los 12, la fábrica en los 5, el despacho encadena su progresión de
+pilas sin un fallo.
