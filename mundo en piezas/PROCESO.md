@@ -73,9 +73,63 @@ Con ella, lo que inventa se parece a lo que ya había.
 **Regla:** si un objeto sale más de una vez, entra en la biblia **antes** de
 escribir ninguna escena. Añadirlo después obliga a regenerar lo anterior.
 
+### 5. Literal antes que metafórico
+
+La primera versión del gancho del vídeo 5 era una metáfora —un depósito de acero
+remachado lleno de monedas como «el ahorro del mundo»— y se descartó entera
+después de gastar 36 créditos.
+
+**Si la voz dice «banco central», se ve un banco central con su cartel.** Si dice
+«Estados Unidos, Reino Unido, Japón y Europa», se ven cuatro mástiles con sus
+banderas. La metáfora obliga al espectador a descifrar antes de entender, y en
+los primeros segundos de un vídeo eso es exactamente lo que no hay tiempo de
+hacer.
+
+### 6. El modelo sí sabe escribir carteles
+
+Regla derogada. Durante cinco vídeos los prompts llevaron «absolutely no text».
+No hacía falta: `BANCO CENTRAL` y `SE VENDE` salieron perfectos a la primera.
+
+**Condiciones:** mayúsculas, sin tildes, dos o tres palabras como mucho, y en un
+sitio donde iría un rótulo de verdad —un friso, una fachada, un poste—. Nada de
+párrafos, cifras ni etiquetas flotantes: ahí sigue fallando.
+
+Esto abre rótulos de ministerio, nombres en mapas y etiquetas de eje.
+
+### 7. Dos cámaras, y el cambio significa algo
+
+| Escena | Cámara |
+|---|---|
+| Instituciones | Alzado frontal, a la altura de la calle |
+| Vida cotidiana | Isométrica desde arriba, a 3/4 |
+
+Alternarlas al azar parece de dos autores. Usarlas por tipo de escena convierte
+el corte en argumento: cuando el vídeo pasa de tu calle al edificio donde se
+decide, la cámara lo dice sin una palabra.
+
+### 8. Cámara fija en todos los clips
+
+```
+The camera is completely locked off: no pan, no zoom, no push in, no parallax.
+```
+
+En cuanto Veo mueve la cámara tiene que inventar lo que entra en cuadro, y ahí
+es donde se deforman los carteles y la arquitectura. Con la cámara clavada, solo
+se mueve lo que se le pide: banderas, gente, luces.
+
 ---
 
 ## Las trampas, todas juntas
+
+**Silencios** — el `.srt` de edge-tts marca frases, no pausas. Dentro de una
+frase hay huecos mayores que entre dos. Para saber dónde cortar de verdad:
+
+```
+ffmpeg -i hook.mp3 -af "silencedetect=n=-40dB:d=0.15" -f null -
+```
+
+Y **edge-tts deja ~0,85 s de silencio al final**. Si no se corta con `-t`, el
+gancho termina con casi un segundo de nada. Se nota.
 
 **Escenas** — nada de ausencias ni negaciones. El pixel art dibuja muy bien lo
 que hay; no puede dibujar «el camino que no tomaste». Cada escena es una relación
