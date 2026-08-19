@@ -4,8 +4,8 @@
 
 | Fichero | Qué es |
 |---|---|
-| `video-subtitulado.mp4` | **El que se sube a YouTube.** 5:52, 249 MB, subtítulos THE QUICK grabados |
-| `video.mp4` | El limpio, 196 MB. Se conserva para regrabar subtítulos sin regenerar nada |
+| `video-subtitulado.mp4` | **El que se sube a YouTube.** 5:58, 250 MB, subtítulos THE QUICK y cierre del engranaje con 6 s de cola |
+| `video.mp4` | El limpio, 198 MB. Se conserva para regrabar subtítulos sin regenerar nada |
 
 Los subtítulos también están como `publicacion/subtitulos.srt` para los CC.
 
