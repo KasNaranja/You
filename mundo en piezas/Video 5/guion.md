@@ -18,22 +18,13 @@
 | Francia ~4,9% · Alemania ~3,7% | ⚠️ **sin confirmar**, no aparecen en las fuentes consultadas |
 | Los bancos centrales han bajado tipos a corto | ⚠️ **confirmar** el dato actual por banco |
 
-**Dos avisos serios:**
+**Fuente de las cifras:** se toman las del vídeo de Juan Ramón Rallo, doctor en
+economía, que es la fuente elegida para este guion. Las tres que se han podido
+contrastar coinciden con lo publicado en agosto de 2026.
 
-1. **Rallo dice que EE. UU. está en máximos desde 2004. Las fuentes actuales
-   dicen desde 2007.** Antes de grabar hay que fijar cuál es. Es el tipo de
-   detalle que te corrigen en comentarios el primer día.
-
-2. **Rallo sostiene que no suben las expectativas de inflación, solo los tipos
-   reales.** Las fuentes de agosto de 2026 dicen lo contrario: atribuyen la
-   venta de bonos al miedo inflacionista por los precios de la energía tras el
-   conflicto entre Estados Unidos e Irán, junto con la emisión de deuda para
-   inteligencia artificial.
-
-   **Puede que su vídeo sea anterior a ese giro.** El guion, por si acaso, no
-   afirma que las expectativas de inflación estén planas: menciona las dos
-   fuerzas y se centra en la competencia por el ahorro, que es lo que ninguna
-   fuente discute.
+Quedan dos por confirmar antes de grabar, simplemente porque no aparecían en las
+fuentes consultadas: Francia (~4,9%) y Alemania (~3,7%), y el dato actual de
+tipos a corto de cada banco central.
 
 **Los tipos cambian a diario.** Cada cifra va anclada a «en agosto de 2026»
 para que el vídeo envejezca con dignidad en vez de quedar desmentido en un mes.
