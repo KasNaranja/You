@@ -24,6 +24,23 @@ vídeo 5.
 
 ## Lo que cambió en el vídeo 5
 
+### 0. La voz es un clon del autor (ElevenLabs)
+
+Desde el vídeo 5, la voz del canal es **el clon de la voz del propio autor**,
+entrenado en ElevenLabs (voz «You», plan Creator). La genera
+`herramientas/generar-voz-eleven.py` con el endpoint `with-timestamps`, que
+devuelve el audio **y el segundo exacto en que arranca cada carácter**.
+
+Eso invierte el método en todo el vídeo, no solo en el gancho: la narración se
+genera de un tirón, con prosodia continua, y **las imágenes se colocan sobre el
+audio** leyendo `tramos.json` — no al revés. Se acabaron los 141 trozos pegados,
+los micro-silencios y las líneas aceleradas para caber en su hueco.
+
+La clave vive en `~/.config/elevenlabs/.env`, fuera del repo. Coste: ~5.900
+caracteres por vídeo de los 121.000 mensuales del plan.
+
+`generar-voz.py` (edge-tts) queda como respaldo gratuito.
+
 ### 1. El gancho ya no se corta
 
 **Antes:** una locución por marca de tiempo, y silencio de relleno hasta la
