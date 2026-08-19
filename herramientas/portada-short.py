@@ -70,6 +70,30 @@ def anton() -> str:
     return str(destino)
 
 
+def sin_emoji(texto: str) -> tuple[str, bool]:
+    """Quita emojis y pictogramas.
+
+    Las fuentes de texto no traen glifos de emoji, así que un 💀 se dibuja como
+    un cuadrado vacío en mitad de la frase. Mejor quitarlo y avisar que dejar
+    ese hueco en la imagen final.
+    """
+    fuera = []
+    limpio = []
+    for c in texto:
+        o = ord(c)
+        es_emoji = (
+            0x1F000 <= o <= 0x1FAFF      # pictogramas, emoticonos, símbolos
+            or 0x2600 <= o <= 0x27BF     # misceláneos y dingbats
+            or o in (0xFE0F, 0x20E3)     # selectores de variación
+        )
+        if es_emoji:
+            fuera.append(c)
+        else:
+            limpio.append(c)
+    # Los espacios dobles que deja el emoji al desaparecer.
+    return " ".join("".join(limpio).split()), bool(fuera)
+
+
 def redondear(ruta: str, d: int) -> Image.Image:
     """Recorta el logo en círculo con máscara suavizada."""
     im = Image.open(ruta).convert("RGBA").resize((d, d), Image.LANCZOS)
@@ -117,6 +141,11 @@ def main() -> None:
     ap.add_argument("--y-marca", type=int, default=102)
     ap.add_argument("--y-titular", type=int, default=300)
     args = ap.parse_args()
+
+    args.titular, tit_tenia = sin_emoji(args.titular)
+    args.cuerpo, cue_tenia = sin_emoji(args.cuerpo)
+    if tit_tenia or cue_tenia:
+        print("! Se han quitado emojis: las fuentes de texto no los dibujan.")
 
     BOLD, REG, TIT = primera_que_exista(CANDIDATAS_BOLD), primera_que_exista(CANDIDATAS_REG), anton()
 
