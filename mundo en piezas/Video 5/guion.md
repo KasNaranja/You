@@ -1,7 +1,8 @@
 # Vídeo 5 — Los bancos centrales bajan los tipos y tu hipoteca sube
 
 - **Canal:** El Mundo en Piezas
-- **Duración objetivo:** 8:45
+- **Duración objetivo:** 8:30
+- **Gancho:** 26,33 s en un solo bloque de audio, sin uniones. Ver `produccion/gancho.md`
 - **Tesis:** el precio del dinero a largo plazo ya no lo pone el banco central.
   Lo pone una subasta por un ahorro que se ha vuelto escaso, y los Estados la
   están perdiendo.
@@ -62,21 +63,16 @@ Sin corte de estilo.
 
 ## Guion
 
-0:00 Los bancos centrales llevan meses bajando los tipos de interés.
-0:05 Y sin embargo, pedir dinero prestado a treinta años
-0:09 no había sido tan caro en dos décadas.
-0:13 En agosto de dos mil veintiséis, Estados Unidos paga
-0:18 un cinco con tres por ciento por su deuda a treinta años.
-0:22 Reino Unido roza el seis.
-0:25 Y Japón está en su nivel más alto de toda su historia.
-0:30 Todo eso mientras los bancos centrales abarataban el dinero.
-0:35 Las dos cosas no deberían pasar a la vez.
-0:39 Y aquí viene la pregunta que casi nadie hace.
-0:43 Si el banco central baja los tipos,
-0:46 ¿quién los está subiendo?
-0:49 Porque alguien lo está haciendo.
-0:52 Y ese alguien también decide lo que te va a costar tu hipoteca.
-0:57 Empecemos por ahí.
+0:00 Hay algo que está encareciendo el dinero en todo el mundo,
+0:00 y probablemente terminará afectando a tu hipoteca,
+0:00 a tus inversiones y a lo que pagas por casi todo.
+0:08 Y lo extraño es que no son los bancos centrales.
+0:11 Mientras Estados Unidos, Reino Unido, Japón y Europa
+0:11 ven cómo suben sus tipos de interés a largo plazo,
+0:11 está ocurriendo algo mucho más importante detrás:
+0:11 los gobiernos necesitan cada vez más dinero,
+0:11 y la inteligencia artificial también.
+0:23 Y ambos están compitiendo por la misma cosa.
 
 1:00 Hay dos precios del dinero, no uno.
 1:04 El primero lo pone el banco central.
