@@ -310,8 +310,12 @@ ESCENAS = [
       escena=CENTRADO + "Scene: two framed pictures hanging side by side on a dark stone wall: the left frame holds the flag of Germany, three horizontal bands of black, red and gold; the right frame holds a coastal border fence running into a blue sea."),
  dict(id="8-57", cubre=["8-57"], dur=3.0, efecto="in",
       escena=ISO + f"Scene: {CALLE} at dusk, windows warmly lit, and the single street lamp on the corner flickered out, dark."),
- dict(id="9-02", cubre=["9-02"], dur=2.4, efecto="fijo",
-      escena=CENTRADO + "Scene: the same dark stone wall, now with two empty picture frames side by side, softly lit, waiting to be filled."),
+ # El cierre es la plantilla del canal (recursos/cierre/6-engranaje.png):
+ # marco dorado para el video superpuesto y el engranaje como boton de canal.
+ # La voz acaba y la imagen aguanta ~8 s con cola de silencio para dar tiempo
+ # a clicar. NO se genera: se copia de recursos/cierre/.
+ dict(id="9-02", cubre=["9-02"], dur=8.4, efecto="fijo",
+      escena="PLANTILLA recursos/cierre/6-engranaje.png — no generar"),
 ]
 
 # --- Canónicas: la imagen que define a cada elemento recurrente -------------
