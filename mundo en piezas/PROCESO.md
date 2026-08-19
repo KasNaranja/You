@@ -16,7 +16,8 @@ vídeo 5.
 | 7 | **Imágenes** del resto | ~140 cr | 15 min |
 | 8 | **Voz** del cuerpo, calibrada a las marcas | 0 | 15 min |
 | 9 | **Montaje**: clips + imágenes + voz | 0 | 12 min |
-| 10 | **Miniaturas, título, descripción** y guardar en el repo | ~6 cr | — |
+| 10 | **Subtítulos**: alineación por palabra → estilo THE QUICK → grabar | 0 | ~20 min |
+| 11 | **Miniaturas, título, descripción** y guardar en el repo | ~6 cr | — |
 
 **Total: ~180 créditos y unas 5 horas**, de las que cuatro son escribir.
 
@@ -196,6 +197,24 @@ bandas alrededor de las líneas negras.
 16:9 exacto, y superan el límite de 2 MB de YouTube.
 
 ---
+
+### 10. Subtítulos estilo THE QUICK
+
+La alineación palabra a palabra del forced-alignment (la misma que coloca las
+imágenes) da el milisegundo exacto de cada palabra: los subtítulos salen
+clavados, no aproximados como los automáticos de YouTube.
+
+`herramientas/generar-subtitulos.py` produce el `.ass` (bloques de hasta 6
+palabras visibles, la activa en amarillo, pop al entrar el bloque, Komika Axis
+de `recursos/fuentes/`) y el `.srt` plano para CC de YouTube. Se graban con
+`subtitles=subs.ass:fontsdir=...` — no hace falta instalar la fuente.
+
+**La trampa del troceado:** la puntuación solo corta si el bloque ya tiene 3+
+palabras. El guion es de frases cortas, y si corta siempre salen bloques de 2
+palabras — el efecto metralleta que se descartó a la primera prueba.
+
+Se guarda el vídeo limpio Y el subtitulado: cambiar de estilo de subtítulos no
+debe costar regenerar nada.
 
 ## Las herramientas
 
