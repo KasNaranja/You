@@ -45,3 +45,54 @@ La contrapartida es que no recogerá los shorts publicados desde el 20/08/2026.
 
 La otra vía es la API oficial con `--clave`: 36 peticiones en vez de 1.758 y sí
 funciona desde la nube, pero hay que darse de alta una clave en Google Cloud.
+
+
+---
+
+# Cruce con @Tengri1337 — dónde está el hueco
+
+`cruce-tengri.py` empareja los dos catálogos y deja `hueco-vs-tengri.xlsx`
+con tres hojas: el catálogo entero marcando lo cogido, los libres que pasaron
+del millón, y qué le rindió a Tengri cada adaptación.
+
+Tengri no se inspira en Scroll Spheres: **lo traduce uno a uno.** De sus 39
+shorts he localizado el original de 33. Los otros 6 quedan anotados en el
+script por si vienen de otra fuente.
+
+## Lo que hay que saber antes de elegir vídeo
+
+**1. El catálogo de Scroll Spheres es 94 % relleno.** De los 1.758 shorts,
+1.476 no llegan a 100.000 visitas y la mediana está en 25.000. Los 100 mejores
+se llevan el **87 %** de los mil millones de visitas del canal. Copiar del
+montón no lleva a ninguna parte: la hoja «Libres +1M» son las 108 filas que
+importan.
+
+**2. Las visitas del original predicen poco.** Los tres shorts de 39 millones
+que Tengri adaptó le rindieron un 2,6 %, un 0,7 % y un 0,6 %. En cambio
+*Transporter 2*, que en Scroll Spheres se quedó en 26.000, le hizo 468.000; y
+*Anton Chigurh*, con 43.000 de origen, le hizo 352.000. La mediana de
+conversión es del **1,9 %**, pero el reparto no tiene nada que ver con el
+tamaño del original.
+
+Con cuidado: parte de las cifras bajas de Tengri son de shorts recién
+publicados. Aun así, entre los más antiguos hay tanto 4,7 millones como 1.400
+visitas, así que la varianza es real y no solo cuestión de antigüedad.
+
+**3. Lo que sí se repite en sus aciertos** es que la escena se entiende sola,
+sin conocer la película: un tío que baja diez pisos en rappel, un sicario al
+que le vacían el cargador, un especialista que se juega el cuello. Sus
+fracasos son datos de aficionado —qué pistola lleva, cuánto cobró por
+palabra—, que en inglés funcionan porque el canal ya tiene público y en frío
+no le importan a nadie.
+
+## Cómo se rehace
+
+```
+python analisis/scroll-spheres/cruce-tengri.py
+```
+
+Vuelve a pedir el catálogo de Tengri (son 39 shorts, tarda segundos) y
+reutiliza el de Scroll Spheres que hay en esta carpeta. Si Tengri publica
+nuevas adaptaciones hay que añadirlas a mano al diccionario `ADAPTADOS`: los
+títulos traducidos no coinciden literalmente y no hay forma automática fiable
+de emparejarlos.
