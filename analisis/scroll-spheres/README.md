@@ -167,3 +167,38 @@ hace falta esperar un mes para decidir si el enfoque valía.
 de lo antiguo y el crecimiento del canal— los 60 primeros son exactamente los
 mismos vídeos que ya estaban por encima del millón. El corte no dejaba fuera
 ningún outlier escondido.
+
+## El plan
+
+La primera hoja del libro, «Plan», es lo único que hay que leer para ponerse a
+trabajar: los 34 verdes en orden, con el día que toca cada uno y por qué va en
+esa posición. El orden vive en `plan.py`.
+
+**No está ordenado por visitas.** Un canal que empieza no tiene suscriptores, así
+que todo lo que entra viene del feed de Shorts, delante de gente que no lo conoce
+de nada. Eso pesa más que el número del original. Deciden tres cosas:
+
+- **Reconocimiento inmediato en España.** En frío ganan las marcas que cualquiera
+  identifica en medio segundo.
+- **Lo que ya está probado.** Jackie Chan es el nombre con mejor conversión de
+  todo el cruce: los dos mayores éxitos de Tengri salen de ahí, y queda uno libre.
+  Va el primero aunque su original no sea de los más vistos.
+- **No repetir saga seguida.** Dos de Piratas pegados se comen el uno al otro.
+
+**Dos al día, diecisiete días.** El ritmo tampoco es un capricho: cuando Scroll
+Spheres subía diez al día su mediana cayó a 11.471 visitas, y ahora que publica
+3,8 va por encima de 165.000. Dos son tiros suficientes para que el algoritmo
+encuentre el canal sin bajar la calidad de cada uno.
+
+**Al séptimo día hay que parar y mirar.** Un short madura en una semana, así que
+para entonces los catorce primeros ya se pueden juzgar. Lo que haya funcionado
+dice por dónde seguir, y el resto de la lista se reordena con eso — para eso el
+orden está en un fichero aparte y no clavado en el Excel.
+
+### Corrección de una errata
+
+Ocho títulos de `POTENCIAL` tenían comas convertidas en puntos: se colaron al
+copiarlos de una salida de terminal que formateaba miles. No casaban con el
+catálogo y se quedaban sin puntuar. Corregidos, los verdes pasan de 33 a 34 —el
+que faltaba era el de *Crepúsculo*—. Si se vuelven a copiar títulos de una
+salida con `.replace(",", ".")`, ojo con esto.

@@ -9,10 +9,11 @@ vídeos de Scroll Spheres funcionaron y Tengri todavía no ha tocado.**
 
     python3 analisis/scroll-spheres/cruce-tengri.py
 
-Deja `hueco-vs-tengri.xlsx` con cuatro hojas: el catálogo entero marcando en qué
-estado está cada vídeo, las candidatas libres que pasaron del millón con su
-potencial, el rendimiento de cada adaptación de Tengri y el criterio de la
-criba. La criba en sí vive en `potencial.py`.
+Deja `hueco-vs-tengri.xlsx` con seis hojas: el plan de publicación, el catálogo
+entero marcando en qué estado está cada vídeo, las candidatas libres que pasaron
+del millón con su potencial, el rendimiento de cada adaptación de Tengri, el
+ritmo mes a mes y el criterio de la criba. La criba vive en `potencial.py` y el
+orden de publicación en `plan.py`.
 
 Los colores del libro:
     verde  potencial alto, y libre
@@ -30,6 +31,7 @@ from pathlib import Path
 
 AQUI = Path(__file__).resolve().parent
 sys.path.insert(0, str(AQUI))
+import plan  # noqa: E402
 import potencial as pot  # noqa: E402
 
 # Título de Scroll Spheres ← short de Tengri que lo adapta.
@@ -316,6 +318,47 @@ def main() -> None:
         fila[0].number_format = fila[1].number_format = "#,##0"
         fila[2].number_format = "0,0%"
     h3.freeze_panes = "A2"
+
+    # Primera hoja del libro: qué hacer, en qué orden y por qué. Va delante
+    # porque es lo único que hay que leer para ponerse a trabajar.
+    hp = wb.create_sheet("Plan", 0)
+    hp.append(["Orden", "Día", "Título (Scroll Spheres)", "Visitas SS",
+               "× mediana del mes", "Por qué en esta posición"])
+    for c in hp[1]:
+        c.font = Font(bold=True)
+
+    por_titulo = {v["titulo"]: v for v in ss}
+    for i, (titulo, motivo) in enumerate(plan.ORDEN, 1):
+        v = por_titulo.get(titulo, {})
+        dia = (i - 1) // plan.RITMO + 1
+        hp.append([i, dia, titulo, v.get("vistas"), v.get("x_mes"), motivo])
+        for c in hp[hp.max_row]:
+            c.fill = verde
+    for col, ancho in ((1, 7), (2, 6), (3, 70), (4, 13), (5, 17), (6, 104)):
+        hp.column_dimensions[get_column_letter(col)].width = ancho
+    for fila in hp.iter_rows(min_row=2, min_col=1, max_col=6):
+        fila[3].number_format = "#,##0"
+        fila[4].number_format = "0"
+        for j in (0, 1, 3, 4):
+            fila[j].alignment = Alignment(horizontal="center")
+        fila[5].alignment = Alignment(wrap_text=True, vertical="top")
+        fila[2].alignment = Alignment(vertical="top")
+    hp.freeze_panes = "C2"
+
+    # El criterio del plan, debajo de la tabla, para que viaje con ella. El
+    # docstring lleva marcas de markdown y viñetas propias: en una celda
+    # estorban, así que se limpian y cada viñeta va en su fila.
+    hp.append([])
+    for bloque in plan.__doc__.split("\n\n")[1:]:
+        for n, trozo in enumerate(bloque.split("\n  · ")):
+            texto = " ".join(trozo.split()).replace("**", "").replace("`", "")
+            if not texto:
+                continue
+            if n and not texto.startswith("· "):
+                texto = "· " + texto
+            hp.append(["", "", texto])
+            hp.cell(hp.max_row, 3).alignment = Alignment(wrap_text=True,
+                                                         vertical="top")
 
     # Cuarta hoja: el ritmo mes a mes. Es donde se ve que el canal abandonó el
     # volumen, que es lo más útil que dicen las fechas.

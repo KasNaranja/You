@@ -43,7 +43,7 @@ POTENCIAL = {
         ("alto", "Los juegos del hambre es masivo en España y el momento se lee solo."),
     "How Did They Do This In 1937 Without Any CGI? - Sh! The Octopus (1937)":
         ("alto", "La película no la conoce nadie y da igual: el gancho es el truco de 1937."),
-    "In Ahsoka (2023) After 20 Years. Anakin Is Still A Goat With The Saber":
+    "In Ahsoka (2023) After 20 Years, Anakin Is Still A Goat With The Saber":
         ("medio", "Star Wars vende, pero hay que seguir la serie para que signifique algo."),
     "They Made A Fake Dummy Of Daniel Radcliffe - Swiss Army Man (2016)":
         ("alto", "Radcliffe es reclamo automático y el muñeco se ve en pantalla."),
@@ -125,7 +125,7 @@ POTENCIAL = {
         ("medio", "Blooper correcto, pero sin nada memorable."),
     "The Doctor’s Curiousity - 28 Years Later (2025): The Bone Temple":
         ("medio", "Estreno muy reciente: aún no hay masa crítica buscándolo."),
-    "Peaky Blinders (2013): 3.000 cigarettes per season?":
+    "Peaky Blinders (2013): 3,000 cigarettes per season?":
         ("medio", "Peaky Blinders arrastra mucho aquí, pero el dato no se ve, se cuenta."),
     "Ryan Reynolds Tanked A Real Fighter's Punch":
         ("alto", "Reynolds, un puñetazo real y una reacción: no hace falta nada más."),
@@ -157,7 +157,7 @@ POTENCIAL = {
         ("alto", "Piratas del Caribe y una ocurrencia que se ve en pantalla de principio a fin."),
     "Young Biff Really Had NO Chill With Future Biff - Back To The Future II":
         ("alto", "Regreso al futuro otra vez: reconocible al instante y puramente visual."),
-    "During The Filming of Pirates of the Caribbean: At Worlds End. Elizabeth & Barbossa Couldn't Catch":
+    "During The Filming of Pirates of the Caribbean: At Worlds End, Elizabeth & Barbossa Couldn't Catch":
         ("medio", "Blooper correcto pero menor dentro de la saga."),
     "Johnny Depp Scammed 19 yr old Leonardo DiCaprio 😂":
         ("alto", "Depp y DiCaprio en el mismo titular. La anécdota se cuenta en diez segundos."),
@@ -177,7 +177,7 @@ POTENCIAL = {
         ("bajo", "Humor de sketch anglosajón, todo hablado."),
     "Willem Dafoe really went full Green Goblin on Pedro Pascal":
         ("medio", "Dos nombres fuertes, pero el momento es de promoción."),
-    "In Twilight (2008). that iconic forest scene where they glide through the trees wasn't CGI":
+    "In Twilight (2008), that iconic forest scene where they glide through the trees wasn't CGI":
         ("alto", "Crepúsculo tiene un público enorme aquí y «no era CGI» es el gancho de la casa."),
     "Legendary Interaction Between Jackie Chan & Native Americans - Shanghai Noon (2000)":
         ("alto", "Jackie Chan es el mejor reclamo del catálogo: a Tengri le dio 2,1 y 1,3 millones."),
@@ -193,7 +193,7 @@ POTENCIAL = {
         ("bajo", "De nicho."),
     "The subtle character details you missed - Inglourious Basterds (2009)":
         ("medio", "Análisis interesante, pero hay que explicarlo mucho."),
-    "In X-Men: First Class (2011). Magneto reminds Emma Frost that while diamonds are hard":
+    "In X-Men: First Class (2011), Magneto reminds Emma Frost that while diamonds are hard":
         ("medio", "El golpe está en la frase, y traducida pierde filo."),
     "This Hand Gesture in Inglourious Basterds (2009) Reveals Everything":
         ("alto", "El gesto de los dedos: se entiende sin idioma y es de las escenas más célebres que hay."),
@@ -201,7 +201,7 @@ POTENCIAL = {
         ("medio", "Marvel y proeza física, aunque el titular ya lo cuenta todo."),
     "Johnny Depp & Jack Blooper - Pirates Of The Caribbean Dead Men Tell No Tales":
         ("bajo", "Tercer blooper de la misma saga: satura."),
-    "Wrong guy. wrong grave - D&D Honor Among Thieves (2023)":
+    "Wrong guy, wrong grave - D&D Honor Among Thieves (2023)":
         ("bajo", "De nicho."),
     "Nightcrawler In Dark Phoenix Is Officially The Most Terrifying Version Of The Character":
         ("medio", "Secuencia visual buena dentro de una película que gustó poco."),
@@ -227,11 +227,11 @@ POTENCIAL = {
         ("bajo", "Especulación de reparto."),
     "Sam Witwer’s Kenobi! Scream Darth Maul Recording":
         ("bajo", "Muy de nicho y en inglés."),
-    "The Hidden Meaning Behind Jack Sparrow’s Hat. Coat. and Weapons - Pirates of The Caribbean":
+    "The Hidden Meaning Behind Jack Sparrow’s Hat, Coat, and Weapons - Pirates of The Caribbean":
         ("medio", "Piratas siempre funciona, pero esto es un vídeo explicado."),
     "Harry Potter Corrects Voldemort's Spell - Parody":
         ("bajo", "Parodia hablada en inglés."),
-    "In Pirates of the Caribbean At Worlds End. Barbossa's Hat Kept Getting Blown Off By The Wind":
+    "In Pirates of the Caribbean At Worlds End, Barbossa's Hat Kept Getting Blown Off By The Wind":
         ("bajo", "Anécdota menor."),
     "Why The Cast Of Apocalypto (2006) Felt So Real":
         ("medio", "Apocalypto tira, pero esto ya es la tercera pieza sobre lo mismo."),
