@@ -96,3 +96,44 @@ reutiliza el de Scroll Spheres que hay en esta carpeta. Si Tengri publica
 nuevas adaptaciones hay que añadirlas a mano al diccionario `ADAPTADOS`: los
 títulos traducidos no coinciden literalmente y no hay forma automática fiable
 de emparejarlos.
+
+## La criba: 33 candidatas en verde
+
+`potencial.py` puntúa las 107 candidatas libres que pasaron del millón. El
+criterio no es una intuición: sale de mirar qué le funcionó a Tengri y qué no.
+
+Cuatro preguntas por vídeo:
+
+1. ¿Se entiende en los tres primeros segundos, sin haber visto la película?
+2. ¿Hay algo físico que ver, o es un dato que hay que contar?
+3. ¿Sobrevive a la traducción? Los acentos, los juegos de palabras y las frases
+   míticas en inglés se mueren en castellano, y más con el doblaje.
+4. ¿La película o el actor significan algo en España?
+
+Las cuatro a favor es «alto» y va en **verde**. Una en contra, «medio». Dos o
+más, «bajo». La hoja «Criterio» del libro lo explica ahí mismo, para que la
+criba se pueda discutir en vez de tener que creérsela.
+
+**Colores del libro**
+
+| | |
+|---|---|
+| verde | libre y de potencial alto — por aquí se empieza |
+| gris | lo tiene Tengri: se puede hacer igual, pero compites de frente |
+| azul | ya lo hemos preparado nosotros |
+| sin color | libre, de potencial medio o bajo |
+
+## Lo que hemos hecho hasta ahora
+
+De los **12** shorts que hemos adaptado, **8 los tiene Tengri también**: el
+secuaz de John Wick 2, el Marquis, Anne Hathaway, Ledger, Kylo Ren, Jackie Chan
+bajando diez pisos, el narrador de El club de la lucha y el conteo de balas de
+John Wick 2. Es decir, dos de cada tres los estamos peleando de frente contra
+un canal que lleva meses de ventaja en el mismo nicho.
+
+Los cuatro que sí eran nuestros —*The Accident That Made The Final Cut*,
+*It Follows*, *Bullet Train* y *Shutter Island*— salieron de mirar el canal por
+encima, no de una lista. Con el Excel delante eso ya no hace falta.
+
+Si alguno de esos 12 se quedó sin publicar, se quita de `TUYOS` en
+`potencial.py` y vuelve a la lista de libres.

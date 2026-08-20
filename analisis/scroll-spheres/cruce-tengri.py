@@ -9,8 +9,15 @@ vídeos de Scroll Spheres funcionaron y Tengri todavía no ha tocado.**
 
     python3 analisis/scroll-spheres/cruce-tengri.py
 
-Deja `hueco-vs-tengri.xlsx` con las tres columnas de siempre más dos: si Tengri
-ya lo ha hecho y cuántas visitas le sacó.
+Deja `hueco-vs-tengri.xlsx` con cuatro hojas: el catálogo entero marcando en qué
+estado está cada vídeo, las candidatas libres que pasaron del millón con su
+potencial, el rendimiento de cada adaptación de Tengri y el criterio de la
+criba. La criba en sí vive en `potencial.py`.
+
+Los colores del libro:
+    verde  potencial alto, y libre
+    gris   ya lo ha hecho Tengri
+    azul   ya lo hemos hecho nosotros
 """
 from __future__ import annotations
 
@@ -20,7 +27,8 @@ import sys
 from pathlib import Path
 
 AQUI = Path(__file__).resolve().parent
-sys.path.insert(0, str(AQUI.parent.parent / "herramientas"))
+sys.path.insert(0, str(AQUI))
+import potencial as pot  # noqa: E402
 
 # Título de Scroll Spheres ← short de Tengri que lo adapta.
 # Se empareja por el título original porque los identificadores de Tengri no
@@ -75,6 +83,52 @@ SIN_LOCALIZAR = [
 ]
 
 
+# Texto de la hoja «Criterio». (línea, en negrita)
+CRITERIO = [
+    ("Cómo se ha hecho la criba", True),
+    ("", False),
+    ("Tengri traduce a Scroll Spheres uno a uno, así que sus 39 shorts son un "
+     "experimento ya pagado: sabemos qué original rindió y cuál no al pasarlo "
+     "al castellano. El verde sale de ahí, no de una intuición.", False),
+    ("", False),
+    ("Las cuatro preguntas", True),
+    ("1. ¿Se entiende en los tres primeros segundos, sin haber visto la "
+     "película?", False),
+    ("2. ¿Hay algo físico que ver, o es un dato que hay que contar?", False),
+    ("3. ¿Sobrevive a la traducción? Los acentos, los juegos de palabras y las "
+     "frases míticas en inglés se mueren en castellano, y más con el doblaje.", False),
+    ("4. ¿La película o el actor significan algo en España?", False),
+    ("", False),
+    ("Las cuatro a favor es «alto» y va en verde. Una en contra, «medio». Dos o "
+     "más, «bajo».", False),
+    ("", False),
+    ("Por qué no basta con ordenar por visitas", True),
+    ("De los shorts que Tengri adaptó, los tres originales de 39 millones le "
+     "retuvieron un 2,6 %, un 0,7 % y un 0,6 %. En cambio Transporter 2, que en "
+     "Scroll Spheres se quedó en 26.000 visitas, le hizo 468.000; y Anton "
+     "Chigurh, con 43.000 de origen, le hizo 352.000. La mediana de conversión "
+     "es del 1,9 %, pero el reparto no guarda relación con el tamaño del "
+     "original.", False),
+    ("", False),
+    ("Con una salvedad honesta: parte de sus cifras bajas son de shorts recién "
+     "publicados. Aun así, entre los más antiguos hay tanto 4,7 millones como "
+     "1.400 visitas, así que la varianza es real y no solo cuestión de "
+     "antigüedad.", False),
+    ("", False),
+    ("El corte del millón", True),
+    ("De los 1.758 shorts del canal, 1.476 no llegan a 100.000 visitas y la "
+     "mediana está en 25.000. Los 100 mejores se llevan el 87 % de los mil "
+     "millones de visitas. Por debajo del millón hay muy poco que rascar, y por "
+     "eso la hoja de candidatas corta ahí.", False),
+    ("", False),
+    ("Colores", True),
+    ("verde: libre y de potencial alto — por aquí se empieza", False),
+    ("gris: lo tiene Tengri — se puede hacer igual, pero compites de frente", False),
+    ("azul: ya lo hemos preparado nosotros", False),
+    ("sin color: libre, de potencial medio o bajo", False),
+]
+
+
 def tengri() -> dict[str, int]:
     """Visitas de cada short de Tengri, por título."""
     r = subprocess.run(
@@ -103,6 +157,11 @@ def main() -> None:
         adapt = ADAPTADOS.get(v["titulo"])
         v["tengri"] = "sí" if adapt else ""
         v["tengri_vistas"] = visitas_tengri(adapt) if adapt else None
+        tuyo = v["id"] in pot.TUYOS
+        v["estado"] = ("ya es tuyo (y de Tengri)" if tuyo and adapt else
+                       "ya es tuyo" if tuyo else
+                       "lo tiene Tengri" if adapt else "libre")
+        v["potencial"], v["porque"] = pot.POTENCIAL.get(v["titulo"], ("", ""))
 
     ss.sort(key=lambda v: v["vistas"] or 0, reverse=True)
 
@@ -110,47 +169,66 @@ def main() -> None:
     from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils import get_column_letter
 
+    verde = PatternFill("solid", fgColor="C6EFCE")   # potencial alto
+    gris = PatternFill("solid", fgColor="DDDDDD")    # ya cogido
+    azul = PatternFill("solid", fgColor="DDEBF7")    # ya es tuyo
+
+    def pintar(hoja, v):
+        relleno = (azul if v["estado"].startswith("ya es tuyo") else
+                   gris if v["estado"] == "lo tiene Tengri" else
+                   verde if v["potencial"] == "alto" else None)
+        if relleno:
+            for c in hoja[hoja.max_row]:
+                c.fill = relleno
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Hueco"
-    ws.append(["#", "Título (Scroll Spheres)", "Visitas SS",
-               "¿Tengri lo ha hecho?", "Visitas Tengri"])
+    ws.append(["#", "Título (Scroll Spheres)", "Visitas SS", "Estado",
+               "Visitas Tengri", "Potencial", "Por qué"])
     for c in ws[1]:
         c.font = Font(bold=True)
 
-    gris = PatternFill("solid", fgColor="DDDDDD")
     for i, v in enumerate(ss, 1):
-        ws.append([i, v["titulo"], v["vistas"], v["tengri"], v["tengri_vistas"]])
-        if v["tengri"]:
-            for c in ws[ws.max_row]:
-                c.fill = gris          # lo cogido se ve de un vistazo
+        ws.append([i, v["titulo"], v["vistas"], v["estado"], v["tengri_vistas"],
+                   v["potencial"], v["porque"]])
+        pintar(ws, v)
 
-    for col, ancho in ((1, 6), (2, 78), (3, 13), (4, 18), (5, 14)):
+    for col, ancho in ((1, 6), (2, 74), (3, 13), (4, 16), (5, 14), (6, 11), (7, 92)):
         ws.column_dimensions[get_column_letter(col)].width = ancho
-    for fila in ws.iter_rows(min_row=2, min_col=3, max_col=5):
-        fila[0].number_format = "#,##0"
+    for fila in ws.iter_rows(min_row=2, min_col=3, max_col=6):
+        fila[0].number_format = fila[2].number_format = "#,##0"
         fila[1].alignment = Alignment(horizontal="center")
-        fila[2].number_format = "#,##0"
-    ws.freeze_panes = "A2"
-    ws.auto_filter.ref = f"A1:E{ws.max_row}"
+        fila[3].alignment = Alignment(horizontal="center")
+    ws.freeze_panes = "C2"
+    ws.auto_filter.ref = f"A1:G{ws.max_row}"
 
     cogidos = [v for v in ss if v["tengri"]]
-    libres = [v for v in ss if not v["tengri"]]
+    libres = [v for v in ss if v["estado"] == "libre"]
 
     # Segunda hoja: lo que de verdad hay que mirar. El catálogo entero son
     # 1.758 filas de las que 1.476 no llegan a 100.000 visitas; la cola larga
     # no dice nada.
+    # Ordenados por potencial primero y por visitas después: la lista se lee
+    # de arriba abajo y lo verde queda junto.
+    orden = {"alto": 0, "medio": 1, "bajo": 2, "": 3}
+    candidatas = sorted([x for x in libres if (x["vistas"] or 0) >= 1_000_000],
+                        key=lambda v: (orden[v["potencial"]], -(v["vistas"] or 0)))
+
     h2 = wb.create_sheet("Libres +1M")
-    h2.append(["#", "Título (Scroll Spheres)", "Visitas SS"])
+    h2.append(["#", "Título (Scroll Spheres)", "Visitas SS", "Potencial", "Por qué"])
     for c in h2[1]:
         c.font = Font(bold=True)
-    for i, v in enumerate([x for x in libres if (x["vistas"] or 0) >= 1_000_000], 1):
-        h2.append([i, v["titulo"], v["vistas"]])
-    for col, ancho in ((1, 6), (2, 86), (3, 13)):
+    for i, v in enumerate(candidatas, 1):
+        h2.append([i, v["titulo"], v["vistas"], v["potencial"], v["porque"]])
+        pintar(h2, v)
+    for col, ancho in ((1, 6), (2, 74), (3, 13), (4, 11), (5, 96)):
         h2.column_dimensions[get_column_letter(col)].width = ancho
-    for fila in h2.iter_rows(min_row=2, min_col=3, max_col=3):
+    for fila in h2.iter_rows(min_row=2, min_col=3, max_col=4):
         fila[0].number_format = "#,##0"
-    h2.freeze_panes = "A2"
+        fila[1].alignment = Alignment(horizontal="center")
+    h2.freeze_panes = "C2"
+    h2.auto_filter.ref = f"A1:E{h2.max_row}"
 
     # Tercera hoja: qué le rindió a Tengri cada adaptación. Es lo único que
     # dice de verdad cuánto se traduce una cifra inglesa al castellano.
@@ -168,10 +246,30 @@ def main() -> None:
         fila[2].number_format = "0,0%"
     h3.freeze_panes = "A2"
 
+    # Cuarta hoja: de dónde sale el verde, para que la criba se pueda discutir
+    # en vez de tener que creérsela.
+    h4 = wb.create_sheet("Criterio")
+    h4.column_dimensions["A"].width = 118
+    for linea, negrita in CRITERIO:
+        h4.append([linea])
+        if negrita:
+            h4[h4.max_row][0].font = Font(bold=True)
+        h4[h4.max_row][0].alignment = Alignment(wrap_text=True, vertical="top")
+
+    for hoja, col in ((ws, "G"), (h2, "E")):
+        for fila in hoja.iter_rows(min_row=2, min_col=hoja.max_column,
+                                   max_col=hoja.max_column):
+            fila[0].alignment = Alignment(wrap_text=True, vertical="top")
+
     wb.save(AQUI / "hueco-vs-tengri.xlsx")
+
+    altos = [v for v in candidatas if v["potencial"] == "alto"]
     print(f"✓ hueco-vs-tengri.xlsx · {len(ss)} shorts de Scroll Spheres")
-    print(f"  {len(cogidos)} ya adaptados por Tengri, {len(libres)} libres")
+    print(f"  {len(cogidos)} los tiene Tengri · {len(pot.TUYOS)} ya son tuyos "
+          f"· {len(libres)} libres")
     print(f"  sin localizar el original: {len(SIN_LOCALIZAR)} shorts de Tengri")
+    print(f"  candidatas libres con +1M: {len(candidatas)}, "
+          f"de las que {len(altos)} en verde")
     for corte in (10_000_000, 5_000_000, 1_000_000):
         n = sum(1 for v in libres if (v["vistas"] or 0) >= corte)
         print(f"  libres con más de {corte:,} visitas: {n}".replace(",", "."))
