@@ -260,6 +260,11 @@ def main() -> None:
     ap.add_argument("--catalogo", help="reutilizar un catálogo ya descargado (.json)")
     args = ap.parse_args()
 
+    try:  # mejor enterarse ahora que después de una hora raspando
+        import openpyxl  # noqa: F401
+    except ImportError:
+        sys.exit("Falta openpyxl para escribir el .xlsx:  pip install openpyxl")
+
     if args.catalogo:
         lista = json.loads(Path(args.catalogo).read_text(encoding="utf8"))
     else:

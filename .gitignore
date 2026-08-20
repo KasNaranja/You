@@ -48,6 +48,10 @@ venv/
 .pytest_cache/
 .mypy_cache/
 
+# Avance a medias de shorts-canal.py: sirve para reanudar en la propia máquina,
+# no para compartirlo. El resultado bueno es el .xlsx.
+*-avance.json
+
 # Ofimática (ficheros de bloqueo)
 ~$*
 .~lock.*
