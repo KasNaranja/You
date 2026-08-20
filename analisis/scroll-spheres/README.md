@@ -137,3 +137,33 @@ encima, no de una lista. Con el Excel delante eso ya no hace falta.
 
 Si alguno de esos 12 se quedó sin publicar, se quita de `TUYOS` en
 `potencial.py` y vuelve a la lista de libres.
+
+## Lo que dicen las fechas
+
+Ya están las 1.758, con visitas exactas: **1.055.801.922 visitas en 362 días**,
+del 24/08/2025 al 20/08/2026. La hoja «Ritmo» del libro lo resume mes a mes.
+
+**Scroll Spheres ha abandonado el volumen.** Subió de 1,9 shorts al día hasta
+**10 al día en enero de 2026** y desde entonces ha bajado a 3,8. Lo que importa
+es la mediana de visitas durante ese recorrido:
+
+| Mes | Shorts/día | Mediana |
+|---|---:|---:|
+| ene 2026 | 10,0 | 31.785 |
+| abr 2026 | 7,6 | **11.471** |
+| jul 2026 | 3,6 | 39.799 |
+| ago 2026 | 3,8 | 165.530 |
+
+Abril fue su mes de más acumulado y el peor por vídeo. Publicando menos de la
+mitad, su suelo se ha multiplicado. Agosto está inflado porque el mes va por la
+mitad y los shorts recientes siguen sumando, pero la tendencia de mayo a julio
+ya es clara por sí sola.
+
+**Un short madura en una semana.** La mayoría de las visitas llegan en los
+primeros siete días. A partir de ahí ya se puede juzgar si uno ha funcionado; no
+hace falta esperar un mes para decidir si el enfoque valía.
+
+**La criba aguanta.** Ordenando por «× mediana del mes» —que corrige la ventaja
+de lo antiguo y el crecimiento del canal— los 60 primeros son exactamente los
+mismos vídeos que ya estaban por encima del millón. El corte no dejaba fuera
+ningún outlier escondido.

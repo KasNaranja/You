@@ -21,7 +21,9 @@ Los colores del libro:
 """
 from __future__ import annotations
 
+import datetime
 import json
+import statistics
 import subprocess
 import sys
 from pathlib import Path
@@ -117,9 +119,28 @@ CRITERIO = [
     ("", False),
     ("El corte del millón", True),
     ("De los 1.758 shorts del canal, 1.476 no llegan a 100.000 visitas y la "
-     "mediana está en 25.000. Los 100 mejores se llevan el 87 % de los mil "
+     "mediana está en 25.127. Los 100 mejores se llevan el 87 % de los mil "
      "millones de visitas. Por debajo del millón hay muy poco que rascar, y por "
      "eso la hoja de candidatas corta ahí.", False),
+    ("", False),
+    ("Con las fechas ya puestas se ha comprobado: ordenando por «× mediana del "
+     "mes» —que corrige la ventaja de lo antiguo y el crecimiento del canal— "
+     "los 60 primeros son los mismos vídeos que ya estaban por encima del "
+     "millón. Ninguno se quedaba fuera por el corte.", False),
+    ("", False),
+    ("Lo que dicen las fechas", True),
+    ("1.055.801.922 visitas en 362 días, del 24/08/2025 al 20/08/2026.", False),
+    ("", False),
+    ("El canal subió el ritmo de 1,9 shorts al día hasta 10 al día en enero de "
+     "2026, y desde entonces ha bajado a 3,8. Lo interesante es la mediana de "
+     "visitas en ese recorrido: 31.785 en enero, 11.469 en abril —el peor mes, "
+     "y el de más volumen acumulado— y 38.083 en julio. Publicando menos de la "
+     "mitad, su suelo se ha triplicado. El propio Scroll Spheres ha abandonado "
+     "la estrategia de volumen.", False),
+    ("", False),
+    ("Un short madura rápido: la mayoría de sus visitas llegan en la primera "
+     "semana. A los siete días ya se puede juzgar si ha funcionado, no hace "
+     "falta esperar un mes.", False),
     ("", False),
     ("Colores", True),
     ("verde: libre y de potencial alto — por aquí se empieza", False),
@@ -141,8 +162,50 @@ def tengri() -> dict[str, int]:
             for e in json.loads(r.stdout).get("entries") or []}
 
 
+def fechas_y_visitas(ss: list[dict]) -> str:
+    """Mete la fecha y las visitas exactas del csv, si ya se han conseguido.
+
+    El catálogo de yt-dlp trae las visitas redondeadas y ninguna fecha; el csv
+    lo genera `shorts-canal.py` leyendo la ficha de cada vídeo, que solo se
+    puede hacer desde una conexión doméstica.
+    """
+    csv_ruta = AQUI / "shorts-scrollspheres.csv"
+    if not csv_ruta.exists():
+        return "sin fechas: falta shorts-scrollspheres.csv"
+
+    import csv as _csv
+    with open(csv_ruta, encoding="utf-8-sig") as f:
+        filas = {r["Título"]: r for r in _csv.DictReader(f, delimiter=";")}
+
+    puestas = 0
+    for v in ss:
+        r = filas.get(v["titulo"])
+        if not r or not r.get("Fecha de subida"):
+            continue
+        d, m, a = r["Fecha de subida"].split("/")
+        v["fecha"] = datetime.date(int(a), int(m), int(d))
+        v["vistas"] = int(r["Visitas"])
+        puestas += 1
+
+    # x mediana: visitas partido por la mediana de su mes de publicación. Sin
+    # esto el ranking premia lo antiguo, que ha tenido más tiempo de acumular,
+    # y castiga lo reciente aunque vaya mucho mejor.
+    por_mes: dict[str, list[int]] = {}
+    for v in ss:
+        if v.get("fecha"):
+            por_mes.setdefault(v["fecha"].strftime("%Y-%m"), []).append(v["vistas"])
+    medianas = {k: statistics.median(g) for k, g in por_mes.items()}
+    for v in ss:
+        if v.get("fecha"):
+            v["x_mes"] = v["vistas"] / medianas[v["fecha"].strftime("%Y-%m")]
+    return f"{puestas}/{len(ss)} con fecha y visitas exactas"
+
+
 def main() -> None:
     ss = json.loads((AQUI / "shorts-scrollspheres-catalogo.json").read_text("utf8"))
+    for v in ss:
+        v["fecha"], v["x_mes"] = None, None
+    nota_fechas = fechas_y_visitas(ss)
     tg = tengri()
 
     # Los títulos de Tengri en ADAPTADOS son un prefijo del real (llevan
@@ -184,24 +247,27 @@ def main() -> None:
     wb = Workbook()
     ws = wb.active
     ws.title = "Hueco"
-    ws.append(["#", "Título (Scroll Spheres)", "Visitas SS", "Estado",
-               "Visitas Tengri", "Potencial", "Por qué"])
+    ws.append(["#", "Título (Scroll Spheres)", "Visitas SS", "Fecha", "× mediana del mes",
+               "Estado", "Visitas Tengri", "Potencial", "Por qué"])
     for c in ws[1]:
         c.font = Font(bold=True)
 
     for i, v in enumerate(ss, 1):
-        ws.append([i, v["titulo"], v["vistas"], v["estado"], v["tengri_vistas"],
-                   v["potencial"], v["porque"]])
+        ws.append([i, v["titulo"], v["vistas"], v["fecha"], v["x_mes"], v["estado"],
+                   v["tengri_vistas"], v["potencial"], v["porque"]])
         pintar(ws, v)
 
-    for col, ancho in ((1, 6), (2, 74), (3, 13), (4, 16), (5, 14), (6, 11), (7, 92)):
+    for col, ancho in ((1, 6), (2, 70), (3, 13), (4, 12), (5, 17),
+                       (6, 16), (7, 14), (8, 11), (9, 92)):
         ws.column_dimensions[get_column_letter(col)].width = ancho
-    for fila in ws.iter_rows(min_row=2, min_col=3, max_col=6):
-        fila[0].number_format = fila[2].number_format = "#,##0"
-        fila[1].alignment = Alignment(horizontal="center")
-        fila[3].alignment = Alignment(horizontal="center")
+    for fila in ws.iter_rows(min_row=2, min_col=3, max_col=8):
+        fila[0].number_format = fila[4].number_format = "#,##0"
+        fila[1].number_format = "DD/MM/YYYY"
+        fila[2].number_format = "0"
+        for j in (1, 2, 3, 5):
+            fila[j].alignment = Alignment(horizontal="center")
     ws.freeze_panes = "C2"
-    ws.auto_filter.ref = f"A1:G{ws.max_row}"
+    ws.auto_filter.ref = f"A1:I{ws.max_row}"
 
     cogidos = [v for v in ss if v["tengri"]]
     libres = [v for v in ss if v["estado"] == "libre"]
@@ -216,19 +282,24 @@ def main() -> None:
                         key=lambda v: (orden[v["potencial"]], -(v["vistas"] or 0)))
 
     h2 = wb.create_sheet("Libres +1M")
-    h2.append(["#", "Título (Scroll Spheres)", "Visitas SS", "Potencial", "Por qué"])
+    h2.append(["#", "Título (Scroll Spheres)", "Visitas SS", "Fecha",
+               "× mediana del mes", "Potencial", "Por qué"])
     for c in h2[1]:
         c.font = Font(bold=True)
     for i, v in enumerate(candidatas, 1):
-        h2.append([i, v["titulo"], v["vistas"], v["potencial"], v["porque"]])
+        h2.append([i, v["titulo"], v["vistas"], v["fecha"], v["x_mes"],
+                   v["potencial"], v["porque"]])
         pintar(h2, v)
-    for col, ancho in ((1, 6), (2, 74), (3, 13), (4, 11), (5, 96)):
+    for col, ancho in ((1, 6), (2, 70), (3, 13), (4, 12), (5, 17), (6, 11), (7, 96)):
         h2.column_dimensions[get_column_letter(col)].width = ancho
-    for fila in h2.iter_rows(min_row=2, min_col=3, max_col=4):
+    for fila in h2.iter_rows(min_row=2, min_col=3, max_col=6):
         fila[0].number_format = "#,##0"
-        fila[1].alignment = Alignment(horizontal="center")
+        fila[1].number_format = "DD/MM/YYYY"
+        fila[2].number_format = "0"
+        for j in (1, 2, 3):
+            fila[j].alignment = Alignment(horizontal="center")
     h2.freeze_panes = "C2"
-    h2.auto_filter.ref = f"A1:E{h2.max_row}"
+    h2.auto_filter.ref = f"A1:G{h2.max_row}"
 
     # Tercera hoja: qué le rindió a Tengri cada adaptación. Es lo único que
     # dice de verdad cuánto se traduce una cifra inglesa al castellano.
@@ -246,7 +317,33 @@ def main() -> None:
         fila[2].number_format = "0,0%"
     h3.freeze_panes = "A2"
 
-    # Cuarta hoja: de dónde sale el verde, para que la criba se pueda discutir
+    # Cuarta hoja: el ritmo mes a mes. Es donde se ve que el canal abandonó el
+    # volumen, que es lo más útil que dicen las fechas.
+    con_fecha = [v for v in ss if v.get("fecha")]
+    if con_fecha:
+        meses: dict[str, list[dict]] = {}
+        for v in sorted(con_fecha, key=lambda v: v["fecha"]):
+            meses.setdefault(v["fecha"].strftime("%Y-%m"), []).append(v)
+
+        hr = wb.create_sheet("Ritmo")
+        hr.append(["Mes", "Shorts", "Al día", "Mediana de visitas",
+                   "Visitas del mes", "El mejor del mes"])
+        for c in hr[1]:
+            c.font = Font(bold=True)
+        for k, g in meses.items():
+            vs = [x["vistas"] for x in g]
+            dias = len({x["fecha"] for x in g})
+            hr.append([k, len(g), round(len(g) / dias, 1),
+                       int(statistics.median(vs)), sum(vs), max(vs)])
+        for col, ancho in ((1, 10), (2, 9), (3, 9), (4, 20), (5, 18), (6, 18)):
+            hr.column_dimensions[get_column_letter(col)].width = ancho
+        for fila in hr.iter_rows(min_row=2, min_col=2, max_col=6):
+            for j in (0, 2, 3, 4):
+                fila[j].number_format = "#,##0"
+            fila[1].number_format = "0.0"
+        hr.freeze_panes = "A2"
+
+    # Quinta hoja: de dónde sale el verde, para que la criba se pueda discutir
     # en vez de tener que creérsela.
     h4 = wb.create_sheet("Criterio")
     h4.column_dimensions["A"].width = 118
@@ -256,7 +353,7 @@ def main() -> None:
             h4[h4.max_row][0].font = Font(bold=True)
         h4[h4.max_row][0].alignment = Alignment(wrap_text=True, vertical="top")
 
-    for hoja, col in ((ws, "G"), (h2, "E")):
+    for hoja, _ in ((ws, None), (h2, None)):
         for fila in hoja.iter_rows(min_row=2, min_col=hoja.max_column,
                                    max_col=hoja.max_column):
             fila[0].alignment = Alignment(wrap_text=True, vertical="top")
@@ -268,6 +365,7 @@ def main() -> None:
     print(f"  {len(cogidos)} los tiene Tengri · {len(pot.TUYOS)} ya son tuyos "
           f"· {len(libres)} libres")
     print(f"  sin localizar el original: {len(SIN_LOCALIZAR)} shorts de Tengri")
+    print(f"  {nota_fechas}")
     print(f"  candidatas libres con +1M: {len(candidatas)}, "
           f"de las que {len(altos)} en verde")
     for corte in (10_000_000, 5_000_000, 1_000_000):
