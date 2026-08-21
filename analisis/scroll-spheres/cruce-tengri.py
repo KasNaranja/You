@@ -238,6 +238,17 @@ def main() -> None:
     gris = PatternFill("solid", fgColor="DDDDDD")    # ya cogido
     azul = PatternFill("solid", fgColor="DDEBF7")    # ya es tuyo
 
+    def enlazar(hoja, fila, col, vid):
+        """Deja la URL completa y pinchable. Es la que se copia para pedir la
+        portada, los títulos, la descripción y las etiquetas."""
+        if not vid:
+            return
+        celda = hoja.cell(fila, col)
+        celda.value = f"https://www.youtube.com/shorts/{vid}"
+        celda.hyperlink = celda.value
+        celda.font = Font(color="0563C1", underline="single")
+        celda.alignment = Alignment(vertical="top")
+
     def pintar(hoja, v):
         relleno = (azul if v["estado"].startswith("ya es tuyo") else
                    gris if v["estado"] == "lo tiene Tengri" else
@@ -249,27 +260,28 @@ def main() -> None:
     wb = Workbook()
     ws = wb.active
     ws.title = "Hueco"
-    ws.append(["#", "Título (Scroll Spheres)", "Visitas SS", "Fecha", "× mediana del mes",
-               "Estado", "Visitas Tengri", "Potencial", "Por qué"])
+    ws.append(["#", "Título (Scroll Spheres)", "Enlace", "Visitas SS", "Fecha",
+               "× mediana del mes", "Estado", "Visitas Tengri", "Potencial", "Por qué"])
     for c in ws[1]:
         c.font = Font(bold=True)
 
     for i, v in enumerate(ss, 1):
-        ws.append([i, v["titulo"], v["vistas"], v["fecha"], v["x_mes"], v["estado"],
-                   v["tengri_vistas"], v["potencial"], v["porque"]])
+        ws.append([i, v["titulo"], None, v["vistas"], v["fecha"], v["x_mes"],
+                   v["estado"], v["tengri_vistas"], v["potencial"], v["porque"]])
         pintar(ws, v)
+        enlazar(ws, ws.max_row, 3, v.get("id"))
 
-    for col, ancho in ((1, 6), (2, 70), (3, 13), (4, 12), (5, 17),
-                       (6, 16), (7, 14), (8, 11), (9, 92)):
+    for col, ancho in ((1, 6), (2, 66), (3, 45), (4, 13), (5, 12), (6, 17),
+                       (7, 16), (8, 14), (9, 11), (10, 92)):
         ws.column_dimensions[get_column_letter(col)].width = ancho
-    for fila in ws.iter_rows(min_row=2, min_col=3, max_col=8):
+    for fila in ws.iter_rows(min_row=2, min_col=4, max_col=9):
         fila[0].number_format = fila[4].number_format = "#,##0"
         fila[1].number_format = "DD/MM/YYYY"
         fila[2].number_format = "0"
         for j in (1, 2, 3, 5):
             fila[j].alignment = Alignment(horizontal="center")
     ws.freeze_panes = "C2"
-    ws.auto_filter.ref = f"A1:I{ws.max_row}"
+    ws.auto_filter.ref = f"A1:J{ws.max_row}"
 
     cogidos = [v for v in ss if v["tengri"]]
     libres = [v for v in ss if v["estado"] == "libre"]
@@ -284,24 +296,26 @@ def main() -> None:
                         key=lambda v: (orden[v["potencial"]], -(v["vistas"] or 0)))
 
     h2 = wb.create_sheet("Libres +1M")
-    h2.append(["#", "Título (Scroll Spheres)", "Visitas SS", "Fecha",
+    h2.append(["#", "Título (Scroll Spheres)", "Enlace", "Visitas SS", "Fecha",
                "× mediana del mes", "Potencial", "Por qué"])
     for c in h2[1]:
         c.font = Font(bold=True)
     for i, v in enumerate(candidatas, 1):
-        h2.append([i, v["titulo"], v["vistas"], v["fecha"], v["x_mes"],
+        h2.append([i, v["titulo"], None, v["vistas"], v["fecha"], v["x_mes"],
                    v["potencial"], v["porque"]])
         pintar(h2, v)
-    for col, ancho in ((1, 6), (2, 70), (3, 13), (4, 12), (5, 17), (6, 11), (7, 96)):
+        enlazar(h2, h2.max_row, 3, v.get("id"))
+    for col, ancho in ((1, 6), (2, 66), (3, 45), (4, 13), (5, 12), (6, 17),
+                       (7, 11), (8, 96)):
         h2.column_dimensions[get_column_letter(col)].width = ancho
-    for fila in h2.iter_rows(min_row=2, min_col=3, max_col=6):
+    for fila in h2.iter_rows(min_row=2, min_col=4, max_col=7):
         fila[0].number_format = "#,##0"
         fila[1].number_format = "DD/MM/YYYY"
         fila[2].number_format = "0"
         for j in (1, 2, 3):
             fila[j].alignment = Alignment(horizontal="center")
     h2.freeze_panes = "C2"
-    h2.auto_filter.ref = f"A1:G{h2.max_row}"
+    h2.auto_filter.ref = f"A1:H{h2.max_row}"
 
     # Tercera hoja: qué le rindió a Tengri cada adaptación. Es lo único que
     # dice de verdad cuánto se traduce una cifra inglesa al castellano.
@@ -331,16 +345,10 @@ def main() -> None:
     for i, (titulo, motivo) in enumerate(plan.ORDEN, 1):
         v = por_titulo.get(titulo, {})
         dia = (i - 1) // plan.RITMO + 1
-        url = f"https://www.youtube.com/shorts/{v['id']}" if v.get("id") else ""
-        hp.append([i, dia, titulo, url, v.get("vistas"), v.get("x_mes"), motivo])
+        hp.append([i, dia, titulo, None, v.get("vistas"), v.get("x_mes"), motivo])
         for c in hp[hp.max_row]:
             c.fill = verde
-        if url:
-            # La URL entera y no un «ver»: es la que hay que copiar para pedir
-            # la portada, el título, la descripción y las etiquetas.
-            celda = hp.cell(hp.max_row, 4)
-            celda.hyperlink = url
-            celda.font = Font(color="0563C1", underline="single")
+        enlazar(hp, hp.max_row, 4, v.get("id"))
     for col, ancho in ((1, 7), (2, 6), (3, 66), (4, 45), (5, 13), (6, 17), (7, 104)):
         hp.column_dimensions[get_column_letter(col)].width = ancho
     for fila in hp.iter_rows(min_row=2, min_col=1, max_col=7):
