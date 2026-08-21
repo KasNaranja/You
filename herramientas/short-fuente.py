@@ -24,8 +24,11 @@ from pathlib import Path
 
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0"}
 
-# De más a menos deseable: la primera es la vertical completa del Short.
-MINIATURAS = ["oardefault", "maxresdefault", "hq720", "sddefault", "hqdefault"]
+# Candidatas a mirar. No hay un orden fiable: en unos vídeos la vertical
+# completa está en `oardefault` y en otros esa sale diminuta —357x638— y la
+# buena es `oar2`. Así que se piden todas y se elige por tamaño real.
+MINIATURAS = ["oardefault", "oar2", "maxresdefault", "hq720", "sddefault",
+              "hqdefault"]
 
 
 def id_de(url: str) -> str:
@@ -86,18 +89,39 @@ def titulo_y_canal(vid: str) -> tuple[str, str]:
         return "", ""
 
 
-def fotograma(vid: str, destino: Path) -> str:
-    """Guarda la mejor miniatura disponible. Devuelve cuál se ha usado."""
+def medidas(datos: bytes) -> tuple[int, int]:
+    try:
+        from PIL import Image
+        import io
+        return Image.open(io.BytesIO(datos)).size
+    except Exception:
+        return (0, 0)
+
+
+def fotograma(vid: str, destino: Path) -> tuple[str, tuple[int, int]]:
+    """Guarda la miniatura más grande. Devuelve cuál se ha usado y su tamaño.
+
+    Se comparan todas porque el nombre no dice nada del tamaño: hay vídeos en
+    los que `oardefault` es la vertical a 1080x1920 y otros en los que esa
+    misma sale a 357x638 y la buena está en `oar2`.
+    """
+    mejor = (0, "", b"", (0, 0))
     for nombre in MINIATURAS:
         try:
             datos = bajar(f"https://i.ytimg.com/vi/{vid}/{nombre}.jpg")
         except Exception:
             continue
         # Una miniatura ausente devuelve una imagen gris diminuta, no un 404.
-        if len(datos) > 8000:
-            destino.write_bytes(datos)
-            return nombre
-    sys.exit("No se ha podido descargar ninguna miniatura del vídeo.")
+        if len(datos) <= 8000:
+            continue
+        w, h = medidas(datos)
+        área = w * h or len(datos)      # sin PIL, el peso sirve de sucedáneo
+        if área > mejor[0]:
+            mejor = (área, nombre, datos, (w, h))
+    if not mejor[1]:
+        sys.exit("No se ha podido descargar ninguna miniatura del vídeo.")
+    destino.write_bytes(mejor[2])
+    return mejor[1], mejor[3]
 
 
 def main() -> None:
@@ -111,21 +135,17 @@ def main() -> None:
     carpeta.mkdir(parents=True, exist_ok=True)
     destino = carpeta / f"{vid}.jpg"
 
-    cual = fotograma(vid, destino)
+    cual, (w, h) = fotograma(vid, destino)
     titulo, canal = titulo_y_canal(vid)
-
-    try:
-        from PIL import Image
-        medidas = "x".join(map(str, Image.open(destino).size))
-    except Exception:
-        medidas = "?"
 
     print(f"id       : {vid}")
     print(f"título   : {titulo}")
     print(f"canal    : {canal}")
-    print(f"fotograma: {destino}  ({cual}, {medidas})")
-    if cual != "oardefault":
-        print("! No había miniatura vertical: puede que el texto salga recortado.")
+    print(f"fotograma: {destino}  ({cual}, {w or '?'}x{h or '?'})")
+    if h and h < w:
+        print("! El fotograma es apaisado: el vídeo puede no ser un Short.")
+    elif h and h < 1200:
+        print("! Fotograma pequeño: el texto en pantalla puede costar de leer.")
 
 
 if __name__ == "__main__":
