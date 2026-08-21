@@ -322,8 +322,8 @@ def main() -> None:
     # Primera hoja del libro: qué hacer, en qué orden y por qué. Va delante
     # porque es lo único que hay que leer para ponerse a trabajar.
     hp = wb.create_sheet("Plan", 0)
-    hp.append(["Orden", "Día", "Título (Scroll Spheres)", "Visitas SS",
-               "× mediana del mes", "Por qué en esta posición"])
+    hp.append(["Orden", "Día", "Título (Scroll Spheres)", "Enlace al original",
+               "Visitas SS", "× mediana del mes", "Por qué en esta posición"])
     for c in hp[1]:
         c.font = Font(bold=True)
 
@@ -331,18 +331,26 @@ def main() -> None:
     for i, (titulo, motivo) in enumerate(plan.ORDEN, 1):
         v = por_titulo.get(titulo, {})
         dia = (i - 1) // plan.RITMO + 1
-        hp.append([i, dia, titulo, v.get("vistas"), v.get("x_mes"), motivo])
+        url = f"https://www.youtube.com/shorts/{v['id']}" if v.get("id") else ""
+        hp.append([i, dia, titulo, url, v.get("vistas"), v.get("x_mes"), motivo])
         for c in hp[hp.max_row]:
             c.fill = verde
-    for col, ancho in ((1, 7), (2, 6), (3, 70), (4, 13), (5, 17), (6, 104)):
+        if url:
+            # La URL entera y no un «ver»: es la que hay que copiar para pedir
+            # la portada, el título, la descripción y las etiquetas.
+            celda = hp.cell(hp.max_row, 4)
+            celda.hyperlink = url
+            celda.font = Font(color="0563C1", underline="single")
+    for col, ancho in ((1, 7), (2, 6), (3, 66), (4, 45), (5, 13), (6, 17), (7, 104)):
         hp.column_dimensions[get_column_letter(col)].width = ancho
-    for fila in hp.iter_rows(min_row=2, min_col=1, max_col=6):
-        fila[3].number_format = "#,##0"
-        fila[4].number_format = "0"
-        for j in (0, 1, 3, 4):
+    for fila in hp.iter_rows(min_row=2, min_col=1, max_col=7):
+        fila[4].number_format = "#,##0"
+        fila[5].number_format = "0"
+        for j in (0, 1, 4, 5):
             fila[j].alignment = Alignment(horizontal="center")
-        fila[5].alignment = Alignment(wrap_text=True, vertical="top")
-        fila[2].alignment = Alignment(vertical="top")
+        fila[6].alignment = Alignment(wrap_text=True, vertical="top")
+        for j in (2, 3):
+            fila[j].alignment = Alignment(vertical="top")
     hp.freeze_panes = "C2"
 
     # El criterio del plan, debajo de la tabla, para que viaje con ella. El

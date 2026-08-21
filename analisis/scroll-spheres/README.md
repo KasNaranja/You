@@ -202,3 +202,15 @@ copiarlos de una salida de terminal que formateaba miles. No casaban con el
 catálogo y se quedaban sin puntuar. Corregidos, los verdes pasan de 33 a 34 —el
 que faltaba era el de *Crepúsculo*—. Si se vuelven a copiar títulos de una
 salida con `.replace(",", ".")`, ojo con esto.
+
+### La columna de enlaces
+
+La hoja «Plan» lleva el enlace completo al original de cada short, no un «ver»:
+es la URL que hay que copiar para pedir la portada, los títulos, la descripción
+y las etiquetas.
+
+Un aviso: algunos vídeos del canal tienen el incrustado desactivado —suele pasar
+con los que llevan música con derechos— y ahí oEmbed responde 401 y no da el
+título. El primero del plan, el de Jackie Chan, es uno de ellos. `short-fuente.py`
+lo resuelve solo tirando del catálogo de esta carpeta; el fotograma se descarga
+igual.

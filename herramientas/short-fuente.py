@@ -45,6 +45,30 @@ def bajar(url: str, timeout: int = 45) -> bytes:
         urllib.request.Request(url, headers=UA), timeout=timeout).read()
 
 
+CATALOGOS = ["analisis/scroll-spheres/shorts-scrollspheres-catalogo.json"]
+
+
+def del_catalogo(vid: str) -> str:
+    """Título guardado en un catálogo del repositorio, si lo hay.
+
+    oEmbed devuelve 401 en los vídeos que tienen el incrustado desactivado
+    —pasa con los que llevan música con derechos— y entonces no da el título.
+    Como el catálogo del canal ya lo tiene, se tira de ahí antes de rendirse.
+    """
+    raiz = Path(__file__).resolve().parent.parent
+    for rel in CATALOGOS:
+        ruta = raiz / rel
+        if not ruta.exists():
+            continue
+        try:
+            for v in json.loads(ruta.read_text(encoding="utf8")):
+                if v.get("id") == vid:
+                    return v.get("titulo", "")
+        except Exception:
+            continue
+    return ""
+
+
 def titulo_y_canal(vid: str) -> tuple[str, str]:
     destino = ("https://www.youtube.com/oembed?url="
                + urllib.parse.quote(f"https://www.youtube.com/watch?v={vid}", safe="")
@@ -53,6 +77,11 @@ def titulo_y_canal(vid: str) -> tuple[str, str]:
         d = json.loads(bajar(destino))
         return d.get("title", ""), d.get("author_name", "")
     except Exception as e:
+        respaldo = del_catalogo(vid)
+        if respaldo:
+            print(f"! oEmbed ha fallado ({e}); título sacado del catálogo.",
+                  file=sys.stderr)
+            return respaldo, ""
         print(f"! No se ha podido leer el título: {e}", file=sys.stderr)
         return "", ""
 
