@@ -96,7 +96,17 @@ Decir en una línea por qué la B es distinta, y dejar que el usuario elija.
 
 ## 4 · Descripción
 
-Redactada en castellano, en un bloque para copiar. Estructura:
+Redactada en castellano, en un bloque para copiar.
+
+**Cada párrafo va en una sola línea, sin cortar.** Es lo único que hay que
+vigilar al entregarla: si se parte el texto a lo ancho para que quede bonito en
+el chat, esos saltos se copian y aparecen en mitad de las frases en YouTube.
+La línea sale larguísima en el bloque de código y da igual —se copia bien, que
+es de lo que se trata—. Los únicos saltos que se ponen a mano son los que se
+quieren de verdad: uno entre el cuerpo y la pregunta, y otro antes de los
+hashtags.
+
+Estructura:
 
 1. **Una o dos frases** que amplíen el dato del vídeo, sin repetir literalmente
    el texto de la portada. Aportar algo que no cabía en pantalla.
