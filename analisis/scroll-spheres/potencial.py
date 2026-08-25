@@ -23,6 +23,9 @@ TUYOS = {
     "MDPoyckAAxQ": "Ledger Ignored Nolan & Nailed It - The Dark Knight",
     "GYhNsRaydBE": "Jackie Chan Jumped Down 10 Stories At 52 Years Old",
     "iJzK_F3YbiE": "The Narrator Did This To Get Rid of Tyler",
+    "JRnVrxOWS14": "This Stunt Broke A World Record - Casino Royale",
+    "V3lpLAAgeqA": "Movies Overexaggerate About How Tough We Are",
+    "oMFOBkTQbCI": "Nothing On Genna Is Harmless - Predator Badlands",
     "CwqiHkcnY-c": "The Accident That Made The Final Cut",
     "qzJAptTEks0": "The Toughest Henchman In John Wick 2",
     "8HH6maVkTKk": "Nolan Pushed Anne Hathaway To Do Her Own Stunts",
@@ -250,3 +253,19 @@ POTENCIAL = {
     "Ryan Reynolds Roasted The Rock’s Hairnet - Red Notice (2021)":
         ("bajo", "Pulla verbal en inglés."),
 }
+
+# ── Ola del 20-25/08: nuevos de Scroll Spheres cribados el 25/08 ──
+POTENCIAL.update({
+    "The Village Stood No Chance In The Northman (2022)":
+        ("alto", "4,7 M en 5 días, el más fuerte de la ola y libre. El asalto vikingo se entiende sin una palabra."),
+    "Nothing On Genna Is Harmless - Predator Badlands":
+        ("alto", "4,8 M en 5 días y la portada ya está hecha. La ola de Predator: Badlands es la del momento."),
+    "The Split-Second Move In The Matrix Reloaded":
+        ("alto", "240.000 en menos de 5 días. Matrix es marca masiva en España y la esquiva es puro visual."),
+    "Brendan Fraser Passed Out Filming in The Mummy":
+        ("alto", "La momia es nostalgia fuerte aquí y el dato es físico: se desmayó rodando."),
+    "Morpheus' Weapons Training For The Matrix Reloaded":
+        ("alto", "102.000 en días. Detrás de las cámaras de una marca enorme."),
+    "The Bug Scene In The Matrix Is Creepy":
+        ("alto", "Escena icónica que da grima sin necesitar idioma."),
+})

@@ -70,6 +70,24 @@ ADAPTADOS = {
     "The Darkest Moment In Movie History - The Crow": "The Darkest Moment in Film History",
     "In Nobody He Strapped A Claymore To A Glass Shield": "En Nobody, Ató Una Mina Claymore a un Escudo de Cristal",
     "One Bullet Against An Ancient God - The Ritual": "Una Bala Contra un Dios Antiguo",
+    # ── Adaptaciones del 20-25/08: Tengri también ha pasado a la inmediatez
+    # y versiona lo nuevo de Scroll Spheres a los pocos días, a veces horas.
+    "Nothing On Genna Is Harmless - Predator Badlands": "Este Gusano Explota Cuando Se Siente Amenazado",
+    "The Real MVP In Predator: Badlands (2025)": "La Pequeña Criatura Que Protegió a Dek Hasta el Final",
+    "First Time Dek Showed Fear In Predator: Badlands": "El Momento en Que Dek Sintió Miedo de Verdad",
+    "The Only Creature That Can Annoy A Predator": "La Única Criatura Capaz de Molestar a un Depredador",
+    "Movies Overexaggerate About How Tough We Are": "Una Sola Mala Caída Puede Acabar Con Todo",
+    "She Couldn't Breathe - The Descent": "Una Sola Respiración Podía Costarle la Vida",
+    "James McAvoy’s Acting Masterclass In Glass (2019)": "James McAvoy Played 24 Personalities",
+    "Mark Wahlberg Caught Denzel Off Guard - 2 Guns": "Mark Wahlberg Improvised This Scene",
+    "Hugh Jackman's Reaction Was Hilarious": "Hugh Jackman Made Rob Delaney Break Character",
+    "It Was Over Once He Touched Water - Aquaman (2023)": "They Chased Him to His Own Source of Power",
+    "The Western Tribute Hidden In John Wick": "John Wick Recreó Esta Icónica Escena del Western",
+    "Everybodys Gangsta Until The Stopwatch Equalizer 3": "They Only Had 9 Seconds to Choose",
+    "The Maze Runner Death Cure Dylan O Brien's Stunt": "Dylan O’Brien Casi Muere Filmando Esta Escena",
+    "Batman Part II Behind The Scenes Footage": "El SWAT Abrió Fuego Contra el Batmóvil",
+    "It Follows (2014) Came From A Real Nightmare": "This Monster Was Born from a Real Nightmare",
+    "They Ran So Differently In Insurgent (2015) 💀": "The Actors Interpreted This Instruction in Two Very Different Ways",
     # Scroll Spheres tiene dos shorts de Project Power. Tengri habla de un
     # impacto concreto, así que apunta a este y no al general de 10 M.
     "That Face Ripple Was 100% Practical Project Power": "Este Impacto de Bala Fue Real — Project Power",
@@ -84,6 +102,15 @@ SIN_LOCALIZAR = [
     "10 Años Después, Sigue Siendo el Mejor Deslizamiento del Cine — Maze Runner",
     "Tom Cruise Confió Su Vida a Hiroyuki Sanada — The Last Samurai",
     "Keanu Reeves Cobraba $39.000 Por Palabra — John Wick 4",
+    # nuevos del 25/08 sin original claro en el catálogo
+    "Tom Cruise Cambió de Disfraz en Plena Toma — Ghost Protocol",
+    "Watchmen No Era una Película Familiar — Watchmen (2009)",
+    "Jonathan Bailey Had an Embarrassing Moment in Front of Scarlett Johansson",
+    "Nicolas Cage Se Entregó por Completo en Esta Escena",
+    "Heath Ledger Never Broke Character in This Scene — The Dark Knight",
+    "He Caught the Spear and Threw It Back — Apocalypto",
+    "Krypto Bit Mr. Terrific With Superman's Strength — Superman (2025)",
+    "Este Detalle Reveló el Destino de Eddie Brock — Spider-Man 3 (¿el mismo que Eddie Vaporized? comprobar)",
 ]
 
 
