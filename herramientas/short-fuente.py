@@ -15,6 +15,7 @@ a 1080×1920, con el texto superpuesto legible. Que es justo lo que hace falta.
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import re
 import sys
@@ -46,6 +47,31 @@ def id_de(url: str) -> str:
 def bajar(url: str, timeout: int = 45) -> bytes:
     return urllib.request.urlopen(
         urllib.request.Request(url, headers=UA), timeout=timeout).read()
+
+
+# Registro de shorts ya trabajados. Vive en el repo para que sobreviva a la
+# sesión: la memoria del chat se pierde, el fichero no.
+REGISTRO = Path(__file__).resolve().parent / "skills" / "portada-short" / "ya-hechos.json"
+
+
+def cargar_registro() -> dict:
+    try:
+        return json.loads(REGISTRO.read_text(encoding="utf8"))
+    except Exception:
+        return {}
+
+
+def apuntar(vid: str, titulo: str) -> dict | None:
+    """Devuelve la entrada previa si el vídeo ya se trabajó; si no, lo apunta."""
+    reg = cargar_registro()
+    previo = reg.get(vid)
+    if previo is None:
+        reg[vid] = {"titulo": titulo,
+                    "fecha": datetime.date.today().isoformat()}
+        REGISTRO.parent.mkdir(parents=True, exist_ok=True)
+        REGISTRO.write_text(json.dumps(reg, ensure_ascii=False, indent=1),
+                            encoding="utf8")
+    return previo
 
 
 CATALOGOS = ["analisis/scroll-spheres/shorts-scrollspheres-catalogo.json"]
@@ -146,6 +172,12 @@ def main() -> None:
         print("! El fotograma es apaisado: el vídeo puede no ser un Short.")
     elif h and h < 1200:
         print("! Fotograma pequeño: el texto en pantalla puede costar de leer.")
+
+    previo = apuntar(vid, titulo)
+    if previo:
+        print(f"\n¡OJO! Este short YA SE TRABAJÓ el {previo.get('fecha', '?')}:")
+        print(f"      «{previo.get('titulo', '')}»")
+        print("      Avisar al usuario antes de rehacerlo.")
 
 
 if __name__ == "__main__":

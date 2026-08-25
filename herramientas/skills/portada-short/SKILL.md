@@ -28,6 +28,12 @@ mientras que la descarga de vídeo sí lo está.
 **Si es una captura**, leerla directamente y pedir el título original si hace
 falta para la propuesta de traducción literal.
 
+**Si el script avisa de que el short ya se trabajó**, parar y decírselo al
+usuario antes de hacer nada: qué día fue y con qué título. El registro vive en
+`ya-hechos.json`, en esta misma carpeta, y el script lo mantiene solo — cada
+vídeo nuevo se apunta al consultarlo. Los TikTok no pasan por el script, así
+que se apuntan a mano con la clave `tiktok-<id>`.
+
 ---
 
 ## 1 · Portada
