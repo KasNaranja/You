@@ -114,5 +114,22 @@ ORDEN = [
      "Es un meme universal y ya circula solo. Buen cierre de tanda: ligero y muy compartible."),
 ]
 
+# Ya publicados en el canal. Fuente: el Excel que el usuario devolvió el
+# 25/08/2026 con estas filas marcadas en amarillo — los 11 primeros del
+# plan, en orden. Se pintan de amarillo y no consumen días pendientes.
+PUBLICADOS = {
+    'Legendary Interaction Between Jackie Chan & Native Americans - Shanghai Noon (2000)',
+    'George McFly vs. The Rogue Milkshake 🥤💀 - Back To The Future Blooper',
+    'Why Momoa Threw A Tooth At Vin Diesel In Fast X',
+    'This 90s Practical Effect Looks Way Too Real For Comfort 💀 - Alien 3 Boneless Prop',
+    'Why "The Impossible" Only Had One Shot To Film The Tsunami Scene',
+    'Sam Raimi Gave Alfred Molina "Extra Motivation" On Set of Spider-Man 2',
+    "How Return Of The King Shot Saruman's Body Sinking",
+    'Breaking the Cycle - Mockingjay Part 2 (2015)',
+    'They Made A Fake Dummy Of Daniel Radcliffe - Swiss Army Man (2016)',
+    'They Were TOO FAST For The Filmmakers - The Phantom Menace - Obi Wan & Darth Maul Training Session',
+    "The Absolute Realism of Leonardo DiCaprio's Acting",
+}
+
 RITMO = 2          # shorts al día
 REVISION = 7       # a los siete días se para y se mira qué ha funcionado

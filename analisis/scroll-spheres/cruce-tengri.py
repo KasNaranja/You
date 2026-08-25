@@ -341,13 +341,23 @@ def main() -> None:
     for c in hp[1]:
         c.font = Font(bold=True)
 
+    # El amarillo lo puso el usuario a mano en su copia para marcar lo ya
+    # publicado; aquí se respeta ese color para que su marca no se pierda al
+    # regenerar. Los días se cuentan solo sobre lo pendiente, desde hoy.
+    amarillo = PatternFill("solid", fgColor="FFFF00")
     por_titulo = {v["titulo"]: v for v in ss}
+    pendientes = 0
     for i, (titulo, motivo) in enumerate(plan.ORDEN, 1):
         v = por_titulo.get(titulo, {})
-        dia = (i - 1) // plan.RITMO + 1
+        publicado = titulo in plan.PUBLICADOS
+        if publicado:
+            dia = "✔"
+        else:
+            pendientes += 1
+            dia = (pendientes - 1) // plan.RITMO + 1
         hp.append([i, dia, titulo, None, v.get("vistas"), v.get("x_mes"), motivo])
         for c in hp[hp.max_row]:
-            c.fill = verde
+            c.fill = amarillo if publicado else verde
         enlazar(hp, hp.max_row, 4, v.get("id"))
     for col, ancho in ((1, 7), (2, 6), (3, 66), (4, 45), (5, 13), (6, 17), (7, 104)):
         hp.column_dimensions[get_column_letter(col)].width = ancho
@@ -419,6 +429,10 @@ def main() -> None:
 
     wb.save(AQUI / "hueco-vs-tengri.xlsx")
 
+    publicados = [t for t, _ in plan.ORDEN if t in plan.PUBLICADOS]
+    quedan = len(plan.ORDEN) - len(publicados)
+    print(f"  plan: {len(publicados)} publicados (en amarillo) · {quedan} pendientes "
+          f"(~{-(-quedan // plan.RITMO)} días a {plan.RITMO}/día)")
     altos = [v for v in candidatas if v["potencial"] == "alto"]
     print(f"✓ hueco-vs-tengri.xlsx · {len(ss)} shorts de Scroll Spheres")
     print(f"  {len(cogidos)} los tiene Tengri · {len(pot.TUYOS)} ya son tuyos "
