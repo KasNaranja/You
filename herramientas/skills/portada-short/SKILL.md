@@ -84,10 +84,21 @@ que busca. Por eso los nombres propios extranjeros son las más rentables aquí.
 
 ## 3 · Título — dos propuestas
 
-Siempre **dos**, cada una en su bloque para copiar:
+Siempre **dos**, cada una en su bloque para copiar.
+
+**Máximo 50 caracteres**, contados. Es un límite duro: si una propuesta se
+pasa, se reescribe hasta que quepa, no se entrega y ya. En el móvil YouTube
+corta el título del Short a media línea, así que lo que sobra de 50 no lo lee
+nadie. Contarlos, no calcularlos a ojo:
+
+```bash
+python3 -c "t='<título>'; print(len(t), 'ok' if len(t)<=50 else 'PASADO')"
+```
 
 **A · Traducción literal** del título original del vídeo fuente. Fiel, sin
-reinterpretar. Sirve de referencia y para saber qué funcionó a ellos.
+reinterpretar. Sirve de referencia y para saber qué funcionó a ellos. Si el
+original se pasa de 50, se acorta quedándose con la parte que engancha —el
+nombre propio y el hecho— y tirando el subtítulo con la película y el año.
 
 **B · Enfoque nuevo.** Un título propio que mejore el original. Tres palancas:
 
