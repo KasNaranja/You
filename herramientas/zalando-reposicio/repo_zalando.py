@@ -21,7 +21,7 @@ Regla:
   PREPARABLE = min(REPO, stock disponible 59 dies a Toni Pons)
 
 Sortides (carpeta de sortida, per defecte la mateixa):
-  Vendes 2026.xlsx                   consolidat de totes les setmanes
+  Venda 2026 dd.mm.xlsx              consolidat de totes les setmanes (un fitxer per data de càlcul; el bo és sempre l'últim)
   REPO ZALANDO dd.mm.xlsx            pestanyes CÀLCUL SKU, MODEL_COLOR, FORA LLISTA, PARÀMETRES, NIVELLS
   REPO ZALANDO dd.mm.html            mateixes dues vistes, filtrables i ordenables
 
@@ -891,7 +891,8 @@ def main():
     ]
 
     print("Escrivint sortides...")
-    write_vendes(lines, sources, acum25, os.path.join(out, "Vendes 2026.xlsx"), info)
+    venda_xlsx = os.path.join(out, f"Venda 2026 {args.date}.xlsx")
+    write_vendes(lines, sources, acum25, venda_xlsx, info)
     xlsx = os.path.join(out, f"REPO ZALANDO {args.date}.xlsx")
     write_excel(sku, mc, fora, params, levels, xlsx)
     title = f"Reposició Zalando {args.date}"
@@ -906,7 +907,7 @@ def main():
     print(f"REPO total: {int(sku['REPO'].sum())}   PREPARABLE: {int(sku['PREPARABLE'].sum())}   FALTA STOCK TP: {int(sku['FALTA STOCK TP'].sum())}")
     for w in warnings:
         print("AVÍS:", w)
-    print("Sortides:", os.path.join(out, "Vendes 2026.xlsx"), "|", xlsx, "|", xlsx[:-5] + ".html")
+    print("Sortides:", venda_xlsx, "|", xlsx, "|", xlsx[:-5] + ".html")
 
 
 if __name__ == "__main__":

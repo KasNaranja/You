@@ -42,6 +42,6 @@ python repo_zalando.py --date 03.09
 python repo_zalando.py --mult 2 --min-level 6 --min-level-kids 2 --max-level 100
 ```
 
-Sortides: `Vendes 2026.xlsx`, `REPO ZALANDO dd.mm.xlsx` (CÀLCUL SKU, MODEL_COLOR,
+Sortides: `Venda 2026 dd.mm.xlsx` (un per data de càlcul, el bo és l'últim), `REPO ZALANDO dd.mm.xlsx` (CÀLCUL SKU, MODEL_COLOR,
 FORA LLISTA, PARÀMETRES, NIVELLS) i `REPO ZALANDO dd.mm.html` (les dues vistes,
 filtrables i ordenables, sense dependències externes).
