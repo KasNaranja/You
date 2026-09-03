@@ -13,7 +13,7 @@ Fonts (carpeta de dades, per defecte la carpeta on hi ha aquest script):
   Ajustos repo.xlsx (opcional)       multiplicador / nivell forçat per model_color
 
 Regla:
-  objectiu = venda setmanal del model_color x MULT (2 per defecte)
+  objectiu = venda setmanal del model_color x MULT (3 per defecte)
   nivell   = el primer nivell de la taula del gènere el TOTAL DE PARELLS del qual (suma de totes les talles)
              cobreix l'objectiu (p.ex. MUJER 166 parells -> nivell 35, que en suma 188)
   HAURIA   = desglossament per talla d'aquest nivell
@@ -27,7 +27,7 @@ Sortides (carpeta de sortida, per defecte la mateixa):
   REPO ZALANDO dd.mm.html            mateixes dues vistes, filtrables i ordenables
 
 Ús:
-  python repo_zalando.py                       (data = avui, MULT = 2, sense nivell mínim)
+  python repo_zalando.py                       (data = avui, MULT = 3, sense nivell mínim)
   python repo_zalando.py --mult 2 --min-level 6 --min-level-kids 2
   python repo_zalando.py --data "C:\\...\\Zalando reposició" --out "C:\\...\\sortida"
 """
@@ -929,7 +929,7 @@ def main():
     ap = argparse.ArgumentParser(description="Càlcul de reposició Zalando")
     ap.add_argument("--data", default=here, help="carpeta amb les fonts")
     ap.add_argument("--out", default=None, help="carpeta de sortida (per defecte la de dades)")
-    ap.add_argument("--mult", type=float, default=2.0, help="multiplicador de la venda setmanal (2)")
+    ap.add_argument("--mult", type=float, default=3.0, help="multiplicador de la venda setmanal (3)")
     ap.add_argument("--min-level", type=int, default=0, help="nivell mínim per adults encara que no hi hagi venda (0 = cap)")
     ap.add_argument("--min-level-kids", type=int, default=0, help="nivell mínim per nens (0 = cap)")
     ap.add_argument("--max-level", type=int, default=None, help="nivell màxim (cap = sense límit)")
