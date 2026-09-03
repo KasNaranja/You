@@ -25,7 +25,7 @@ còpia versionada.
 
 ```
 objectiu   = venda setmanal del model_color x MULT (2)
-nivell     = primer nivell de la taula del gènere >= objectiu
+nivell     = primer nivell de la taula del gènere el total de parells del qual (totes les talles) cobreix l'objectiu
 HAURIA     = desglossament per talla d'aquest nivell
 DIF        = HAURIA - stock Zalando (total) - enviaments pendents
 REPO       = DIF si > 0 (HI26 NOU sense marca a "es pot enviar?" -> 0)

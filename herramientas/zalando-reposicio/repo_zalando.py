@@ -14,7 +14,8 @@ Fonts (carpeta de dades, per defecte la carpeta on hi ha aquest script):
 
 Regla:
   objectiu = venda setmanal del model_color x MULT (2 per defecte)
-  nivell   = el primer nivell de la taula del gènere que cobreix l'objectiu (>= objectiu)
+  nivell   = el primer nivell de la taula del gènere el TOTAL DE PARELLS del qual (suma de totes les talles)
+             cobreix l'objectiu (p.ex. MUJER 166 parells -> nivell 35, que en suma 188)
   HAURIA   = desglossament per talla d'aquest nivell
   DIF      = HAURIA - stock Zalando (total) - enviaments pendents
   REPO     = DIF si és positiu
@@ -164,6 +165,7 @@ def load_levels(path: str) -> dict:
     out = {}
     for g, d in groups.items():
         key = {"MUJER": "MUJER", "CABALLERO": "CABALLERO", "NINO": "NIÑO", "NIÑO": "NIÑO"}.get(norm(g).upper(), g)
+        d["totals"] = {lv: int(sum(t.values())) for lv, t in d["table"].items()}  # parells de tot el nivell
         out[key] = d
     return out
 
@@ -410,18 +412,21 @@ def load_adjustments(path: str) -> pd.DataFrame:
 # --------------------------------------------------------------------------------------
 # Càlcul
 # --------------------------------------------------------------------------------------
-def pick_level(levels: list[int], target: float, min_level: int) -> tuple[int | None, str]:
+def pick_level(levels: list[int], totals: dict, target: float, min_level: int) -> tuple[int | None, str]:
+    """Primer nivell (ordenats pel total de parells) el total del qual cobreix l'objectiu."""
+    order = sorted(levels, key=lambda l: (totals.get(l, 0), l))
     if target <= 0:
-        if min_level and min_level in levels:
-            return min_level, "nivell mínim"
         if min_level:
-            lv = next((l for l in levels if l >= min_level), None)
+            lv = min_level if min_level in levels else next((l for l in order if l >= min_level), None)
             return lv, "nivell mínim"
         return None, ""
-    for lv in levels:
-        if lv >= target:
-            return (max(lv, min_level) if min_level in levels else lv), ""
-    return levels[-1], f"objectiu {int(target)} > nivell màxim {levels[-1]}"
+    for lv in order:
+        if totals.get(lv, 0) >= target:
+            if min_level and min_level in levels and totals.get(min_level, 0) > totals.get(lv, 0):
+                return min_level, "nivell mínim"
+            return lv, ""
+    top = order[-1]
+    return top, f"objectiu {int(target)} > màxim de la taula ({totals.get(top, 0)} parells, nivell {top})"
 
 
 def size_qty(table: dict, group: str, gender: str, talla: str) -> tuple[int, str]:
@@ -506,7 +511,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
                 lv = forced[mc] if forced[mc] in lvls else next((l for l in lvls if l >= forced[mc]), lvls[-1])
                 mc_cache[mc] = (lv, f"nivell forçat {forced[mc]}")
             else:
-                mc_cache[mc] = pick_level(lvls, target, ml)
+                mc_cache[mc] = pick_level(lvls, levels[g]["totals"], target, ml)
         lv, note = mc_cache[mc]
         if note:
             notes.append(note)
@@ -518,6 +523,8 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
             notes.append(n2)
         niv.append(lv); hauria.append(int(q)); avis.append("; ".join(notes))
     df["NIVELL"] = pd.array(niv, dtype="Int64")
+    df["PARELLS NIVELL"] = pd.array([levels[g]["totals"].get(lv) if (lv is not None and g in levels) else None
+                                     for g, lv in zip(grp, niv)], dtype="Int64")
     df["HAURIA"] = hauria
     df["AVÍS"] = avis
 
@@ -553,7 +560,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     # vista model_color
     first = {c: "first" for c in ["model", "color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "SEASON ZLD", "ES POT ENVIAR?",
                                  "CREAT A ZLD?", "VENDA 1 SETM", "VENDA SETM ANT", "VENDA 4 SETM", "MULT", "OBJECTIU", "GRUP NIVELL",
-                                 "NIVELL", "ACUM'25", "ACUM'26"]}
+                                 "NIVELL", "PARELLS NIVELL", "ACUM'25", "ACUM'26"]}
     sums = {c: "sum" for c in ["HAURIA", "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "DIF", "REPO", "PREPARABLE", "FALTA STOCK TP",
                                "STOCK TP 01 02", "DISPO 30 DIES", "DISPO 59 DIES"]}
     mc = df.groupby("model_color").agg({**first, **sums, "talla": "count"}).rename(columns={"talla": "N TALLES"})
@@ -564,7 +571,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     mc["AVÍS"] = df.groupby("model_color")["AVÍS"].agg(lambda s: "; ".join(sorted({x for x in s if x})))
     mc = mc.reset_index()
     mc_cols = ["model_color", "model", "color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "SEASON ZLD", "CREAT A ZLD?",
-               "VENDA 1 SETM", "ACUM'25", "ACUM'26", "VENDA 4 SETM", "MULT", "OBJECTIU", "NIVELL", "HAURIA",
+               "VENDA 1 SETM", "ACUM'25", "ACUM'26", "VENDA 4 SETM", "MULT", "OBJECTIU", "NIVELL", "PARELLS NIVELL", "HAURIA",
                "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "COBERTURA SETM", "DIF", "REPO", "PREPARABLE",
                "STOCK TP 01 02", "DISPO 30 DIES", "AVÍS"]
     mc = mc[mc_cols].sort_values(["REPO", "VENDA 1 SETM", "ACUM'26"], ascending=[False, False, False]).reset_index(drop=True)
@@ -665,6 +672,7 @@ def write_excel(sku: pd.DataFrame, mc: pd.DataFrame, fora: pd.DataFrame, params:
         sizes = sorted({t for lv in d["table"].values() for t in lv}, key=lambda t: (len(t), t))
         for t in sizes:
             lvl_rows.append([t] + [d["table"][lv].get(t, 0) for lv in d["levels"]])
+        lvl_rows.append(["TOTAL PARELLS"] + [d["totals"][lv] for lv in d["levels"]])
         lvl_rows.append([])
     width = max(len(r) for r in lvl_rows)
     lvl = pd.DataFrame([r + [None] * (width - len(r)) for r in lvl_rows], columns=["NIVELL"] + [f"c{i}" for i in range(1, width)])
@@ -964,7 +972,7 @@ def main():
     params = [
         ("Data càlcul", dt.date.today().isoformat()),
         ("Setmana de venda utilitzada", f"{week_lbl} ({info['setmanes']} setmanes acumulades el 2026)"),
-        ("Regla", f"objectiu = venda setmanal del model_color x {args.mult:g}; nivell = primer nivell >= objectiu (taula del gènere); HAURIA = desglossament per talla"),
+        ("Regla", f"objectiu = venda setmanal del model_color x {args.mult:g}; nivell = primer nivell de la taula del gènere el total de parells del qual (totes les talles) cobreix l'objectiu; HAURIA = desglossament per talla d'aquest nivell"),
         ("Nivell mínim adults / nens", f"{args.min_level} / {args.min_level_kids} (0 = sense venda no es reposa)"),
         ("Nivell màxim", str(args.max_level) if args.max_level else "sense límit (el de la taula)"),
         ("DIF", "HAURIA - STOCK ZLD (total, offerable + non-offerable) - ENV PENDENTS"),
