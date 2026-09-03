@@ -27,8 +27,8 @@ Sortides (carpeta de sortida, per defecte la mateixa):
   REPO ZALANDO dd.mm.html            mateixes dues vistes, filtrables i ordenables
 
 Ús:
-  python repo_zalando.py                       (data = avui, MULT = 3, sense nivell mínim)
-  python repo_zalando.py --mult 2 --min-level 6 --min-level-kids 2
+  python repo_zalando.py                       (data = avui, MULT = 3, nivell mínim 6 dona i home, 2 nens)
+  python repo_zalando.py --mult 3 --min-level 0 --min-level-kids 0      (sense nivell mínim)
   python repo_zalando.py --data "C:\\...\\Zalando reposició" --out "C:\\...\\sortida"
 """
 from __future__ import annotations
@@ -930,8 +930,8 @@ def main():
     ap.add_argument("--data", default=here, help="carpeta amb les fonts")
     ap.add_argument("--out", default=None, help="carpeta de sortida (per defecte la de dades)")
     ap.add_argument("--mult", type=float, default=3.0, help="multiplicador de la venda setmanal (3)")
-    ap.add_argument("--min-level", type=int, default=0, help="nivell mínim per adults encara que no hi hagi venda (0 = cap)")
-    ap.add_argument("--min-level-kids", type=int, default=0, help="nivell mínim per nens (0 = cap)")
+    ap.add_argument("--min-level", type=int, default=6, help="nivell mínim per dona i home encara que no hi hagi venda (6; 0 = cap)")
+    ap.add_argument("--min-level-kids", type=int, default=2, help="nivell mínim per nens (2; 0 = cap)")
     ap.add_argument("--max-level", type=int, default=None, help="nivell màxim (cap = sense límit)")
     ap.add_argument("--date", default=dt.date.today().strftime("%d.%m"), help="etiqueta de data pels fitxers de sortida (dd.mm)")
     ap.add_argument("--snapshot", action="append", default=[], help="fitxer(s) de snapshot addicional(s) a considerar")

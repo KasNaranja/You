@@ -29,6 +29,7 @@ nivell     = primer nivell de la taula del gènere el total de parells del qual 
 HAURIA     = desglossament per talla d'aquest nivell
 DIF        = HAURIA - stock Zalando (total) - enviaments pendents
 REPO       = DIF si > 0 (HI26 NOU sense marca a "es pot enviar?" -> 0)
+nivell mínim per defecte: 6 dona i home, 2 nens (encara que no hi hagi venda)
 PREPARABLE = min(REPO, stock disponible 59 dies a Toni Pons)
 ```
 
