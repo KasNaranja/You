@@ -17,8 +17,8 @@ Regla:
   nivell   = el primer nivell de la taula del gènere amb què la suma de les talles QUE TÉ EL MODEL (= HAURIA)
              cobreix l'objectiu, o sigui HAURIA >= objectiu (p.ex. GEMINA-QT 35-42, objectiu 249 -> nivell 60, 274 parells)
   HAURIA   = desglossament per talla d'aquest nivell
-  REPO     = per model_color, HAURIA - stock Zalando (total) - enviaments pendents, si és positiu;
-             es reparteix entre les talles que van curtes en proporció al que els falta
+  DIF      = HAURIA - stock Zalando (total) - enviaments pendents
+  REPO     = DIF si és positiu
   PREPARABLE = min(REPO, stock disponible 59 dies a Toni Pons)
 
 Sortides (carpeta de sortida, per defecte la mateixa):
@@ -472,22 +472,6 @@ def pick_level(levels: list[int], totals: dict, target: float, min_level: int) -
     return top, f"objectiu {int(target)} > màxim de la taula ({totals.get(top, 0)} parells, nivell {top})"
 
 
-def split_int(weights: np.ndarray, total: int) -> np.ndarray:
-    """Reparteix `total` (enter) proporcionalment a `weights`, en enters que sumen exactament `total`
-    (mètode de la resta més gran; en cas d'empat guanya el pes més gran)."""
-    out = np.zeros(len(weights), dtype=int)
-    wsum = float(weights.sum())
-    if total <= 0 or wsum <= 0:
-        return out
-    raw = weights * total / wsum
-    base = np.floor(raw).astype(int)
-    rem = int(total - base.sum())
-    if rem > 0:
-        order = np.argsort(-((raw - base) + 1e-9 * weights), kind="stable")
-        base[order[:rem]] += 1
-    return base
-
-
 def size_qty(table: dict, group: str, gender: str, talla: str) -> tuple[int, str]:
     if talla in table:
         return table[talla], ""
@@ -601,17 +585,8 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     not_created = (df["SEASON"].astype(str).str.upper() == "HI26") & (df["TEMPORADA"].astype(str).str.upper() == "NOU") & (df["ES POT ENVIAR?"] == "")
     df["CREAT A ZLD?"] = np.where(not_created, "NO CONSTA", "SÍ")
 
-    # REPO del model_color = net (HAURIA - stock - pendents, si > 0), repartit entre les talles curtes
-    # en proporció al que els falta; les talles amb excedent no reben res
     df["DIF"] = df["HAURIA"] - df["STOCK ZLD"] - df["ENV PENDENTS"]
-    gap = df["DIF"].to_numpy()
-    short = np.clip(gap, 0, None).astype(float)
-    repo = np.zeros(len(df), dtype=int)
-    for idx in df.groupby("model_color").indices.values():
-        net = int(gap[idx].sum())
-        if net > 0:
-            repo[idx] = split_int(short[idx], min(net, int(short[idx].sum())))
-    df["REPO"] = np.where(df["CREAT A ZLD?"] == "SÍ", repo, 0).astype(int)
+    df["REPO"] = np.where(df["CREAT A ZLD?"] == "SÍ", df["DIF"].clip(lower=0), 0).astype(int)
     df["PREPARABLE"] = np.minimum(df["REPO"], df["DISPO 59 DIES"]).astype(int)
     df["FALTA STOCK TP"] = (df["REPO"] - df["PREPARABLE"]).astype(int)
 
@@ -1055,7 +1030,7 @@ def main():
         ("Regla", f"objectiu = venda setmanal del model_color x {args.mult:g}; nivell = primer nivell de la taula del gènere amb què la suma de les talles del model (HAURIA) cobreix l'objectiu, o sigui HAURIA >= objectiu; HAURIA = desglossament per talla d'aquest nivell"),
         ("Nivell mínim adults / nens", f"{args.min_level} / {args.min_level_kids} (0 = sense venda no es reposa)"),
         ("Nivell màxim", str(args.max_level) if args.max_level else "sense límit (el de la taula)"),
-        ("REPO", "per model_color: HAURIA - STOCK ZLD (total, offerable + non-offerable) - ENV PENDENTS, si és positiu (si no, 0); es reparteix entre les talles que van curtes en proporció al que els falta (les que tenen excedent no reben res); els HI26 NOU sense marca a 'es pot enviar?' (CREAT A ZLD? = NO CONSTA) es deixen a 0"),
+        ("REPO", "per talla: HAURIA - STOCK ZLD (total, offerable + non-offerable) - ENV PENDENTS, si és positiu (si no, 0); els HI26 NOU sense marca a 'es pot enviar?' (CREAT A ZLD? = NO CONSTA) es deixen a 0"),
         ("PREPARABLE", "min(REPO, Stock Disponible 59 Dies a Toni Pons); FALTA STOCK TP = REPO - PREPARABLE"),
         ("COBERTURA SET", f"{COBERTURA_FACTOR} x (STOCK ZLD + ENV PENDENTS) / VENDA SET, en setmanes; el x{COBERTURA_FACTOR} compensa les devolucions, que tornen a estar disponibles. Només informativa"),
         ("Gèneres -> taula de nivells", "DONA, UNISEX -> MUJER (unisex 46-47 = talla 45) | HOME -> CABALLERO | NENS, MINI -> NIÑO (mini <25 = talla 25) | COMPLEMENTS -> objectiu directe"),
