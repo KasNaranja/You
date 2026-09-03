@@ -543,10 +543,10 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     df = df.sort_values(["model_color", "_tk"]).drop(columns="_tk").reset_index(drop=True)
 
     sku_cols = ["EAN", "SKU", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "model", "color", "model_color", "talla",
-                "SEASON ZLD", "ES POT ENVIAR?", "CREAT A ZLD?", "VENDA 1 SETM", "VENDA SETM ANT", "VENDA 4 SETM", "MULT", "OBJECTIU",
-                "GRUP NIVELL", "NIVELL", "HAURIA", "STOCK ZLD", "OFFERABLE", "NON OFFERABLE"] + pend_labels + \
+                "SEASON ZLD", "ES POT ENVIAR?", "CREAT A ZLD?", "VENDA 1 SETM", "ACUM'25", "ACUM'26", "VENDA SETM ANT", "VENDA 4 SETM",
+                "MULT", "OBJECTIU", "GRUP NIVELL", "NIVELL", "HAURIA", "STOCK ZLD", "OFFERABLE", "NON OFFERABLE"] + pend_labels + \
                ["ENV PENDENTS", "DIF", "REPO", "STOCK TP 01 02", "DISPO 30 DIES", "DISPO 59 DIES", "PREPARABLE", "FALTA STOCK TP",
-                "VENDA SKU 1 SETM", "VENDA SKU ACUM'26", "ACUM'25", "ACUM'26", "AVÍS"]
+                "VENDA SKU 1 SETM", "VENDA SKU ACUM'26", "AVÍS"]
     sku = df[sku_cols].copy()
 
     # vista model_color
@@ -563,10 +563,9 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     mc["AVÍS"] = df.groupby("model_color")["AVÍS"].agg(lambda s: "; ".join(sorted({x for x in s if x})))
     mc = mc.reset_index()
     mc_cols = ["model_color", "model", "color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "SEASON ZLD", "CREAT A ZLD?",
-               "VENDA 1 SETM", "VENDA SETM ANT", "VENDA 4 SETM", "MULT", "OBJECTIU", "GRUP NIVELL", "NIVELL", "HAURIA",
+               "VENDA 1 SETM", "ACUM'25", "ACUM'26", "VENDA SETM ANT", "VENDA 4 SETM", "MULT", "OBJECTIU", "GRUP NIVELL", "NIVELL", "HAURIA",
                "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "COBERTURA SETM", "DIF", "REPO", "PREPARABLE", "FALTA STOCK TP",
-               "STOCK TP 01 02", "DISPO 30 DIES", "DISPO 59 DIES", "N TALLES", "TALLES AMB REPO", "TALLES SENSE STOCK ZLD",
-               "ACUM'25", "ACUM'26", "AVÍS"]
+               "STOCK TP 01 02", "DISPO 30 DIES", "DISPO 59 DIES", "N TALLES", "TALLES AMB REPO", "TALLES SENSE STOCK ZLD", "AVÍS"]
     mc = mc[mc_cols].sort_values(["REPO", "VENDA 1 SETM", "ACUM'26"], ascending=[False, False, False]).reset_index(drop=True)
 
     # vendes de la setmana de model_colors fora de la llista
