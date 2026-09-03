@@ -460,7 +460,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     adj = adjust.set_index("model_color") if len(adjust) else adjust
 
     df = models.copy()
-    df["VENDA 1 SETM"] = df["model_color"].map(mc_week).fillna(0).astype(int)
+    df["VENDA SET"] = df["model_color"].map(mc_week).fillna(0).astype(int)
     df["VENDA SETM ANT"] = df["model_color"].map(mc_prev).fillna(0).astype(int)
     df["VENDA 4 SETM"] = df["model_color"].map(mc_4w).fillna(0).astype(int)
     df["ACUM'25"] = df["model_color"].map(acum25).fillna(0).astype(int)
@@ -484,7 +484,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
                 f = int(row["nivell"])
         mults[mc], forced[mc] = m, f
     df["MULT"] = df["model_color"].map(mults)
-    df["OBJECTIU"] = (df["VENDA 1 SETM"] * df["MULT"]).round().astype(int)
+    df["OBJECTIU"] = (df["VENDA SET"] * df["MULT"]).round().astype(int)
 
     grp = [GENDER_GROUP.get(g, "?") for g in df["GÈNERE"]]
     df["GRUP NIVELL"] = [g or "" for g in grp]
@@ -551,7 +551,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     df = df.sort_values(["model_color", "_tk"]).drop(columns="_tk").reset_index(drop=True)
 
     sku_cols = ["EAN", "SKU", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "model", "color", "model_color", "talla",
-                "SEASON ZLD", "ES POT ENVIAR?", "CREAT A ZLD?", "VENDA 1 SETM", "ACUM'25", "ACUM'26", "VENDA 4 SETM",
+                "SEASON ZLD", "ES POT ENVIAR?", "CREAT A ZLD?", "VENDA SET", "ACUM'25", "ACUM'26", "VENDA 4 SETM",
                 "MULT", "OBJECTIU", "NIVELL", "HAURIA", "STOCK ZLD", "OFFERABLE", "NON OFFERABLE"] + pend_labels + \
                ["ENV PENDENTS", "DIF", "REPO", "STOCK TP 01 02", "DISPO 30 DIES", "PREPARABLE",
                 "VENDA SKU 1 SETM", "VENDA SKU ACUM'26", "AVÍS"]
@@ -559,29 +559,29 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
 
     # vista model_color
     first = {c: "first" for c in ["model", "color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "SEASON ZLD", "ES POT ENVIAR?",
-                                 "CREAT A ZLD?", "VENDA 1 SETM", "VENDA SETM ANT", "VENDA 4 SETM", "MULT", "OBJECTIU", "GRUP NIVELL",
+                                 "CREAT A ZLD?", "VENDA SET", "VENDA SETM ANT", "VENDA 4 SETM", "MULT", "OBJECTIU", "GRUP NIVELL",
                                  "NIVELL", "PARELLS NIVELL", "ACUM'25", "ACUM'26"]}
     sums = {c: "sum" for c in ["HAURIA", "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "DIF", "REPO", "PREPARABLE", "FALTA STOCK TP",
                                "STOCK TP 01 02", "DISPO 30 DIES", "DISPO 59 DIES"]}
     mc = df.groupby("model_color").agg({**first, **sums, "talla": "count"}).rename(columns={"talla": "N TALLES"})
     mc["TALLES AMB REPO"] = df[df["REPO"] > 0].groupby("model_color").size().reindex(mc.index).fillna(0).astype(int)
     mc["TALLES SENSE STOCK ZLD"] = df[(df["STOCK ZLD"] + df["ENV PENDENTS"]) <= 0].groupby("model_color").size().reindex(mc.index).fillna(0).astype(int)
-    cov = (mc["STOCK ZLD"] + mc["ENV PENDENTS"]) / mc["VENDA 1 SETM"].replace(0, np.nan)
+    cov = (mc["STOCK ZLD"] + mc["ENV PENDENTS"]) / mc["VENDA SET"].replace(0, np.nan)
     mc["COBERTURA SETM"] = cov.round(1)
     mc["AVÍS"] = df.groupby("model_color")["AVÍS"].agg(lambda s: "; ".join(sorted({x for x in s if x})))
     mc = mc.reset_index()
     mc_cols = ["model_color", "model", "color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "SEASON ZLD", "CREAT A ZLD?",
-               "VENDA 1 SETM", "ACUM'25", "ACUM'26", "VENDA 4 SETM", "MULT", "OBJECTIU", "NIVELL", "PARELLS NIVELL", "HAURIA",
+               "VENDA SET", "ACUM'25", "ACUM'26", "VENDA 4 SETM", "MULT", "OBJECTIU", "NIVELL", "PARELLS NIVELL", "HAURIA",
                "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "COBERTURA SETM", "DIF", "REPO", "PREPARABLE",
                "STOCK TP 01 02", "DISPO 30 DIES", "AVÍS"]
-    mc = mc[mc_cols].sort_values(["REPO", "VENDA 1 SETM", "ACUM'26"], ascending=[False, False, False]).reset_index(drop=True)
+    mc = mc[mc_cols].sort_values(["REPO", "VENDA SET", "ACUM'26"], ascending=[False, False, False]).reset_index(drop=True)
 
     # vendes de la setmana de model_colors fora de la llista
     fora = lw[~lw["MODEL_COLOR"].isin(set(models["model_color"]))].groupby("MODEL_COLOR").agg(
-        MODEL=("MODEL", "first"), COLOR=("COLOR", "first"), **{"VENDA 1 SETM": ("units", "sum")}).reset_index()
+        MODEL=("MODEL", "first"), COLOR=("COLOR", "first"), **{"VENDA SET": ("units", "sum")}).reset_index()
     fora["ACUM'26"] = fora["MODEL_COLOR"].map(mc_26).fillna(0).astype(int)
     fora["ACUM'25"] = fora["MODEL_COLOR"].map(acum25).fillna(0).astype(int)
-    fora = fora.sort_values("VENDA 1 SETM", ascending=False).reset_index(drop=True)
+    fora = fora.sort_values("VENDA SET", ascending=False).reset_index(drop=True)
 
     info = {"setmana_inici": last_start.date().isoformat(), "setmana_fi": last_end.date().isoformat(),
             "setmanes": len(week_ends), "setmana_ant": (prev_end.date().isoformat() if prev_end is not None else "")}
@@ -683,8 +683,8 @@ def write_excel(sku: pd.DataFrame, mc: pd.DataFrame, fora: pd.DataFrame, params:
         fora.to_excel(xw, sheet_name="FORA LLISTA", index=False)
         par.to_excel(xw, sheet_name="PARÀMETRES", index=False)
         lvl.to_excel(xw, sheet_name="NIVELLS", index=False, header=False)
-        groups_sku = (("EAN", "CREAT A ZLD?", GREY_HDR), ("VENDA 1 SETM", "OBJECTIU", YELLOW_HDR))
-        groups_mc = (("model_color", "CREAT A ZLD?", GREY_HDR), ("VENDA 1 SETM", "OBJECTIU", YELLOW_HDR))
+        groups_sku = (("EAN", "CREAT A ZLD?", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR))
+        groups_mc = (("model_color", "CREAT A ZLD?", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR))
         style_sheet(xw.sheets["CÀLCUL SKU"], sku, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "DIF", "REPO", "PREPARABLE"), header_groups=groups_sku)
         style_sheet(xw.sheets["MODEL_COLOR"], mc, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "REPO", "PREPARABLE"), header_groups=groups_mc)
         style_sheet(xw.sheets["FORA LLISTA"], fora)
@@ -893,7 +893,7 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
     num_sku = {c for c in sku.columns if pd.api.types.is_numeric_dtype(sku[c])}
     num_mc = {c for c in mc.columns if pd.api.types.is_numeric_dtype(mc[c])}
     sum_cols = {"HAURIA", "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "DIF", "REPO", "PREPARABLE", "FALTA STOCK TP", "STOCK TP 01 02",
-                "DISPO 30 DIES", "DISPO 59 DIES", "VENDA 1 SETM", "VENDA SKU 1 SETM", "ACUM'25", "ACUM'26", "VENDA 4 SETM"}
+                "DISPO 30 DIES", "DISPO 59 DIES", "VENDA SET", "VENDA SKU 1 SETM", "ACUM'25", "ACUM'26", "VENDA 4 SETM"}
     key_cols = {"HAURIA", "DIF", "REPO", "PREPARABLE"}
     def spec(df, nums, default_sort, only_repo, facets, search, kpis, sum_ok, header_groups=()):
         names = list(df.columns)
@@ -904,17 +904,17 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
                     hg[names[k]] = cls
         return {"cols": [{"k": c, "l": c, "n": c in nums, "sum": c in sum_ok, "key": c in key_cols, "hg": hg.get(c, "")} for c in df.columns],
                 "defaultSort": default_sort, "onlyRepoDefault": only_repo, "facets": facets, "search": search, "kpis": kpis}
-    mc_sums = sum_cols - {"VENDA 1 SETM", "VENDA 4 SETM"} | {"VENDA 1 SETM"}
+    mc_sums = sum_cols - {"VENDA SET", "VENDA 4 SETM"} | {"VENDA SET"}
     data = {
         "mc": recs(mc), "sku": recs(sku),
         "mcSpec": spec(mc, num_mc, "REPO", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
                        [{"k": "__rows__", "l": "model_color amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 59d)"},
-                        {"k": "VENDA 1 SETM", "l": "venda setmana"}, {"k": "STOCK ZLD", "l": "stock Zalando"}, {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums,
-                       (("model_color", "CREAT A ZLD?", "grey"), ("VENDA 1 SETM", "OBJECTIU", "yellow"))),
+                        {"k": "VENDA SET", "l": "venda setmana"}, {"k": "STOCK ZLD", "l": "stock Zalando"}, {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums,
+                       (("model_color", "CREAT A ZLD?", "grey"), ("VENDA SET", "OBJECTIU", "yellow"))),
         "skuSpec": spec(sku, num_sku, "REPO", True, ["GÈNERE", "SEASON", "TEMPORADA", "CREAT A ZLD?"], ["EAN", "SKU", "model_color", "model", "color", "talla", "AVÍS"],
                         [{"k": "__rows__", "l": "SKUs amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 59d)"},
-                         {"k": "STOCK ZLD", "l": "stock Zalando"}], sum_cols - {"VENDA 1 SETM", "VENDA 4 SETM", "ACUM'25", "ACUM'26"},
-                        (("EAN", "CREAT A ZLD?", "grey"), ("VENDA 1 SETM", "OBJECTIU", "yellow"))),
+                         {"k": "STOCK ZLD", "l": "stock Zalando"}], sum_cols - {"VENDA SET", "VENDA 4 SETM", "ACUM'25", "ACUM'26"},
+                        (("EAN", "CREAT A ZLD?", "grey"), ("VENDA SET", "OBJECTIU", "yellow"))),
     }
     warn_html = "".join(f'<div class="warn">{html.escape(w)}</div>' for w in warnings)
     page = (HTML_TEMPLATE.replace("__TITLE__", html.escape(title)).replace("__SUBTITLE__", html.escape(subtitle))
@@ -1003,7 +1003,7 @@ def main():
     # resum
     print()
     print(f"Setmana: {week_lbl}   Snapshot: {snap_meta['fitxer']}   Pendents: {pend_labels}")
-    print(f"SKUs: {len(sku)}   model_color: {len(mc)}   model_color amb venda: {(mc['VENDA 1 SETM']>0).sum()}   amb REPO: {(mc['REPO']>0).sum()}")
+    print(f"SKUs: {len(sku)}   model_color: {len(mc)}   model_color amb venda: {(mc['VENDA SET']>0).sum()}   amb REPO: {(mc['REPO']>0).sum()}")
     print(f"REPO total: {int(sku['REPO'].sum())}   PREPARABLE: {int(sku['PREPARABLE'].sum())}   FALTA STOCK TP: {int((sku['REPO'] - sku['PREPARABLE']).sum())}")
     for w in warnings:
         print("AVÍS:", w)
