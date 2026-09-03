@@ -794,12 +794,21 @@ __WARNINGS__
 <script>
 const DATA = __DATA__;
 const NUMFMT = new Intl.NumberFormat('ca-ES');
+const STORE_KEY = 'repo-zld-cols-shared';
+const VIEWS = {};
+let HIDDEN = new Set();
+try {
+  const s = localStorage.getItem(STORE_KEY);
+  if(s) HIDDEN = new Set(JSON.parse(s));
+  else { // migració de la selecció antiga per pestanya
+    ['repo-zld-cols-mc','repo-zld-cols-sku'].forEach(k => { const o = localStorage.getItem(k); if(o) JSON.parse(o).forEach(c => HIDDEN.add(c)); localStorage.removeItem(k); });
+  }
+} catch(e) {}
+function saveHidden(){ try { localStorage.setItem(STORE_KEY, JSON.stringify([...HIDDEN])); } catch(e) {} }
+function setHidden(next){ HIDDEN = next; saveHidden(); Object.values(VIEWS).forEach(v => v.refresh()); }
 function esc(v){ return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 function build(id, spec, rows){
   const panel = document.getElementById('p-'+id);
-  const storeKey = 'repo-zld-cols-'+id;
-  let hidden = new Set();
-  try { const s = localStorage.getItem(storeKey); if(s) hidden = new Set(JSON.parse(s)); } catch(e) {}
   const state = {q:'', sortKey: spec.defaultSort, sortDir: -1, onlyRepo: spec.onlyRepoDefault, filters:{}};
   const facets = spec.facets.map(f => ({key:f, values:[...new Set(rows.map(r=>r[f]).filter(v=>v!==null && v!==''))].sort()}));
   let html = '<div class="kpis" id="k-'+id+'"></div><div class="bar">';
@@ -815,23 +824,22 @@ function build(id, spec, rows){
   const thead = panel.querySelector('thead tr'), tbody = panel.querySelector('tbody'), tfoot = panel.querySelector('tfoot tr');
   const topscroll = panel.querySelector('.topscroll'), topinner = topscroll.firstElementChild;
   const colpick = panel.querySelector('.colpick'), colbtn = panel.querySelector('#cb-'+id);
-  function visCols(){ return spec.cols.filter(c => !hidden.has(c.k)); }
-  function saveCols(){ try { localStorage.setItem(storeKey, JSON.stringify([...hidden])); } catch(e) {} }
-  function setHidden(next){ hidden = next; saveCols(); renderPicker(); renderHead(); render(); }
+  function visCols(){ const v = spec.cols.filter(c => !HIDDEN.has(c.k)); return v.length ? v : [spec.cols[0]]; }
   function renderPicker(){
+    const vis = visCols().length;
     let h = '<div class="cp-actions"><button type="button" data-a="all">Totes</button><button type="button" data-a="none">Cap</button>';
-    h += '<span>'+(spec.cols.length-hidden.size)+' de '+spec.cols.length+' columnes visibles</span></div><div class="cp-grid">';
-    spec.cols.forEach(c => { h += '<label><input type="checkbox" data-c="'+esc(c.k)+'" '+(hidden.has(c.k)?'':'checked')+'> '+esc(c.l)+'</label>'; });
+    h += '<span>'+vis+' de '+spec.cols.length+' columnes visibles · la selecció es comparteix amb l’altra pestanya</span></div><div class="cp-grid">';
+    spec.cols.forEach(c => { h += '<label><input type="checkbox" data-c="'+esc(c.k)+'" '+(HIDDEN.has(c.k)?'':'checked')+'> '+esc(c.l)+'</label>'; });
     colpick.innerHTML = h + '</div>';
     colpick.querySelectorAll('input').forEach(i => i.addEventListener('change', e => {
-      const k = e.target.dataset.c; const next = new Set(hidden);
+      const k = e.target.dataset.c; const next = new Set(HIDDEN);
       if(e.target.checked) next.delete(k); else next.add(k);
-      if(next.size >= spec.cols.length){ e.target.checked = true; return; }
+      if(!spec.cols.some(c => !next.has(c.k))){ e.target.checked = true; return; }
       setHidden(next);
     }));
     colpick.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
       if(b.dataset.a === 'all') setHidden(new Set());
-      else setHidden(new Set(spec.cols.slice(1).map(c => c.k)));
+      else { const next = new Set(HIDDEN); spec.cols.slice(1).forEach(c => next.add(c.k)); next.delete(spec.cols[0].k); setHidden(next); }
     }));
   }
   function renderHead(){
@@ -903,13 +911,14 @@ function build(id, spec, rows){
   wrap.addEventListener('scroll', () => { if(syncing) return; syncing = true; topscroll.scrollLeft = wrap.scrollLeft; syncing = false; });
   window.addEventListener('resize', fitHeight);
   renderPicker(); renderHead(); render();
-  return { fit: fitHeight };
+  return { fit: fitHeight, refresh(){ renderPicker(); renderHead(); render(); } };
 }
-const views = { mc: build('mc', DATA.mcSpec, DATA.mc), sku: build('sku', DATA.skuSpec, DATA.sku) };
+VIEWS.mc = build('mc', DATA.mcSpec, DATA.mc);
+VIEWS.sku = build('sku', DATA.skuSpec, DATA.sku);
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='p-'+t.dataset.t));
-  views[t.dataset.t].fit();
+  VIEWS[t.dataset.t].fit();
 }));
 </script></body></html>
 """
