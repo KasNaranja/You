@@ -19,12 +19,13 @@ còpia versionada.
 | `Stock Toni Pons/*.txt` | export SAP UTF-16 amb tabuladors (`Stock 01 02`, `Stock Disponible 30/59 Dies`), sumat per EAN |
 | `Stock Zalando/*.csv` o `*.xlsx` | stock snapshot de Zalando. Es descarten els fitxers amb EANs en notació científica (`8,43453E+12`, passa en desar el CSV des d'Excel) |
 | `Enviaments pendents/*.csv` | `ean;quantity` dels enviaments ja fets però encara no al snapshot |
+| `VENTA POR MES.xlsx` | multiplicador de la venda setmanal per mes: fila amb els mesos i fila amb els valors (gener 2 … abril i maig 5 … setembre 3). El script agafa el del mes de la data de càlcul; `--mult` el força |
 | `Ajustos repo.xlsx` (opcional) | `model_color`, `multiplicador`, `nivell`, `comentari` per forçar casos concrets |
 
 ## Regla
 
 ```
-objectiu   = venda setmanal del model_color x MULT (3)
+objectiu   = venda setmanal del model_color x MULT (el del mes a VENTA POR MES.xlsx)
 nivell     = primer nivell de la taula del gènere amb què la suma de les talles del model (HAURIA) cobreix l'objectiu (HAURIA >= objectiu)
 HAURIA     = desglossament per talla d'aquest nivell
 DIF        = HAURIA - stock Zalando (total) - enviaments pendents

@@ -10,10 +10,11 @@ Fonts (carpeta de dades, per defecte la carpeta on hi ha aquest script):
   Stock Toni Pons/*.txt              export SAP (UTF-16, tabuladors): Stock 01 02, Disponible 30 / 59 dies
   Stock Zalando/*.csv|*.xlsx         stock snapshot Zalando (EAN, Offerable, Non-offerable, Total)
   Enviaments pendents/*.csv          enviaments ja fets però encara no al snapshot (ean;quantity)
+  VENTA POR MES.xlsx                 multiplicador de la venda setmanal per mes (fila de mesos + fila de valors)
   Ajustos repo.xlsx (opcional)       multiplicador / nivell forçat per model_color
 
 Regla:
-  objectiu = venda setmanal del model_color x MULT (3 per defecte)
+  objectiu = venda setmanal del model_color x MULT (el del mes de càlcul a VENTA POR MES.xlsx; --mult el força)
   nivell   = el primer nivell de la taula del gènere amb què la suma de les talles QUE TÉ EL MODEL (= HAURIA)
              cobreix l'objectiu, o sigui HAURIA >= objectiu (p.ex. GEMINA-QT 35-42, objectiu 249 -> nivell 60, 274 parells)
   HAURIA   = desglossament per talla d'aquest nivell
@@ -88,7 +89,7 @@ COL_HELP = {
     "ACUM'25": "Unitats venudes del model_color durant tot el 2025 (Venda 2025.xlsx).",
     "ACUM'26": "Unitats venudes del model_color el 2026 fins a la setmana de referència (suma de tots els fitxers setmanals).",
     "VENDA 4 SETM": "Suma de les últimes 4 setmanes de venda del model_color. Només informativa.",
-    "MULT": "Multiplicador de la venda setmanal (3 per defecte). Es pot canviar per model_color a 'Ajustos repo.xlsx'.",
+    "MULT": "Multiplicador de la venda setmanal. Surt de 'VENTA POR MES.xlsx' segons el mes de la data de càlcul (p.ex. setembre 3, abril 5). Es pot canviar per model_color a 'Ajustos repo.xlsx'.",
     "OBJECTIU": "VENDA SET × MULT: parells que hauria d'haver-hi a Zalando del model_color.",
     "NIVELL": "Nivell de NIVEL.xlsx escollit: el primer amb què la suma de les talles del model cobreix l'OBJECTIU (HAURIA ≥ OBJECTIU). Mínim 6 per dona i home i 2 per nens, encara que no hi hagi venda.",
     "HAURIA": "Parells que hauria d'haver-hi a Zalando segons el desglossament per talla del NIVELL a NIVEL.xlsx. A la vista model_color és la suma de totes les talles del model.",
@@ -486,6 +487,30 @@ def load_pending(folder: str) -> tuple[pd.DataFrame, list[str]]:
     out = out.fillna(0)
     out["ENV PENDENTS"] = out[labels].sum(axis=1)
     return out, labels
+
+
+MONTHS = {  # nom de mes (sense accents, minúscules) -> número
+    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6, "julio": 7, "agosto": 8,
+    "septiembre": 9, "setiembre": 9, "octubre": 10, "noviembre": 11, "diciembre": 12,
+    "gener": 1, "febrer": 2, "marc": 3, "maig": 5, "juny": 6, "juliol": 7, "agost": 8, "setembre": 9, "novembre": 11, "desembre": 12,
+}
+MONTH_NAMES_CA = ["", "gener", "febrer", "març", "abril", "maig", "juny", "juliol", "agost", "setembre", "octubre", "novembre", "desembre"]
+
+
+def load_month_mult(path: str) -> dict[int, float]:
+    """VENTA POR MES.xlsx: una fila amb els mesos i, a sota, el multiplicador de la venda setmanal de cada mes."""
+    wb = openpyxl.load_workbook(path, data_only=True)
+    ws = wb[wb.sheetnames[0]]
+    rows = [list(r) for r in ws.iter_rows(values_only=True)]
+    for i, r in enumerate(rows):
+        cols = {j: MONTHS[norm(v)] for j, v in enumerate(r) if isinstance(v, str) and norm(v) in MONTHS}
+        if len(cols) < 6:
+            continue
+        for r2 in rows[i + 1:]:
+            vals = {m: float(r2[j]) for j, m in cols.items() if j < len(r2) and isinstance(r2[j], (int, float))}
+            if len(vals) >= 6:
+                return vals
+    return {}
 
 
 def load_adjustments(path: str) -> pd.DataFrame:
@@ -1062,7 +1087,7 @@ def main():
     ap = argparse.ArgumentParser(description="Càlcul de reposició Zalando")
     ap.add_argument("--data", default=here, help="carpeta amb les fonts")
     ap.add_argument("--out", default=None, help="carpeta on es crea REPO/ amb les sortides (per defecte la de dades)")
-    ap.add_argument("--mult", type=float, default=3.0, help="multiplicador de la venda setmanal (3)")
+    ap.add_argument("--mult", type=float, default=None, help="multiplicador de la venda setmanal; si no es dona, el del mes a VENTA POR MES.xlsx (o 3)")
     ap.add_argument("--min-level", type=int, default=6, help="nivell mínim per dona i home encara que no hi hagi venda (6; 0 = cap)")
     ap.add_argument("--min-level-kids", type=int, default=2, help="nivell mínim per nens (2; 0 = cap)")
     ap.add_argument("--max-level", type=int, default=None, help="nivell màxim (cap = sense límit)")
@@ -1087,9 +1112,22 @@ def main():
     pending, pend_labels = load_pending(os.path.join(data, "Enviaments pendents"))
     adjust = load_adjustments(os.path.join(data, "Ajustos repo.xlsx"))
 
+    # multiplicador: línia d'ordres > VENTA POR MES.xlsx (mes de la data de càlcul) > 3
+    mult, mult_src = args.mult, "línia d'ordres"
+    month = int(args.date.split(".")[1]) if re.fullmatch(r"\d{1,2}\.\d{1,2}", args.date) else dt.date.today().month
+    vpm = os.path.join(data, "VENTA POR MES.xlsx")
+    if mult is None and os.path.exists(vpm):
+        table = load_month_mult(readable_copy(vpm))
+        if month in table:
+            mult, mult_src = table[month], f"VENTA POR MES.xlsx, {MONTH_NAMES_CA[month]}"
+        else:
+            print("AVÍS: VENTA POR MES.xlsx no té el mes", month)
+    if mult is None:
+        mult, mult_src = 3.0, "per defecte"
+
     print("Calculant...")
     sku, mc, fora, info = compute(models, levels, lines, acum25, stock_tp, snap, pending, pend_labels, adjust,
-                                  args.mult, args.min_level, args.min_level_kids, args.max_level)
+                                  mult, args.min_level, args.min_level_kids, args.max_level)
 
     warnings = []
     if snap_meta["rebutjats"]:
@@ -1109,7 +1147,8 @@ def main():
     params = [
         ("Data càlcul", dt.date.today().isoformat()),
         ("Setmana de venda utilitzada", f"{week_lbl} ({info['setmanes']} setmanes acumulades el 2026)"),
-        ("Regla", f"objectiu = venda setmanal del model_color x {args.mult:g}; nivell = primer nivell de la taula del gènere amb què la suma de les talles del model (HAURIA) cobreix l'objectiu, o sigui HAURIA >= objectiu; HAURIA = desglossament per talla d'aquest nivell"),
+        ("Multiplicador", f"{mult:g} ({mult_src})"),
+        ("Regla", f"objectiu = venda setmanal del model_color x {mult:g}; nivell = primer nivell de la taula del gènere amb què la suma de les talles del model (HAURIA) cobreix l'objectiu, o sigui HAURIA >= objectiu; HAURIA = desglossament per talla d'aquest nivell"),
         ("Nivell mínim adults / nens", f"{args.min_level} / {args.min_level_kids} (0 = sense venda no es reposa)"),
         ("Nivell màxim", str(args.max_level) if args.max_level else "sense límit (el de la taula)"),
         ("DIF", "per talla: HAURIA - STOCK ZLD (total, offerable + non-offerable) - ENV PENDENTS; a la vista model_color, net de totes les talles"),
@@ -1141,7 +1180,7 @@ def main():
     html_path = safe_out(os.path.join(repo_dir, f"REPO ZALANDO {args.date}.html"))
     title = f"Reposició Zalando {args.date}"
     subtitle = (f"Setmana {week_lbl} · stock Zalando {snap_meta['fitxer']} · enviaments pendents {', '.join(pend_labels) or 'cap'} · "
-                f"regla venda x{args.mult:g} → nivell · generat {dt.datetime.now():%d/%m/%Y %H:%M}")
+                f"regla venda x{mult:g} ({mult_src}) → nivell · generat {dt.datetime.now():%d/%m/%Y %H:%M}")
     write_html(sku, mc, title, subtitle, warnings, html_path,
                totals={"stock_zld": snap_meta["total"], "venda_setm": info["venda_setm_total"]})
 
