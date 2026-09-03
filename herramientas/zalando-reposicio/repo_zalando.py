@@ -5,8 +5,8 @@ Càlcul de reposició Zalando per SKU i per model_color.
 Fonts (carpeta de dades, per defecte la carpeta on hi ha aquest script):
   Models a reposar.xlsx              llista base de SKUs a reposar (EAN, SKU, season, gènere, model_color, talla...)
   NIVEL.xlsx                         nivells i desglossament per talla (MUJER / CABALLERO / NIÑO)
-  Venda 2025.xlsx                    acumulat 2025 per model_color
-  Vendes 2026/<mes>/VENDES DEL dd.mm al dd.mm.xlsx   vendes setmanals (pestanya DADES2, una línia per comanda)
+  Vendes/2025/Venda 2025.xlsx        acumulat 2025 per model_color
+  Vendes/2026/<mes>/VENDES DEL dd.mm al dd.mm.xlsx   vendes setmanals (pestanya DADES2, una línia per comanda)
   Stock Toni Pons/*.txt              export SAP (UTF-16, tabuladors): Stock 01 02, Disponible 30 / 59 dies
   Stock Zalando/*.csv|*.xlsx         stock snapshot Zalando (EAN, Offerable, Non-offerable, Total)
   Enviaments pendents/*.csv          enviaments ja fets però encara no al snapshot (ean;quantity)
@@ -21,10 +21,11 @@ Regla:
   REPO     = DIF si és positiu
   PREPARABLE = min(REPO, stock disponible 30 dies a Toni Pons)
 
-Sortides (carpeta de sortida, per defecte la mateixa):
-  Venda 2026 dd.mm.xlsx              consolidat de totes les setmanes (un fitxer per data de càlcul; el bo és sempre l'últim)
-  REPO ZALANDO dd.mm.xlsx            pestanyes CÀLCUL SKU, MODEL_COLOR, FORA LLISTA, PARÀMETRES, NIVELLS
-  REPO ZALANDO dd.mm.html            mateixes dues vistes, filtrables i ordenables
+Sortides:
+  Vendes/2026/Venda 2026 dd.mm.xlsx  consolidat de totes les setmanes (un fitxer per data de càlcul; el bo és sempre l'últim)
+  REPO/REPO ZALANDO dd.mm.xlsx       pestanyes CÀLCUL SKU, MODEL_COLOR, FORA LLISTA, PARÀMETRES, NIVELLS
+  REPO/REPO ZALANDO dd.mm.html       mateixes dues vistes, filtrables i ordenables
+  (REPO/ penja de la carpeta de sortida, per defecte la de dades)
 
 Ús:
   python repo_zalando.py                       (data = avui, MULT = 3, nivell mínim 6 dona i home, 2 nens)
@@ -259,7 +260,9 @@ def load_levels(path: str) -> dict:
 
 
 def sales_files(data_dir: str) -> list[str]:
-    files = sorted(glob.glob(os.path.join(data_dir, "Vendes 20*", "*", "*.xlsx")))
+    patterns = [os.path.join(data_dir, "Vendes", "20*", "**", "*.xlsx"),   # Vendes/2026/<mes>/VENDES DEL dd.mm al dd.mm.xlsx
+                os.path.join(data_dir, "Vendes 20*", "*", "*.xlsx")]        # disposició antiga (Vendes 2026/<mes>/)
+    files = sorted({f for p in patterns for f in glob.glob(p, recursive=True)})
     out = []
     for f in files:
         base = os.path.basename(f)
@@ -276,7 +279,7 @@ def sales_files(data_dir: str) -> list[str]:
 def week_range(path: str) -> tuple[pd.Timestamp, pd.Timestamp]:
     m = WEEK_RE.search(os.path.basename(path))
     d1, m1, d2, m2 = map(int, m.groups())
-    ym = re.search(r"Vendes (20\d\d)", path)
+    ym = re.search(r"Vendes[\\/ ](20\d\d)", path)
     base_year = int(ym.group(1)) if ym else dt.date.today().year
     y1 = base_year - 1 if m1 > m2 else base_year
     return pd.Timestamp(y1, m1, d1), pd.Timestamp(base_year, m2, d2)
@@ -1058,7 +1061,7 @@ def main():
     here = os.path.dirname(os.path.abspath(__file__))
     ap = argparse.ArgumentParser(description="Càlcul de reposició Zalando")
     ap.add_argument("--data", default=here, help="carpeta amb les fonts")
-    ap.add_argument("--out", default=None, help="carpeta de sortida (per defecte la de dades)")
+    ap.add_argument("--out", default=None, help="carpeta on es crea REPO/ amb les sortides (per defecte la de dades)")
     ap.add_argument("--mult", type=float, default=3.0, help="multiplicador de la venda setmanal (3)")
     ap.add_argument("--min-level", type=int, default=6, help="nivell mínim per dona i home encara que no hi hagi venda (6; 0 = cap)")
     ap.add_argument("--min-level-kids", type=int, default=2, help="nivell mínim per nens (2; 0 = cap)")
@@ -1074,7 +1077,11 @@ def main():
     models = load_models(readable_copy(os.path.join(data, "Models a reposar.xlsx")))
     levels = load_levels(readable_copy(os.path.join(data, "NIVEL.xlsx")))
     lines, sources = load_sales(data, cache_dir)
-    acum25 = load_sales_2025(readable_copy(os.path.join(data, "Venda 2025.xlsx")))
+    venda25 = next((p for p in [os.path.join(data, "Vendes", "2025", "Venda 2025.xlsx"), os.path.join(data, "Venda 2025.xlsx")]
+                    if os.path.exists(p)), None)
+    if venda25 is None:
+        raise SystemExit("No trobo 'Vendes/2025/Venda 2025.xlsx'")
+    acum25 = load_sales_2025(readable_copy(venda25))
     stock_tp, tp_file = load_stock_tp(os.path.join(data, "Stock Toni Pons"))
     snap, snap_meta = load_snapshot(os.path.join(data, "Stock Zalando"), args.snapshot)
     pending, pend_labels = load_pending(os.path.join(data, "Enviaments pendents"))
@@ -1122,11 +1129,16 @@ def main():
     ]
 
     print("Escrivint sortides...")
-    venda_xlsx = safe_out(os.path.join(out, f"Venda 2026 {args.date}.xlsx"))
+    year = info["setmana_fi"][:4]
+    vendes_dir = os.path.join(data, "Vendes", year)
+    repo_dir = os.path.join(out, "REPO")
+    os.makedirs(vendes_dir, exist_ok=True)
+    os.makedirs(repo_dir, exist_ok=True)
+    venda_xlsx = safe_out(os.path.join(vendes_dir, f"Venda {year} {args.date}.xlsx"))
     write_vendes(lines, sources, acum25, venda_xlsx, info)
-    xlsx = safe_out(os.path.join(out, f"REPO ZALANDO {args.date}.xlsx"))
+    xlsx = safe_out(os.path.join(repo_dir, f"REPO ZALANDO {args.date}.xlsx"))
     write_excel(sku, mc, fora, params, levels, xlsx)
-    html_path = safe_out(os.path.join(out, f"REPO ZALANDO {args.date}.html"))
+    html_path = safe_out(os.path.join(repo_dir, f"REPO ZALANDO {args.date}.html"))
     title = f"Reposició Zalando {args.date}"
     subtitle = (f"Setmana {week_lbl} · stock Zalando {snap_meta['fitxer']} · enviaments pendents {', '.join(pend_labels) or 'cap'} · "
                 f"regla venda x{args.mult:g} → nivell · generat {dt.datetime.now():%d/%m/%Y %H:%M}")

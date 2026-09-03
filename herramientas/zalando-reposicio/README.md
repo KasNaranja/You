@@ -14,8 +14,8 @@ còpia versionada.
 |---|---|
 | `Models a reposar.xlsx` | llista base de SKUs (EAN, SKU, SEASON, TEMPORADA, COL·LECCIÓ, GÈNERE, model_color, talla, season Zalando, `es pot enviar?`) |
 | `NIVEL.xlsx` | nivells i desglossament per talla: blocs MUJER / CABALLERO / NIÑO |
-| `Venda 2025.xlsx` | acumulat 2025 per model_color (pivot `Etiquetas de fila` / `INITIAL+SHIPPED`) |
-| `Vendes 2026/<mes>/VENDES DEL dd.mm al dd.mm.xlsx` | vendes setmanals; es llegeix la pestanya **DADES2** (una línia per comanda). `Hoja1` és una còpia antiga idèntica a tots els fitxers i s'ignora |
+| `Vendes/2025/Venda 2025.xlsx` | acumulat 2025 per model_color (pivot `Etiquetas de fila` / `INITIAL+SHIPPED`) |
+| `Vendes/2026/<mes>/VENDES DEL dd.mm al dd.mm.xlsx` | vendes setmanals; es llegeix la pestanya **DADES2** (una línia per comanda). `Hoja1` és una còpia antiga idèntica a tots els fitxers i s'ignora |
 | `Stock Toni Pons/*.txt` | export SAP UTF-16 amb tabuladors (`Stock 01 02`, `Stock Disponible 30/59 Dies`), sumat per EAN |
 | `Stock Zalando/*.csv` o `*.xlsx` | stock snapshot de Zalando. Es descarten els fitxers amb EANs en notació científica (`8,43453E+12`, passa en desar el CSV des d'Excel) |
 | `Enviaments pendents/*.csv` | `ean;quantity` dels enviaments ja fets però encara no al snapshot |
@@ -43,7 +43,7 @@ python repo_zalando.py --date 03.09
 python repo_zalando.py --mult 2 --min-level 6 --min-level-kids 2 --max-level 100
 ```
 
-Sortides: `Venda 2026 dd.mm.xlsx` (un per data de càlcul, el bo és l'últim), `REPO ZALANDO dd.mm.xlsx` (CÀLCUL SKU, MODEL_COLOR,
-FORA LLISTA, PARÀMETRES, NIVELLS) i `REPO ZALANDO dd.mm.html` (les dues vistes,
+Sortides: `Vendes/2026/Venda 2026 dd.mm.xlsx` (un per data de càlcul, el bo és l'últim), `REPO/REPO ZALANDO dd.mm.xlsx` (CÀLCUL SKU, MODEL_COLOR,
+FORA LLISTA, PARÀMETRES, NIVELLS) i `REPO/REPO ZALANDO dd.mm.html` (les dues vistes,
 filtrables i ordenables, sense dependències externes).
 COBERTURA SET (només informativa) = 2 x (stock Zalando + enviaments pendents) / venda setmanal; el x2 compensa les devolucions que tornen a estoc.
