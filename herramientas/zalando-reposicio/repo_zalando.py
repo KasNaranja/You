@@ -546,7 +546,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     sku_cols = ["EAN", "SKU", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "model", "color", "model_color", "talla",
                 "SEASON ZLD", "ES POT ENVIAR?", "CREAT A ZLD?", "VENDA 1 SETM", "ACUM'25", "ACUM'26", "VENDA 4 SETM",
                 "MULT", "OBJECTIU", "NIVELL", "HAURIA", "STOCK ZLD", "OFFERABLE", "NON OFFERABLE"] + pend_labels + \
-               ["ENV PENDENTS", "DIF", "REPO", "STOCK TP 01 02", "DISPO 30 DIES", "DISPO 59 DIES", "PREPARABLE", "FALTA STOCK TP",
+               ["ENV PENDENTS", "DIF", "REPO", "STOCK TP 01 02", "DISPO 30 DIES", "PREPARABLE",
                 "VENDA SKU 1 SETM", "VENDA SKU ACUM'26", "AVÍS"]
     sku = df[sku_cols].copy()
 
@@ -565,8 +565,8 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     mc = mc.reset_index()
     mc_cols = ["model_color", "model", "color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "SEASON ZLD", "CREAT A ZLD?",
                "VENDA 1 SETM", "ACUM'25", "ACUM'26", "VENDA 4 SETM", "MULT", "OBJECTIU", "NIVELL", "HAURIA",
-               "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "COBERTURA SETM", "DIF", "REPO", "PREPARABLE", "FALTA STOCK TP",
-               "STOCK TP 01 02", "DISPO 30 DIES", "DISPO 59 DIES", "N TALLES", "TALLES AMB REPO", "TALLES SENSE STOCK ZLD", "AVÍS"]
+               "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "COBERTURA SETM", "DIF", "REPO", "PREPARABLE",
+               "STOCK TP 01 02", "DISPO 30 DIES", "AVÍS"]
     mc = mc[mc_cols].sort_values(["REPO", "VENDA 1 SETM", "ACUM'26"], ascending=[False, False, False]).reset_index(drop=True)
 
     # vendes de la setmana de model_colors fora de la llista
@@ -589,15 +589,23 @@ HDR_FONT = Font(bold=True, color="FFFFFF")
 REPO_FILL = PatternFill("solid", fgColor="E2F0D9")
 NO_FILL = PatternFill("solid", fgColor="EDEDED")
 KEY_FILL = PatternFill("solid", fgColor="FFF2CC")
+GREY_HDR = "D9D9D9"
+YELLOW_HDR = "FFE699"
 
 
-def style_sheet(ws, df: pd.DataFrame, highlight_col: str | None = None, grey_col: str | None = None, key_cols=()):
+def style_sheet(ws, df: pd.DataFrame, highlight_col: str | None = None, grey_col: str | None = None, key_cols=(), header_groups=()):
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = ws.dimensions
+    names = list(df.columns)
+    hdr_fill = {}
+    for start, end, color in header_groups:
+        if start in names and end in names:
+            for k in range(names.index(start), names.index(end) + 1):
+                hdr_fill[k + 1] = PatternFill("solid", fgColor=color)
     for j, c in enumerate(df.columns, start=1):
         cell = ws.cell(row=1, column=j)
-        cell.fill = HDR_FILL
-        cell.font = HDR_FONT
+        cell.fill = hdr_fill.get(j, HDR_FILL)
+        cell.font = Font(bold=True, color="000000") if j in hdr_fill else HDR_FONT
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         if c in key_cols:
             for i in range(2, len(df) + 2):
@@ -667,8 +675,10 @@ def write_excel(sku: pd.DataFrame, mc: pd.DataFrame, fora: pd.DataFrame, params:
         fora.to_excel(xw, sheet_name="FORA LLISTA", index=False)
         par.to_excel(xw, sheet_name="PARÀMETRES", index=False)
         lvl.to_excel(xw, sheet_name="NIVELLS", index=False, header=False)
-        style_sheet(xw.sheets["CÀLCUL SKU"], sku, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "DIF", "REPO", "PREPARABLE"))
-        style_sheet(xw.sheets["MODEL_COLOR"], mc, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("NIVELL", "HAURIA", "REPO", "PREPARABLE"))
+        groups_sku = (("EAN", "CREAT A ZLD?", GREY_HDR), ("VENDA 1 SETM", "OBJECTIU", YELLOW_HDR))
+        groups_mc = (("model_color", "CREAT A ZLD?", GREY_HDR), ("VENDA 1 SETM", "OBJECTIU", YELLOW_HDR))
+        style_sheet(xw.sheets["CÀLCUL SKU"], sku, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "DIF", "REPO", "PREPARABLE"), header_groups=groups_sku)
+        style_sheet(xw.sheets["MODEL_COLOR"], mc, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "REPO", "PREPARABLE"), header_groups=groups_mc)
         style_sheet(xw.sheets["FORA LLISTA"], fora)
         style_sheet(xw.sheets["PARÀMETRES"], par)
         xw.sheets["PARÀMETRES"].column_dimensions["A"].width = 34
@@ -699,6 +709,7 @@ header .sub{opacity:.85;font-size:12.5px;margin-top:4px}
 table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:12.5px}
 th{position:sticky;top:0;background:var(--head);color:#fff;padding:6px 8px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;z-index:2;border-right:1px solid rgba(255,255,255,.12)}
 th.num{text-align:right}th .arr{opacity:.7;font-size:10px;margin-left:3px}
+th.hg-grey{background:#d9d9d9;color:#1c2430}th.hg-yellow{background:#ffe699;color:#1c2430}
 td{padding:4px 8px;border-bottom:1px solid var(--line);white-space:nowrap}td.num{text-align:right;font-variant-numeric:tabular-nums}
 tr:hover td{background:#f4f7fb}td.repo{background:#e2f0d9;font-weight:600}td.no{color:var(--bad)}td.neg{color:#8a94a0}
 tfoot td{position:sticky;bottom:0;background:#eef2f6;font-weight:600;border-top:2px solid #c9d1db;z-index:1}
@@ -723,7 +734,7 @@ function build(id, spec, rows){
   facets.forEach(f => { html += '<select data-f="'+f.key+'"><option value="">'+f.key+': tots</option>'+f.values.map(v=>'<option>'+v+'</option>').join('')+'</select>'; });
   html += '<label><input type="checkbox" id="r-'+id+'" '+(state.onlyRepo?'checked':'')+'> només REPO &gt; 0</label>';
   html += '<span class="count" id="c-'+id+'"></span></div><div class="wrap"><table id="t-'+id+'"><thead><tr>';
-  spec.cols.forEach(c => { html += '<th class="'+(c.n?'num':'')+'" data-k="'+c.k+'">'+c.l+'<span class="arr"></span></th>'; });
+  spec.cols.forEach(c => { html += '<th class="'+(c.n?'num':'')+(c.hg?' hg-'+c.hg:'')+'" data-k="'+c.k+'">'+c.l+'<span class="arr"></span></th>'; });
   html += '</tr></thead><tbody></tbody><tfoot><tr></tr></tfoot></table></div>';
   panel.innerHTML = html;
   const tbody = panel.querySelector('tbody'), tfoot = panel.querySelector('tfoot tr');
@@ -806,19 +817,27 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
     num_mc = {c for c in mc.columns if pd.api.types.is_numeric_dtype(mc[c])}
     sum_cols = {"HAURIA", "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "DIF", "REPO", "PREPARABLE", "FALTA STOCK TP", "STOCK TP 01 02",
                 "DISPO 30 DIES", "DISPO 59 DIES", "VENDA 1 SETM", "VENDA SKU 1 SETM", "ACUM'25", "ACUM'26", "VENDA 4 SETM"}
-    key_cols = {"HAURIA", "DIF", "REPO", "PREPARABLE", "NIVELL"}
-    def spec(df, nums, default_sort, only_repo, facets, search, kpis, sum_ok):
-        return {"cols": [{"k": c, "l": c, "n": c in nums, "sum": c in sum_ok, "key": c in key_cols} for c in df.columns],
+    key_cols = {"HAURIA", "DIF", "REPO", "PREPARABLE"}
+    def spec(df, nums, default_sort, only_repo, facets, search, kpis, sum_ok, header_groups=()):
+        names = list(df.columns)
+        hg = {}
+        for start, end, cls in header_groups:
+            if start in names and end in names:
+                for k in range(names.index(start), names.index(end) + 1):
+                    hg[names[k]] = cls
+        return {"cols": [{"k": c, "l": c, "n": c in nums, "sum": c in sum_ok, "key": c in key_cols, "hg": hg.get(c, "")} for c in df.columns],
                 "defaultSort": default_sort, "onlyRepoDefault": only_repo, "facets": facets, "search": search, "kpis": kpis}
     mc_sums = sum_cols - {"VENDA 1 SETM", "VENDA 4 SETM"} | {"VENDA 1 SETM"}
     data = {
         "mc": recs(mc), "sku": recs(sku),
         "mcSpec": spec(mc, num_mc, "REPO", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
                        [{"k": "__rows__", "l": "model_color amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 59d)"},
-                        {"k": "VENDA 1 SETM", "l": "venda setmana"}, {"k": "STOCK ZLD", "l": "stock Zalando"}, {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums),
+                        {"k": "VENDA 1 SETM", "l": "venda setmana"}, {"k": "STOCK ZLD", "l": "stock Zalando"}, {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums,
+                       (("model_color", "CREAT A ZLD?", "grey"), ("VENDA 1 SETM", "OBJECTIU", "yellow"))),
         "skuSpec": spec(sku, num_sku, "REPO", True, ["GÈNERE", "SEASON", "TEMPORADA", "CREAT A ZLD?"], ["EAN", "SKU", "model_color", "model", "color", "talla", "AVÍS"],
                         [{"k": "__rows__", "l": "SKUs amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 59d)"},
-                         {"k": "FALTA STOCK TP", "l": "falta stock TP"}, {"k": "STOCK ZLD", "l": "stock Zalando"}], sum_cols - {"VENDA 1 SETM", "VENDA 4 SETM", "ACUM'25", "ACUM'26"}),
+                         {"k": "STOCK ZLD", "l": "stock Zalando"}], sum_cols - {"VENDA 1 SETM", "VENDA 4 SETM", "ACUM'25", "ACUM'26"},
+                        (("EAN", "CREAT A ZLD?", "grey"), ("VENDA 1 SETM", "OBJECTIU", "yellow"))),
     }
     warn_html = "".join(f'<div class="warn">{html.escape(w)}</div>' for w in warnings)
     page = (HTML_TEMPLATE.replace("__TITLE__", html.escape(title)).replace("__SUBTITLE__", html.escape(subtitle))
@@ -908,7 +927,7 @@ def main():
     print()
     print(f"Setmana: {week_lbl}   Snapshot: {snap_meta['fitxer']}   Pendents: {pend_labels}")
     print(f"SKUs: {len(sku)}   model_color: {len(mc)}   model_color amb venda: {(mc['VENDA 1 SETM']>0).sum()}   amb REPO: {(mc['REPO']>0).sum()}")
-    print(f"REPO total: {int(sku['REPO'].sum())}   PREPARABLE: {int(sku['PREPARABLE'].sum())}   FALTA STOCK TP: {int(sku['FALTA STOCK TP'].sum())}")
+    print(f"REPO total: {int(sku['REPO'].sum())}   PREPARABLE: {int(sku['PREPARABLE'].sum())}   FALTA STOCK TP: {int((sku['REPO'] - sku['PREPARABLE']).sum())}")
     for w in warnings:
         print("AVÍS:", w)
     print("Sortides:", venda_xlsx, "|", xlsx, "|", xlsx[:-5] + ".html")
