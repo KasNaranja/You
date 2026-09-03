@@ -63,6 +63,7 @@ KIDS_GROUPS = {"NIÑO"}
 WEEK_RE = re.compile(r"DEL (\d\d)\.(\d\d) al (\d\d)\.(\d\d)", re.I)
 SNAP_DATE_RE = re.compile(r"(\d\d)[_\-.](\d\d)[_\-.](\d{4})")
 EXCLUDE_SALES = ("acumulat", "càlcul", "calcul", "ranking", "anàlisi", "analisi")
+HTML_HIDE = {"VENDA 4 SETM"}  # columnes de l'Excel que no es mostren a l'HTML
 
 
 def norm(s: str) -> str:
@@ -783,6 +784,9 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
 
 
 def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, warnings: list[str], path: str):
+    sku = sku.drop(columns=[c for c in HTML_HIDE if c in sku.columns])
+    mc = mc.drop(columns=[c for c in HTML_HIDE if c in mc.columns])
+
     def recs(df):
         out, cols = [], list(df.columns)
         for row in df.itertuples(index=False, name=None):
