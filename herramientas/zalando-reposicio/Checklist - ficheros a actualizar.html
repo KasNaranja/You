@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>Checklist – ficheros a actualizar (Zalando)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{margin:0;background:#fff;color:#1c2430;font:15px/1.45 system-ui,"Segoe UI",Roboto,Arial,sans-serif}
+.page{max-width:980px;margin:0 auto;padding:44px 40px 60px}
+h1{font-size:30px;margin:0 0 4px}
+.sub{color:#66717f;font-size:15px;margin:0 0 26px}
+h2{font-size:15px;color:#66717f;font-weight:700;margin:30px 0 10px}
+.item{display:flex;align-items:flex-start;gap:14px;border:1px solid #dfe3e8;border-radius:8px;padding:12px 16px;margin:0 0 10px;background:#fff}
+.item input{width:20px;height:20px;margin:3px 0 0;accent-color:#1f3864;flex:none;cursor:pointer}
+.item .body{flex:1;min-width:0}
+.item .name{font:15.5px/1.35 ui-monospace,Consolas,"Courier New",monospace}
+.item .src{font-size:12.5px;color:#66717f;font-style:italic;margin-top:3px}
+.item .src b{font-style:normal;font-weight:600;color:#1c2430}
+.item .where{color:#66717f;font-size:12.5px;white-space:nowrap;margin-left:12px;padding-top:2px;text-align:right}
+.item.done .name{text-decoration:line-through;color:#8a94a0}
+.warn{background:#fff4e5;border-left:4px solid #b26a00;color:#5a3a00;padding:8px 12px;border-radius:4px;font-size:13px;margin:6px 0 14px}
+.note{font-size:13px;color:#66717f;margin:22px 0 0}
+.gen .item{background:#f7f8fa;border-style:dashed}
+.gen .item .name{color:#66717f}
+code{font:13px ui-monospace,Consolas,"Courier New",monospace;background:#f1f4f8;padding:1px 6px;border-radius:4px}
+.tools{display:flex;gap:10px;align-items:center;margin:0 0 10px;font-size:13px;color:#66717f}
+.tools button{padding:4px 10px;border:1px solid #dfe3e8;border-radius:6px;background:#f1f4f8;cursor:pointer;font-size:12.5px}
+@media print{.tools{display:none}.item{break-inside:avoid}}
+</style></head><body><div class="page">
+
+<h1>Checklist – ficheros a actualizar</h1>
+<p class="sub">Reposición Zalando semanal · carpeta <code>CLAUDE\Zalando reposició</code> · se ejecuta con <code>python repo_zalando.py --date dd.mm</code></p>
+<div class="tools"><span id="count"></span><button type="button" id="reset">Desmarcar todo</button></div>
+
+<h2>Cada semana (actualizar antes de cada ejecución)</h2>
+
+<label class="item"><input type="checkbox" data-k="snapshot"><div class="body">
+  <div class="name">Stock Zalando / stock_snapshot-report-dd_mm_aaaa.csv</div>
+  <div class="src">Fuente: <b>zDirect</b> / Stock snapshot report. Guardar el CSV <b>tal cual se descarga</b>, sin abrirlo y guardarlo desde Excel: si se hace, los EAN quedan como 8,43453E+12 y el programa descarta el fichero. Se usa el más reciente por la fecha del nombre.</div>
+</div><div class="where">Stock Zalando</div></label>
+
+<label class="item"><input type="checkbox" data-k="stocktp"><div class="body">
+  <div class="name">Stock Toni Pons / STOCK TONI PONS.txt</div>
+  <div class="src">Fuente: <b>SAP</b> / informe de stock exportado a texto (UTF-16, tabuladores). Aporta Stock 01 02 y Stock Disponible 30 Dies. Se usa el .txt más reciente de la carpeta; el anterior se puede borrar.</div>
+</div><div class="where">Stock Toni Pons</div></label>
+
+<label class="item"><input type="checkbox" data-k="vendes"><div class="body">
+  <div class="name">Vendes / 2026 / &lt;mes&gt; / VENDES DEL dd.mm al dd.mm.xlsx</div>
+  <div class="src">Fuente: export de pedidos de <b>zDirect</b> de la semana, en el Excel semanal habitual. El programa lee la pestaña <b>DADES2</b> (Hoja1 no se usa). La semana más reciente marca VENDA SET; todas juntas forman el acumulado 2026.</div>
+</div><div class="where">Vendes / 2026 / mes</div></label>
+
+<label class="item"><input type="checkbox" data-k="pendents"><div class="body">
+  <div class="name">Enviaments pendents / ANTONI PONS SA ddmmaaaa.csv</div>
+  <div class="src">Un CSV <b>ean;quantity</b> por cada envío que ya ha salido pero todavía no aparece en el snapshot de Zalando. Añadir los envíos nuevos y <b>quitar los que ya se hayan recibido</b>, si no se restan dos veces.</div>
+</div><div class="where">Enviaments pendents</div></label>
+
+<h2>Genéricos (sólo si cambian)</h2>
+
+<label class="item"><input type="checkbox" data-k="models"><div class="body">
+  <div class="name">Models a reposar.xlsx</div>
+  <div class="src">Lista base de SKUs a reponer: EAN, SKU, SEASON, TEMPORADA, COL·LECCIÓ, GÈNERE, model_color, talla, season Zalando y la marca <b>es pot enviar?</b> de los HI26 nuevos. Actualizar al dar de alta o baja modelos, o cuando se creen artículos nuevos en Zalando.</div>
+</div><div class="where">raíz</div></label>
+
+<label class="item"><input type="checkbox" data-k="nivel"><div class="body">
+  <div class="name">NIVEL.xlsx</div>
+  <div class="src">Tablas de niveles MUJER / CABALLERO / NIÑO con el desglose por talla. Mínimos aplicados: nivel 6 mujer y hombre, nivel 2 niño.</div>
+</div><div class="where">raíz</div></label>
+
+<label class="item"><input type="checkbox" data-k="ventapormes"><div class="body">
+  <div class="name">VENTA POR MES.xlsx</div>
+  <div class="src">Multiplicador de la venta semanal por mes (fila de meses y fila de valores). El programa toma el del mes de la fecha de cálculo.</div>
+</div><div class="where">raíz</div></label>
+
+<label class="item"><input type="checkbox" data-k="venda25"><div class="body">
+  <div class="name">Vendes / 2025 / Venda 2025.xlsx</div>
+  <div class="src">Acumulado 2025 por model_color (columna ACUM'25). Sólo informativo; no cambia.</div>
+</div><div class="where">Vendes / 2025</div></label>
+
+<label class="item"><input type="checkbox" data-k="ajustos"><div class="body">
+  <div class="name">Ajustos repo.xlsx <span style="color:#66717f;font-size:12.5px">(opcional)</span></div>
+  <div class="src">Excepciones por model_color: <b>multiplicador</b> (0 = no reponer) o <b>nivell</b> fijo. Vacío no afecta a nada.</div>
+</div><div class="where">raíz</div></label>
+
+<h2 class="gen-title">Lo genera el programa (no tocar a mano)</h2>
+<div class="gen">
+<label class="item"><input type="checkbox" data-k="out-repo"><div class="body">
+  <div class="name">REPO / REPO ZALANDO dd.mm.xlsx &nbsp;y&nbsp; REPO ZALANDO dd.mm.html</div>
+  <div class="src">Reposición de la semana: pestañas CÀLCUL SKU, MODEL_COLOR, FORA LLISTA, PARÀMETRES y NIVELLS; el HTML con las dos vistas. Si el Excel está abierto, se escribe con el sufijo « (nou)».</div>
+</div><div class="where">REPO</div></label>
+<label class="item"><input type="checkbox" data-k="out-venda"><div class="body">
+  <div class="name">Vendes / 2026 / Venda 2026 dd.mm.xlsx</div>
+  <div class="src">Acumulado 2026 recalculado a partir de todos los Excel semanales. Un fichero por fecha de cálculo; el bueno es siempre el último.</div>
+</div><div class="where">Vendes / 2026</div></label>
+</div>
+
+<p class="note">No lo usa el programa: <code>TP Info Complerta Models Toni Pons_27.07.txt</code> (información de modelos, sólo consulta). Si un fichero de entrada está abierto en Excel, el programa lee una copia y avisa.</p>
+
+</div>
+<script>
+const KEY='checklist-repo-zalando';
+let done=new Set(); try{ const s=localStorage.getItem(KEY); if(s) done=new Set(JSON.parse(s)); }catch(e){}
+const boxes=[...document.querySelectorAll('input[type=checkbox]')];
+function paint(){ boxes.forEach(b=>{ b.checked=done.has(b.dataset.k); b.closest('.item').classList.toggle('done', b.checked); });
+  const weekly=boxes.filter(b=>['snapshot','stocktp','vendes','pendents'].includes(b.dataset.k));
+  document.getElementById('count').textContent='Semanales marcados: '+weekly.filter(b=>b.checked).length+' de '+weekly.length; }
+boxes.forEach(b=>b.addEventListener('change',()=>{ if(b.checked) done.add(b.dataset.k); else done.delete(b.dataset.k); try{localStorage.setItem(KEY,JSON.stringify([...done]))}catch(e){} paint(); }));
+document.getElementById('reset').addEventListener('click',()=>{ done=new Set(); try{localStorage.removeItem(KEY)}catch(e){} paint(); });
+paint();
+</script>
+</body></html>
