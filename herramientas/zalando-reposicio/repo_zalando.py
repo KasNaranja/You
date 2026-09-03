@@ -19,7 +19,7 @@ Regla:
   HAURIA   = desglossament per talla d'aquest nivell
   DIF      = HAURIA - stock Zalando (total) - enviaments pendents
   REPO     = DIF si és positiu
-  PREPARABLE = min(REPO, stock disponible 59 dies a Toni Pons)
+  PREPARABLE = min(REPO, stock disponible 30 dies a Toni Pons)
 
 Sortides (carpeta de sortida, per defecte la mateixa):
   Venda 2026 dd.mm.xlsx              consolidat de totes les setmanes (un fitxer per data de càlcul; el bo és sempre l'últim)
@@ -46,6 +46,7 @@ import unicodedata
 import numpy as np
 import openpyxl
 import pandas as pd
+from openpyxl.comments import Comment
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
@@ -66,6 +67,52 @@ SNAP_DATE_RE = re.compile(r"(\d\d)[_\-.](\d\d)[_\-.](\d{4})")
 EXCLUDE_SALES = ("acumulat", "càlcul", "calcul", "ranking", "anàlisi", "analisi")
 HTML_HIDE = {"VENDA 4 SETM"}  # columnes de l'Excel que no es mostren a l'HTML
 COBERTURA_FACTOR = 2  # la cobertura es multiplica x2: la meitat del que es ven torna (devolucions) i torna a estar disponible
+
+# Explicació de cada columna (comentari a la capçalera de l'Excel i tooltip a l'HTML)
+COL_HELP = {
+    "EAN": "Codi de barres de la talla (EAN-13). És la clau per creuar amb el snapshot de Zalando, els enviaments pendents i el stock de Toni Pons.",
+    "SKU": "Codi SAP de l'article (model + color + talla + partida).",
+    "SEASON": "Temporada Toni Pons segons 'Models a reposar' (ES26, HI26, HI25).",
+    "TEMPORADA": "NOU = article nou de la temporada; CONTIN = continua de la temporada anterior.",
+    "COL·LECCIÓ": "Col·lecció del model segons 'Models a reposar'.",
+    "GÈNERE": "Gènere del model. Determina la taula de nivells: DONA i UNISEX → MUJER, HOME → CABALLERO, NENS i MINI → NIÑO, COMPLEMENTS sense taula.",
+    "model": "Model (nom comercial) del calçat.",
+    "color": "Color del model.",
+    "model_color": "Model + color. És la unitat sobre la qual es mira la venda setmanal i es tria el nivell.",
+    "talla": "Talla de l'article.",
+    "SEASON ZLD": "Season amb què l'article està donat d'alta a Zalando (columna amb data de 'Models a reposar'). Buit = no constava a Zalando en aquella data.",
+    "ES POT ENVIAR?": "Marca de 'Models a reposar' per als HI26 nous que ja es poden enviar (creats a Zalando). Buit = sense marca.",
+    "CREAT A ZLD?": "SÍ, o NO CONSTA per als HI26 NOU sense marca a 'es pot enviar?'. Els NO CONSTA queden amb REPO = 0.",
+    "VENDA SET": "Unitats venudes del model_color (totes les talles) la setmana de referència (INITIAL+SHIPPED de la pestanya DADES2). És la base del càlcul.",
+    "ACUM'25": "Unitats venudes del model_color durant tot el 2025 (Venda 2025.xlsx).",
+    "ACUM'26": "Unitats venudes del model_color el 2026 fins a la setmana de referència (suma de tots els fitxers setmanals).",
+    "VENDA 4 SETM": "Suma de les últimes 4 setmanes de venda del model_color. Només informativa.",
+    "MULT": "Multiplicador de la venda setmanal (3 per defecte). Es pot canviar per model_color a 'Ajustos repo.xlsx'.",
+    "OBJECTIU": "VENDA SET × MULT: parells que hauria d'haver-hi a Zalando del model_color.",
+    "NIVELL": "Nivell de NIVEL.xlsx escollit: el primer amb què la suma de les talles del model cobreix l'OBJECTIU (HAURIA ≥ OBJECTIU). Mínim 6 per dona i home i 2 per nens, encara que no hi hagi venda.",
+    "HAURIA": "Parells que hauria d'haver-hi a Zalando segons el desglossament per talla del NIVELL a NIVEL.xlsx. A la vista model_color és la suma de totes les talles del model.",
+    "STOCK ZLD": "Stock total a Zalando segons el snapshot (offerable + non-offerable, tots els magatzems).",
+    "OFFERABLE": "Part del STOCK ZLD que Zalando té disponible per vendre.",
+    "NON OFFERABLE": "Part del STOCK ZLD no disponible per vendre (en moviment intern, devolucions en procés, etc.).",
+    "ENV PENDENTS": "Suma dels enviaments pendents: parells que ja han sortit de Toni Pons però encara no compten al stock de Zalando.",
+    "COBERTURA SET": "Setmanes de venda que cobreix el stock: 2 × (STOCK ZLD + ENV PENDENTS) / VENDA SET. El ×2 compensa les devolucions, que tornen a estar disponibles. Buit si no hi ha venda. Només informativa.",
+    "DIF": "HAURIA − STOCK ZLD − ENV PENDENTS, talla per talla. Negatiu vol dir que sobra stock d'aquesta talla. A la vista model_color és el net de totes les talles.",
+    "REPO": "Parells a reposar: el DIF de cada talla quan és positiu (si no, 0). A la vista model_color és la suma de les talles que van curtes. 0 si CREAT A ZLD? = NO CONSTA.",
+    "STOCK TP 01 02": "Stock físic al magatzem de Toni Pons (columna 'Stock 01 02' de l'export SAP), sumat per EAN.",
+    "DISPO 30 DIES": "Stock disponible a Toni Pons a 30 dies (columna 'Stock Disponible 30 Dies' de l'export SAP): el que queda lliure després de reservar les comandes dels propers 30 dies.",
+    "PREPARABLE": "Part del REPO que es pot preparar avui: el mínim entre REPO i DISPO 30 DIES, talla per talla.",
+    "VENDA SKU 1 SETM": "Unitats venudes d'aquesta talla la setmana de referència.",
+    "VENDA SKU ACUM'26": "Unitats venudes d'aquesta talla el 2026.",
+    "AVÍS": "Notes del càlcul: nivell mínim aplicat, talla fora de la taula de nivells, sense EAN, objectiu per sobre del nivell màxim, etc.",
+}
+
+
+def col_help(name: str) -> str:
+    if name in COL_HELP:
+        return COL_HELP[name]
+    if str(name).startswith("ENV "):
+        return f"Parells enviats el {name[4:]} que encara no apareixen al snapshot de Zalando (fitxer d'Enviaments pendents)."
+    return ""
 
 
 def norm(s: str) -> str:
@@ -587,7 +634,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
 
     df["DIF"] = df["HAURIA"] - df["STOCK ZLD"] - df["ENV PENDENTS"]
     df["REPO"] = np.where(df["CREAT A ZLD?"] == "SÍ", df["DIF"].clip(lower=0), 0).astype(int)
-    df["PREPARABLE"] = np.minimum(df["REPO"], df["DISPO 59 DIES"]).astype(int)
+    df["PREPARABLE"] = np.minimum(df["REPO"], df["DISPO 30 DIES"]).astype(int)
     df["FALTA STOCK TP"] = (df["REPO"] - df["PREPARABLE"]).astype(int)
 
     def talla_key(t):
@@ -598,7 +645,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     sku_cols = ["EAN", "SKU", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "model", "color", "model_color", "talla",
                 "SEASON ZLD", "ES POT ENVIAR?", "CREAT A ZLD?", "VENDA SET", "ACUM'25", "ACUM'26", "VENDA 4 SETM",
                 "MULT", "OBJECTIU", "NIVELL", "HAURIA", "STOCK ZLD", "OFFERABLE", "NON OFFERABLE"] + pend_labels + \
-               ["ENV PENDENTS", "REPO", "STOCK TP 01 02", "DISPO 30 DIES", "PREPARABLE",
+               ["ENV PENDENTS", "DIF", "REPO", "STOCK TP 01 02", "DISPO 30 DIES", "PREPARABLE",
                 "VENDA SKU 1 SETM", "VENDA SKU ACUM'26", "AVÍS"]
     sku = df[sku_cols].copy()
 
@@ -617,7 +664,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     mc = mc.reset_index()
     mc_cols = ["model_color", "model", "color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "SEASON ZLD", "CREAT A ZLD?",
                "VENDA SET", "ACUM'25", "ACUM'26", "VENDA 4 SETM", "MULT", "OBJECTIU", "NIVELL", "HAURIA",
-               "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "COBERTURA SET", "REPO", "PREPARABLE",
+               "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "COBERTURA SET", "DIF", "REPO", "PREPARABLE",
                "STOCK TP 01 02", "DISPO 30 DIES", "AVÍS"]
     mc = mc[mc_cols].sort_values(["REPO", "VENDA SET", "ACUM'26"], ascending=[False, False, False]).reset_index(drop=True)
 
@@ -629,7 +676,8 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     fora = fora.sort_values("VENDA SET", ascending=False).reset_index(drop=True)
 
     info = {"setmana_inici": last_start.date().isoformat(), "setmana_fi": last_end.date().isoformat(),
-            "setmanes": len(week_ends), "setmana_ant": (prev_end.date().isoformat() if prev_end is not None else "")}
+            "setmanes": len(week_ends), "setmana_ant": (prev_end.date().isoformat() if prev_end is not None else ""),
+            "venda_setm_total": int(lw["units"].sum()), "venda_setm_llistat": int(mc["VENDA SET"].sum())}
     return sku, mc, fora, info
 
 
@@ -659,6 +707,10 @@ def style_sheet(ws, df: pd.DataFrame, highlight_col: str | None = None, grey_col
         cell = ws.cell(row=1, column=j)
         cell.fill = hdr_fill.get(j, HDR_FILL)
         cell.font = Font(bold=True, color="000000") if j in hdr_fill else HDR_FONT
+        txt = col_help(c)
+        if txt:
+            cell.comment = Comment(txt, "repo_zalando")
+            cell.comment.width, cell.comment.height = 340, 120
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         if c in key_cols:
             for i in range(2, len(df) + 2):
@@ -729,8 +781,8 @@ def write_excel(sku: pd.DataFrame, mc: pd.DataFrame, fora: pd.DataFrame, params:
         fora.to_excel(xw, sheet_name="FORA LLISTA", index=False)
         par.to_excel(xw, sheet_name="PARÀMETRES", index=False)
         lvl.to_excel(xw, sheet_name="NIVELLS", index=False, header=False)
-        groups_sku = (("EAN", "CREAT A ZLD?", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("REPO", sku.columns[-1], GREEN_HDR))
-        groups_mc = (("model_color", "CREAT A ZLD?", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("REPO", mc.columns[-1], GREEN_HDR))
+        groups_sku = (("EAN", "CREAT A ZLD?", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("DIF", sku.columns[-1], GREEN_HDR))
+        groups_mc = (("model_color", "CREAT A ZLD?", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("DIF", mc.columns[-1], GREEN_HDR))
         style_sheet(xw.sheets["CÀLCUL SKU"], sku, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "DIF", "REPO", "PREPARABLE"), header_groups=groups_sku)
         style_sheet(xw.sheets["MODEL_COLOR"], mc, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "REPO", "PREPARABLE"), header_groups=groups_mc)
         style_sheet(xw.sheets["FORA LLISTA"], fora)
@@ -759,6 +811,7 @@ header .sub{opacity:.85;font-size:12.5px;margin-top:4px}
 .bar label{font-size:13px;color:var(--muted);display:flex;gap:4px;align-items:center}
 .kpis{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 10px}
 .kpi{background:#f1f4f8;border-radius:8px;padding:8px 14px;min-width:120px}.kpi b{display:block;font-size:20px}.kpi span{font-size:12px;color:var(--muted)}
+.kpi small{display:block;font-size:11.5px;color:var(--ink);margin-top:3px;border-top:1px solid var(--line);padding-top:3px}
 .wrap{overflow:auto;max-height:78vh;border:1px solid var(--line);border-radius:0 0 6px 6px}
 table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:12.5px}
 th{position:sticky;top:0;background:var(--head);color:#fff;padding:6px 8px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;z-index:2;border-right:1px solid rgba(255,255,255,.12)}
@@ -846,7 +899,7 @@ function build(id, spec, rows){
   }
   function renderHead(){
     const cols = visCols();
-    thead.innerHTML = cols.map((c,i) => '<th class="'+(c.n?'num':'')+(c.hg?' hg-'+c.hg:'')+(i===0?' sticky':'')+'" data-k="'+esc(c.k)+'" title="'+esc(c.l)+'">'+esc(c.l)+'<span class="arr"></span></th>').join('');
+    thead.innerHTML = cols.map((c,i) => '<th class="'+(c.n?'num':'')+(c.hg?' hg-'+c.hg:'')+(i===0?' sticky':'')+'" data-k="'+esc(c.k)+'" title="'+esc(c.h||c.l)+'">'+esc(c.l)+'<span class="arr"></span></th>').join('');
     thead.querySelectorAll('th').forEach(th => th.addEventListener('click', () => {
       const k = th.dataset.k;
       if(state.sortKey===k) state.sortDir*=-1; else { state.sortKey=k; state.sortDir = spec.cols.find(c=>c.k===k).n ? -1 : 1; }
@@ -899,7 +952,11 @@ function build(id, spec, rows){
     const k = document.getElementById('k-'+id);
     const repoRows = out.filter(r=>r.REPO>0);
     const sum = key => out.reduce((a,r)=>a+(Number(r[key])||0),0);
-    k.innerHTML = spec.kpis.map(x => '<div class="kpi"><b>'+NUMFMT.format(x.k==='__rows__'?repoRows.length:sum(x.k))+'</b><span>'+esc(x.l)+'</span></div>').join('');
+    k.innerHTML = spec.kpis.map(x => {
+      const v = x.k==='__rows__' ? repoRows.length : sum(x.k);
+      if(x.total !== undefined && x.total !== null) return '<div class="kpi"><b>'+NUMFMT.format(x.total)+'</b><span>'+esc(x.l)+'</span><small>'+esc(x.sub||'llistat')+': <b style="display:inline;font-size:13px">'+NUMFMT.format(v)+'</b></small></div>';
+      return '<div class="kpi"><b>'+NUMFMT.format(v)+'</b><span>'+esc(x.l)+'</span></div>';
+    }).join('');
     fitHeight();
   }
   panel.querySelector('#q-'+id).addEventListener('input', e => { state.q = e.target.value; render(); });
@@ -926,7 +983,8 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
 """
 
 
-def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, warnings: list[str], path: str):
+def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, warnings: list[str], path: str, totals: dict | None = None):
+    totals = totals or {}
     sku = sku.drop(columns=[c for c in HTML_HIDE if c in sku.columns])
     mc = mc.drop(columns=[c for c in HTML_HIDE if c in mc.columns])
 
@@ -957,19 +1015,21 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
             if start in names and end in names:
                 for k in range(names.index(start), names.index(end) + 1):
                     hg[names[k]] = cls
-        return {"cols": [{"k": c, "l": c, "n": c in nums, "sum": c in sum_ok, "key": c in key_cols, "hg": hg.get(c, "")} for c in df.columns],
+        return {"cols": [{"k": c, "l": c, "n": c in nums, "sum": c in sum_ok, "key": c in key_cols, "hg": hg.get(c, ""), "h": col_help(c)} for c in df.columns],
                 "defaultSort": default_sort, "onlyRepoDefault": only_repo, "facets": facets, "search": search, "kpis": kpis}
     mc_sums = sum_cols - {"VENDA SET", "VENDA 4 SETM"} | {"VENDA SET"}
     data = {
         "mc": recs(mc), "sku": recs(sku),
         "mcSpec": spec(mc, num_mc, "REPO", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
-                       [{"k": "__rows__", "l": "model_color amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 59d)"},
-                        {"k": "VENDA SET", "l": "venda setmana"}, {"k": "STOCK ZLD", "l": "stock Zalando"}, {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums,
-                       (("model_color", "CREAT A ZLD?", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("REPO", mc.columns[-1], "green"))),
+                       [{"k": "__rows__", "l": "model_color amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 30d)"},
+                        {"k": "VENDA SET", "l": "venda setmana (tot Zalando)", "total": totals.get("venda_setm"), "sub": "del llistat"},
+                        {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"},
+                        {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums,
+                       (("model_color", "CREAT A ZLD?", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc.columns[-1], "green"))),
         "skuSpec": spec(sku, num_sku, "REPO", True, ["GÈNERE", "SEASON", "TEMPORADA", "CREAT A ZLD?"], ["EAN", "SKU", "model_color", "model", "color", "talla", "AVÍS"],
-                        [{"k": "__rows__", "l": "SKUs amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 59d)"},
-                         {"k": "STOCK ZLD", "l": "stock Zalando"}], sum_cols - {"VENDA SET", "VENDA 4 SETM", "ACUM'25", "ACUM'26"},
-                        (("EAN", "CREAT A ZLD?", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("REPO", sku.columns[-1], "green"))),
+                        [{"k": "__rows__", "l": "SKUs amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 30d)"},
+                         {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"}], sum_cols - {"VENDA SET", "VENDA 4 SETM", "ACUM'25", "ACUM'26"},
+                        (("EAN", "CREAT A ZLD?", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", sku.columns[-1], "green"))),
     }
     warn_html = "".join(f'<div class="warn">{html.escape(w)}</div>' for w in warnings)
     page = (HTML_TEMPLATE.replace("__TITLE__", html.escape(title)).replace("__SUBTITLE__", html.escape(subtitle))
@@ -1030,8 +1090,9 @@ def main():
         ("Regla", f"objectiu = venda setmanal del model_color x {args.mult:g}; nivell = primer nivell de la taula del gènere amb què la suma de les talles del model (HAURIA) cobreix l'objectiu, o sigui HAURIA >= objectiu; HAURIA = desglossament per talla d'aquest nivell"),
         ("Nivell mínim adults / nens", f"{args.min_level} / {args.min_level_kids} (0 = sense venda no es reposa)"),
         ("Nivell màxim", str(args.max_level) if args.max_level else "sense límit (el de la taula)"),
-        ("REPO", "per talla: HAURIA - STOCK ZLD (total, offerable + non-offerable) - ENV PENDENTS, si és positiu (si no, 0); els HI26 NOU sense marca a 'es pot enviar?' (CREAT A ZLD? = NO CONSTA) es deixen a 0"),
-        ("PREPARABLE", "min(REPO, Stock Disponible 59 Dies a Toni Pons); FALTA STOCK TP = REPO - PREPARABLE"),
+        ("DIF", "per talla: HAURIA - STOCK ZLD (total, offerable + non-offerable) - ENV PENDENTS; a la vista model_color, net de totes les talles"),
+        ("REPO", "per talla: DIF si és positiu (si no, 0); a la vista model_color, suma de les talles curtes; els HI26 NOU sense marca a 'es pot enviar?' (CREAT A ZLD? = NO CONSTA) es deixen a 0"),
+        ("PREPARABLE", "min(REPO, Stock Disponible 30 Dies a Toni Pons), talla per talla"),
         ("COBERTURA SET", f"{COBERTURA_FACTOR} x (STOCK ZLD + ENV PENDENTS) / VENDA SET, en setmanes; el x{COBERTURA_FACTOR} compensa les devolucions, que tornen a estar disponibles. Només informativa"),
         ("Gèneres -> taula de nivells", "DONA, UNISEX -> MUJER (unisex 46-47 = talla 45) | HOME -> CABALLERO | NENS, MINI -> NIÑO (mini <25 = talla 25) | COMPLEMENTS -> objectiu directe"),
         ("Models a reposar", f"{len(models)} SKUs, {models['model_color'].nunique()} model_color"),
@@ -1054,7 +1115,8 @@ def main():
     title = f"Reposició Zalando {args.date}"
     subtitle = (f"Setmana {week_lbl} · stock Zalando {snap_meta['fitxer']} · enviaments pendents {', '.join(pend_labels) or 'cap'} · "
                 f"regla venda x{args.mult:g} → nivell · generat {dt.datetime.now():%d/%m/%Y %H:%M}")
-    write_html(sku, mc, title, subtitle, warnings, html_path)
+    write_html(sku, mc, title, subtitle, warnings, html_path,
+               totals={"stock_zld": snap_meta["total"], "venda_setm": info["venda_setm_total"]})
 
     # resum
     print()

@@ -30,7 +30,7 @@ HAURIA     = desglossament per talla d'aquest nivell
 DIF        = HAURIA - stock Zalando (total) - enviaments pendents
 REPO       = DIF si > 0 (HI26 NOU sense marca a "es pot enviar?" -> 0)
 nivell mínim per defecte: 6 dona i home, 2 nens (encara que no hi hagi venda)
-PREPARABLE = min(REPO, stock disponible 59 dies a Toni Pons)
+PREPARABLE = min(REPO, stock disponible 30 dies a Toni Pons)
 ```
 
 Gèneres: DONA i UNISEX -> MUJER (unisex 46-47 pren la talla 45), HOME -> CABALLERO,
