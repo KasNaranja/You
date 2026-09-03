@@ -40,6 +40,7 @@ NENS i MINI -> NIÑO (mini < 25 pren la talla 25), COMPLEMENTS -> objectiu direc
 ## Ús
 
 ```
+CALCULAR REPO.bat                 (doble clic: data d'avui, obre l'HTML en acabar)
 python repo_zalando.py --date 03.09
 python repo_zalando.py --mult 2 --min-level 6 --min-level-kids 2 --max-level 100
 ```
