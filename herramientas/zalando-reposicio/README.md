@@ -46,3 +46,4 @@ python repo_zalando.py --mult 2 --min-level 6 --min-level-kids 2 --max-level 100
 Sortides: `Venda 2026 dd.mm.xlsx` (un per data de càlcul, el bo és l'últim), `REPO ZALANDO dd.mm.xlsx` (CÀLCUL SKU, MODEL_COLOR,
 FORA LLISTA, PARÀMETRES, NIVELLS) i `REPO ZALANDO dd.mm.html` (les dues vistes,
 filtrables i ordenables, sense dependències externes).
+COBERTURA SET (només informativa) = 2 x (stock Zalando + enviaments pendents) / venda setmanal; el x2 compensa les devolucions que tornen a estoc.

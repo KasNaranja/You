@@ -65,6 +65,7 @@ WEEK_RE = re.compile(r"DEL (\d\d)\.(\d\d) al (\d\d)\.(\d\d)", re.I)
 SNAP_DATE_RE = re.compile(r"(\d\d)[_\-.](\d\d)[_\-.](\d{4})")
 EXCLUDE_SALES = ("acumulat", "càlcul", "calcul", "ranking", "anàlisi", "analisi")
 HTML_HIDE = {"VENDA 4 SETM"}  # columnes de l'Excel que no es mostren a l'HTML
+COBERTURA_FACTOR = 2  # la cobertura es multiplica x2: la meitat del que es ven torna (devolucions) i torna a estar disponible
 
 
 def norm(s: str) -> str:
@@ -610,7 +611,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     mc = df.groupby("model_color").agg({**first, **sums, "talla": "count"}).rename(columns={"talla": "N TALLES"})
     mc["TALLES AMB REPO"] = df[df["REPO"] > 0].groupby("model_color").size().reindex(mc.index).fillna(0).astype(int)
     mc["TALLES SENSE STOCK ZLD"] = df[(df["STOCK ZLD"] + df["ENV PENDENTS"]) <= 0].groupby("model_color").size().reindex(mc.index).fillna(0).astype(int)
-    cov = (mc["STOCK ZLD"] + mc["ENV PENDENTS"]) / mc["VENDA SET"].replace(0, np.nan)
+    cov = COBERTURA_FACTOR * (mc["STOCK ZLD"] + mc["ENV PENDENTS"]) / mc["VENDA SET"].replace(0, np.nan)
     mc["COBERTURA SET"] = cov.round(1)
     mc["AVÍS"] = df.groupby("model_color")["AVÍS"].agg(lambda s: "; ".join(sorted({x for x in s if x})))
     mc = mc.reset_index()
@@ -1032,6 +1033,7 @@ def main():
         ("DIF", "HAURIA - STOCK ZLD (total, offerable + non-offerable) - ENV PENDENTS"),
         ("REPO", "DIF si > 0; els HI26 NOU sense marca a 'es pot enviar?' (CREAT A ZLD? = NO CONSTA) es deixen a 0 i es veuen a DIF"),
         ("PREPARABLE", "min(REPO, Stock Disponible 59 Dies a Toni Pons); FALTA STOCK TP = REPO - PREPARABLE"),
+        ("COBERTURA SET", f"{COBERTURA_FACTOR} x (STOCK ZLD + ENV PENDENTS) / VENDA SET, en setmanes; el x{COBERTURA_FACTOR} compensa les devolucions, que tornen a estar disponibles. Només informativa"),
         ("Gèneres -> taula de nivells", "DONA, UNISEX -> MUJER (unisex 46-47 = talla 45) | HOME -> CABALLERO | NENS, MINI -> NIÑO (mini <25 = talla 25) | COMPLEMENTS -> objectiu directe"),
         ("Models a reposar", f"{len(models)} SKUs, {models['model_color'].nunique()} model_color"),
         ("Stock Zalando", f"{snap_meta['fitxer']} ({snap_meta['data']}), {snap_meta['eans']} EANs, {snap_meta['total']} parells"),
