@@ -95,11 +95,11 @@ COL_HELP = {
     "OFFERABLE": "Part del STOCK ZLD que Zalando té disponible per vendre.",
     "NON OFFERABLE": "Part del STOCK ZLD no disponible per vendre (en moviment intern, devolucions en procés, etc.).",
     "ENV PENDENTS": "Suma dels enviaments pendents: parells que ja han sortit de Toni Pons però encara no compten al stock de Zalando.",
-    "COBERTURA SET": "Setmanes de venda que cobreix el stock: 2 × (STOCK ZLD + ENV PENDENTS) / VENDA SET. El ×2 compensa les devolucions, que tornen a estar disponibles. Buit si no hi ha venda. Només informativa.",
+    "COBERTURA SET": "Setmanes de venda que cobreix el stock: 2 × (STOCK ZLD + ENV PENDENTS) / VENDA SET. El ×2 compensa les devolucions, que tornen a estar disponibles. Buit si no hi ha venda. En vermell si és menys de 4 setmanes. Només informativa.",
     "DIF": "HAURIA − STOCK ZLD − ENV PENDENTS, talla per talla. Negatiu vol dir que sobra stock d'aquesta talla. A la vista model_color és el net de totes les talles.",
     "REPO": "Parells a reposar: el DIF de cada talla quan és positiu (si no, 0). A la vista model_color és la suma de les talles que van curtes. 0 si CREAT A ZLD? = NO CONSTA.",
     "STOCK TP 01 02": "Stock físic al magatzem de Toni Pons (columna 'Stock 01 02' de l'export SAP), sumat per EAN.",
-    "DISPO 30 DIES": "Stock disponible a Toni Pons a 30 dies (columna 'Stock Disponible 30 Dies' de l'export SAP): el que queda lliure després de reservar les comandes dels propers 30 dies.",
+    "DISPO 30 DIES": "Stock disponible a Toni Pons a 30 dies (columna 'Stock Disponible 30 Dies' de l'export SAP): el que queda lliure després de reservar les comandes dels propers 30 dies. A la vista model_color, en vermell si el model té menys de 100 parells.",
     "PREPARABLE": "Part del REPO que es pot preparar avui: el mínim entre REPO i DISPO 30 DIES, talla per talla.",
     "VENDA SKU 1 SETM": "Unitats venudes d'aquesta talla la setmana de referència.",
     "VENDA SKU ACUM'26": "Unitats venudes d'aquesta talla el 2026.",
@@ -692,9 +692,13 @@ KEY_FILL = PatternFill("solid", fgColor="FFF2CC")
 GREY_HDR = "D9D9D9"
 YELLOW_HDR = "FFE699"
 GREEN_HDR = "C6E0B4"
+RED_FILL = PatternFill("solid", fgColor="FFC7CE")
+RED_FONT = Font(color="9C0006")
+RED_RULES_MC = {"COBERTURA SET": 4, "DISPO 30 DIES": 100}  # en vermell si el valor és < llindar (vista model_color)
 
 
-def style_sheet(ws, df: pd.DataFrame, highlight_col: str | None = None, grey_col: str | None = None, key_cols=(), header_groups=()):
+def style_sheet(ws, df: pd.DataFrame, highlight_col: str | None = None, grey_col: str | None = None, key_cols=(), header_groups=(),
+                red_rules: dict | None = None):
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = ws.dimensions
     names = list(df.columns)
@@ -731,6 +735,14 @@ def style_sheet(ws, df: pd.DataFrame, highlight_col: str | None = None, grey_col
         for i, v in enumerate(df[grey_col].tolist(), start=2):
             if v == "NO CONSTA":
                 ws.cell(row=i, column=j).fill = NO_FILL
+    for col, threshold in (red_rules or {}).items():
+        if col not in df.columns:
+            continue
+        j = list(df.columns).index(col) + 1
+        for i, v in enumerate(df[col].tolist(), start=2):
+            if isinstance(v, (int, float)) and not pd.isna(v) and v < threshold:
+                ws.cell(row=i, column=j).fill = RED_FILL
+                ws.cell(row=i, column=j).font = RED_FONT
 
 
 def write_vendes(lines: pd.DataFrame, sources: list[dict], acum25: pd.Series, path: str, info: dict):
@@ -784,7 +796,8 @@ def write_excel(sku: pd.DataFrame, mc: pd.DataFrame, fora: pd.DataFrame, params:
         groups_sku = (("EAN", "CREAT A ZLD?", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("DIF", sku.columns[-1], GREEN_HDR))
         groups_mc = (("model_color", "CREAT A ZLD?", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("DIF", mc.columns[-1], GREEN_HDR))
         style_sheet(xw.sheets["CÀLCUL SKU"], sku, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "DIF", "REPO", "PREPARABLE"), header_groups=groups_sku)
-        style_sheet(xw.sheets["MODEL_COLOR"], mc, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "REPO", "PREPARABLE"), header_groups=groups_mc)
+        style_sheet(xw.sheets["MODEL_COLOR"], mc, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "REPO", "PREPARABLE"), header_groups=groups_mc,
+                    red_rules=RED_RULES_MC)
         style_sheet(xw.sheets["FORA LLISTA"], fora)
         style_sheet(xw.sheets["PARÀMETRES"], par)
         xw.sheets["PARÀMETRES"].column_dimensions["A"].width = 34
@@ -836,6 +849,7 @@ tr:hover td.sticky{background:#f4f7fb}
 tfoot td.sticky{background:#eef2f6;z-index:3}
 td{padding:4px 8px;border-bottom:1px solid var(--line);white-space:nowrap}td.num{text-align:right;font-variant-numeric:tabular-nums}
 tr:hover td{background:#f4f7fb}td.repo{background:#e2f0d9;font-weight:600}td.no{color:var(--bad)}td.neg{color:#8a94a0}
+td.low,tr:hover td.low{background:#ffc7ce;color:#9c0006}
 tfoot td{position:sticky;bottom:0;background:#eef2f6;font-weight:600;border-top:2px solid #c9d1db;z-index:1}
 td.key{background:#fffbea}
 .muted{color:var(--muted);font-size:12px}
@@ -933,6 +947,7 @@ function build(id, spec, rows){
         if(c.k === 'CREAT A ZLD?' && v === 'NO CONSTA') cls += ' no';
         if(c.k === 'DIF' && v < 0) cls += ' neg';
         if(c.key) cls += ' key';
+        if(spec.red[c.k] !== undefined && typeof v === 'number' && v < spec.red[c.k]) cls += ' low';
         if(i===0) cls += ' sticky';
         if(v === null || v === undefined) v = '';
         else if(c.n && typeof v === 'number') v = Number.isInteger(v) ? NUMFMT.format(v) : v.toFixed(1);
@@ -1008,7 +1023,7 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
     sum_cols = {"HAURIA", "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "DIF", "REPO", "PREPARABLE", "FALTA STOCK TP", "STOCK TP 01 02",
                 "DISPO 30 DIES", "DISPO 59 DIES", "VENDA SET", "VENDA SKU 1 SETM", "ACUM'25", "ACUM'26", "VENDA 4 SETM"}
     key_cols = {"HAURIA", "DIF", "REPO", "PREPARABLE"}
-    def spec(df, nums, default_sort, only_repo, facets, search, kpis, sum_ok, header_groups=()):
+    def spec(df, nums, default_sort, only_repo, facets, search, kpis, sum_ok, header_groups=(), red=None):
         names = list(df.columns)
         hg = {}
         for start, end, cls in header_groups:
@@ -1016,7 +1031,7 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
                 for k in range(names.index(start), names.index(end) + 1):
                     hg[names[k]] = cls
         return {"cols": [{"k": c, "l": c, "n": c in nums, "sum": c in sum_ok, "key": c in key_cols, "hg": hg.get(c, ""), "h": col_help(c)} for c in df.columns],
-                "defaultSort": default_sort, "onlyRepoDefault": only_repo, "facets": facets, "search": search, "kpis": kpis}
+                "defaultSort": default_sort, "onlyRepoDefault": only_repo, "facets": facets, "search": search, "kpis": kpis, "red": red or {}}
     mc_sums = sum_cols - {"VENDA SET", "VENDA 4 SETM"} | {"VENDA SET"}
     data = {
         "mc": recs(mc), "sku": recs(sku),
@@ -1025,7 +1040,7 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
                         {"k": "VENDA SET", "l": "venda setmana (tot Zalando)", "total": totals.get("venda_setm"), "sub": "del llistat"},
                         {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"},
                         {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums,
-                       (("model_color", "CREAT A ZLD?", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc.columns[-1], "green"))),
+                       (("model_color", "CREAT A ZLD?", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc.columns[-1], "green")), red=RED_RULES_MC),
         "skuSpec": spec(sku, num_sku, "REPO", True, ["GÈNERE", "SEASON", "TEMPORADA", "CREAT A ZLD?"], ["EAN", "SKU", "model_color", "model", "color", "talla", "AVÍS"],
                         [{"k": "__rows__", "l": "SKUs amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 30d)"},
                          {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"}], sum_cols - {"VENDA SET", "VENDA 4 SETM", "ACUM'25", "ACUM'26"},
