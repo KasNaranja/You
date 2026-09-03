@@ -611,12 +611,12 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     mc["TALLES AMB REPO"] = df[df["REPO"] > 0].groupby("model_color").size().reindex(mc.index).fillna(0).astype(int)
     mc["TALLES SENSE STOCK ZLD"] = df[(df["STOCK ZLD"] + df["ENV PENDENTS"]) <= 0].groupby("model_color").size().reindex(mc.index).fillna(0).astype(int)
     cov = (mc["STOCK ZLD"] + mc["ENV PENDENTS"]) / mc["VENDA SET"].replace(0, np.nan)
-    mc["COBERTURA SETM"] = cov.round(1)
+    mc["COBERTURA SET"] = cov.round(1)
     mc["AVÍS"] = df.groupby("model_color")["AVÍS"].agg(lambda s: "; ".join(sorted({x for x in s if x})))
     mc = mc.reset_index()
     mc_cols = ["model_color", "model", "color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "SEASON ZLD", "CREAT A ZLD?",
                "VENDA SET", "ACUM'25", "ACUM'26", "VENDA 4 SETM", "MULT", "OBJECTIU", "NIVELL", "HAURIA",
-               "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "COBERTURA SETM", "DIF", "REPO", "PREPARABLE",
+               "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "COBERTURA SET", "DIF", "REPO", "PREPARABLE",
                "STOCK TP 01 02", "DISPO 30 DIES", "AVÍS"]
     mc = mc[mc_cols].sort_values(["REPO", "VENDA SET", "ACUM'26"], ascending=[False, False, False]).reset_index(drop=True)
 
@@ -642,6 +642,7 @@ NO_FILL = PatternFill("solid", fgColor="EDEDED")
 KEY_FILL = PatternFill("solid", fgColor="FFF2CC")
 GREY_HDR = "D9D9D9"
 YELLOW_HDR = "FFE699"
+GREEN_HDR = "C6E0B4"
 
 
 def style_sheet(ws, df: pd.DataFrame, highlight_col: str | None = None, grey_col: str | None = None, key_cols=(), header_groups=()):
@@ -727,8 +728,8 @@ def write_excel(sku: pd.DataFrame, mc: pd.DataFrame, fora: pd.DataFrame, params:
         fora.to_excel(xw, sheet_name="FORA LLISTA", index=False)
         par.to_excel(xw, sheet_name="PARÀMETRES", index=False)
         lvl.to_excel(xw, sheet_name="NIVELLS", index=False, header=False)
-        groups_sku = (("EAN", "CREAT A ZLD?", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR))
-        groups_mc = (("model_color", "CREAT A ZLD?", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR))
+        groups_sku = (("EAN", "CREAT A ZLD?", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("DIF", sku.columns[-1], GREEN_HDR))
+        groups_mc = (("model_color", "CREAT A ZLD?", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("DIF", mc.columns[-1], GREEN_HDR))
         style_sheet(xw.sheets["CÀLCUL SKU"], sku, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "DIF", "REPO", "PREPARABLE"), header_groups=groups_sku)
         style_sheet(xw.sheets["MODEL_COLOR"], mc, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "REPO", "PREPARABLE"), header_groups=groups_mc)
         style_sheet(xw.sheets["FORA LLISTA"], fora)
@@ -761,7 +762,7 @@ header .sub{opacity:.85;font-size:12.5px;margin-top:4px}
 table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:12.5px}
 th{position:sticky;top:0;background:var(--head);color:#fff;padding:6px 8px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;z-index:2;border-right:1px solid rgba(255,255,255,.12)}
 th.num{text-align:right}th .arr{opacity:.7;font-size:10px;margin-left:3px}
-th.hg-grey{background:#d9d9d9;color:#1c2430}th.hg-yellow{background:#ffe699;color:#1c2430}
+th.hg-grey{background:#d9d9d9;color:#1c2430}th.hg-yellow{background:#ffe699;color:#1c2430}th.hg-green{background:#c6e0b4;color:#1c2430}
 [hidden]{display:none!important}
 .btn{padding:7px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;font-weight:600;color:var(--ink)}
 .colwrap{position:relative}
@@ -963,11 +964,11 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
         "mcSpec": spec(mc, num_mc, "REPO", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
                        [{"k": "__rows__", "l": "model_color amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 59d)"},
                         {"k": "VENDA SET", "l": "venda setmana"}, {"k": "STOCK ZLD", "l": "stock Zalando"}, {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums,
-                       (("model_color", "CREAT A ZLD?", "grey"), ("VENDA SET", "OBJECTIU", "yellow"))),
+                       (("model_color", "CREAT A ZLD?", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc.columns[-1], "green"))),
         "skuSpec": spec(sku, num_sku, "REPO", True, ["GÈNERE", "SEASON", "TEMPORADA", "CREAT A ZLD?"], ["EAN", "SKU", "model_color", "model", "color", "talla", "AVÍS"],
                         [{"k": "__rows__", "l": "SKUs amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 59d)"},
                          {"k": "STOCK ZLD", "l": "stock Zalando"}], sum_cols - {"VENDA SET", "VENDA 4 SETM", "ACUM'25", "ACUM'26"},
-                        (("EAN", "CREAT A ZLD?", "grey"), ("VENDA SET", "OBJECTIU", "yellow"))),
+                        (("EAN", "CREAT A ZLD?", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", sku.columns[-1], "green"))),
     }
     warn_html = "".join(f'<div class="warn">{html.escape(w)}</div>' for w in warnings)
     page = (HTML_TEMPLATE.replace("__TITLE__", html.escape(title)).replace("__SUBTITLE__", html.escape(subtitle))
