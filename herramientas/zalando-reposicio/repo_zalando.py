@@ -95,6 +95,46 @@ def to_num(series: pd.Series) -> pd.Series:
     return pd.to_numeric(s, errors="coerce").fillna(0)
 
 
+CACHE_DIR = os.path.join(os.environ.get("LOCALAPPDATA", os.path.dirname(os.path.abspath(__file__))), "Temp", "zalando_repo_cache")
+
+
+def readable_copy(path: str) -> str:
+    """Camí llegible: si Excel/OneDrive tenen el fitxer obert i Python no pot obrir-lo,
+    en fa una còpia amb l'API de Windows (CopyFileW) i retorna la còpia."""
+    try:
+        with open(path, "rb"):
+            return path
+    except PermissionError:
+        pass
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    dst = os.path.join(CACHE_DIR, "copia_" + os.path.basename(path))
+    ok = False
+    if os.name == "nt":
+        import ctypes
+        k32 = ctypes.windll.kernel32
+        k32.CopyFileW.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_bool]
+        k32.CopyFileW.restype = ctypes.c_bool
+        ok = bool(k32.CopyFileW(path, dst, False))
+    if not ok:
+        raise SystemExit(f"No puc llegir {os.path.basename(path)} (obert a Excel?). Tanca'l i torna-ho a provar.")
+    print(f"AVÍS: {os.path.basename(path)} està obert a Excel; es llegeix una còpia.")
+    return dst
+
+
+def safe_out(path: str) -> str:
+    """Si el fitxer de sortida està obert a Excel, escriu al costat amb el sufix ' (nou)'."""
+    if os.path.exists(path):
+        try:
+            with open(path, "ab"):
+                pass
+        except PermissionError:
+            root, ext = os.path.splitext(path)
+            alt = f"{root} (nou){ext}"
+            print(f"AVÍS: {os.path.basename(path)} està obert a Excel; s'escriu {os.path.basename(alt)}")
+            return safe_out(alt)
+    return path
+
+
 # --------------------------------------------------------------------------------------
 # Càrrega de fonts
 # --------------------------------------------------------------------------------------
@@ -236,7 +276,7 @@ def load_sales(data_dir: str, cache_dir: str) -> tuple[pd.DataFrame, list[dict]]
         if os.path.exists(cache):
             df = pd.read_parquet(cache)
         else:
-            df = read_dades2(f)
+            df = read_dades2(readable_copy(f))
             try:
                 df.to_parquet(cache)
             except Exception:
@@ -279,7 +319,7 @@ def load_stock_tp(folder: str) -> tuple[pd.DataFrame, str]:
     if not files:
         raise SystemExit(f"No hi ha cap .txt a {folder}")
     path = files[-1]
-    df = pd.read_csv(path, sep="\t", encoding="utf-16", dtype=str)
+    df = pd.read_csv(readable_copy(path), sep="\t", encoding="utf-16", dtype=str)
     cols = {norm(c): c for c in df.columns}
     ean_col = cols.get("codigo de barras") or cols.get("código de barras") or cols.get("ean")
     c0102 = cols.get("stock 01 02")
@@ -300,6 +340,7 @@ def load_stock_tp(folder: str) -> tuple[pd.DataFrame, str]:
 def _snapshot_frame(path: str) -> pd.DataFrame | None:
     """Llegeix un snapshot (csv o xlsx) i retorna EAN / Offerable / Non-offerable / Total, o None si no és vàlid."""
     ext = os.path.splitext(path)[1].lower()
+    path = readable_copy(path)
     df = None
     if ext == ".csv":
         with open(path, "r", encoding="utf-8-sig", errors="replace") as fh:
@@ -369,10 +410,11 @@ def load_pending(folder: str) -> tuple[pd.DataFrame, list[str]]:
     frames, labels = [], []
     for f in files:
         base = os.path.basename(f)
-        with open(f, "r", encoding="utf-8-sig", errors="replace") as fh:
+        src = readable_copy(f)
+        with open(src, "r", encoding="utf-8-sig", errors="replace") as fh:
             head = fh.readline()
         sep = ";" if head.count(";") >= head.count(",") else ","
-        df = pd.read_csv(f, sep=sep, dtype=str, encoding="utf-8-sig", encoding_errors="replace")
+        df = pd.read_csv(src, sep=sep, dtype=str, encoding="utf-8-sig", encoding_errors="replace")
         cols = {norm(c): c for c in df.columns}
         ec, qc = cols.get("ean"), cols.get("quantity") or cols.get("quantitat") or cols.get("qty")
         if ec is None or qc is None:
@@ -398,7 +440,7 @@ def load_pending(folder: str) -> tuple[pd.DataFrame, list[str]]:
 def load_adjustments(path: str) -> pd.DataFrame:
     if not os.path.exists(path):
         return pd.DataFrame(columns=["model_color", "multiplicador", "nivell", "comentari"])
-    df = pd.read_excel(path)
+    df = pd.read_excel(readable_copy(path))
     cols = {norm(c): c for c in df.columns}
     out = pd.DataFrame({
         "model_color": df[cols["model_color"]].fillna("").astype(str).str.strip(),
@@ -938,13 +980,13 @@ def main():
     args = ap.parse_args()
     data, out = args.data, args.out or args.data
     os.makedirs(out, exist_ok=True)
-    cache_dir = os.path.join(os.environ.get("LOCALAPPDATA", here), "Temp", "zalando_repo_cache")
+    cache_dir = CACHE_DIR
 
     print("Llegint fonts...")
-    models = load_models(os.path.join(data, "Models a reposar.xlsx"))
-    levels = load_levels(os.path.join(data, "NIVEL.xlsx"))
+    models = load_models(readable_copy(os.path.join(data, "Models a reposar.xlsx")))
+    levels = load_levels(readable_copy(os.path.join(data, "NIVEL.xlsx")))
     lines, sources = load_sales(data, cache_dir)
-    acum25 = load_sales_2025(os.path.join(data, "Venda 2025.xlsx"))
+    acum25 = load_sales_2025(readable_copy(os.path.join(data, "Venda 2025.xlsx")))
     stock_tp, tp_file = load_stock_tp(os.path.join(data, "Stock Toni Pons"))
     snap, snap_meta = load_snapshot(os.path.join(data, "Stock Zalando"), args.snapshot)
     pending, pend_labels = load_pending(os.path.join(data, "Enviaments pendents"))
@@ -991,14 +1033,15 @@ def main():
     ]
 
     print("Escrivint sortides...")
-    venda_xlsx = os.path.join(out, f"Venda 2026 {args.date}.xlsx")
+    venda_xlsx = safe_out(os.path.join(out, f"Venda 2026 {args.date}.xlsx"))
     write_vendes(lines, sources, acum25, venda_xlsx, info)
-    xlsx = os.path.join(out, f"REPO ZALANDO {args.date}.xlsx")
+    xlsx = safe_out(os.path.join(out, f"REPO ZALANDO {args.date}.xlsx"))
     write_excel(sku, mc, fora, params, levels, xlsx)
+    html_path = safe_out(os.path.join(out, f"REPO ZALANDO {args.date}.html"))
     title = f"Reposició Zalando {args.date}"
     subtitle = (f"Setmana {week_lbl} · stock Zalando {snap_meta['fitxer']} · enviaments pendents {', '.join(pend_labels) or 'cap'} · "
                 f"regla venda x{args.mult:g} → nivell · generat {dt.datetime.now():%d/%m/%Y %H:%M}")
-    write_html(sku, mc, title, subtitle, warnings, os.path.join(out, f"REPO ZALANDO {args.date}.html"))
+    write_html(sku, mc, title, subtitle, warnings, html_path)
 
     # resum
     print()
@@ -1007,7 +1050,7 @@ def main():
     print(f"REPO total: {int(sku['REPO'].sum())}   PREPARABLE: {int(sku['PREPARABLE'].sum())}   FALTA STOCK TP: {int((sku['REPO'] - sku['PREPARABLE']).sum())}")
     for w in warnings:
         print("AVÍS:", w)
-    print("Sortides:", venda_xlsx, "|", xlsx, "|", xlsx[:-5] + ".html")
+    print("Sortides:", venda_xlsx, "|", xlsx, "|", html_path)
 
 
 if __name__ == "__main__":
