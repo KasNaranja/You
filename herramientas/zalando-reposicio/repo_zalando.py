@@ -705,11 +705,28 @@ header .sub{opacity:.85;font-size:12.5px;margin-top:4px}
 .bar label{font-size:13px;color:var(--muted);display:flex;gap:4px;align-items:center}
 .kpis{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 10px}
 .kpi{background:#f1f4f8;border-radius:8px;padding:8px 14px;min-width:120px}.kpi b{display:block;font-size:20px}.kpi span{font-size:12px;color:var(--muted)}
-.wrap{overflow:auto;max-height:78vh;border:1px solid var(--line);border-radius:6px}
+.wrap{overflow:auto;max-height:78vh;border:1px solid var(--line);border-radius:0 0 6px 6px}
 table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:12.5px}
 th{position:sticky;top:0;background:var(--head);color:#fff;padding:6px 8px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;z-index:2;border-right:1px solid rgba(255,255,255,.12)}
 th.num{text-align:right}th .arr{opacity:.7;font-size:10px;margin-left:3px}
 th.hg-grey{background:#d9d9d9;color:#1c2430}th.hg-yellow{background:#ffe699;color:#1c2430}
+[hidden]{display:none!important}
+.btn{padding:7px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;font-weight:600;color:var(--ink)}
+.colwrap{position:relative}
+.colpick{position:absolute;top:110%;left:0;z-index:20;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:10px;min-width:560px;max-height:60vh;overflow:auto}
+.cp-grid{display:grid;grid-template-columns:repeat(3,minmax(160px,1fr));gap:4px 14px;font-size:12.5px}
+.cp-grid label{display:flex;gap:6px;align-items:center;white-space:nowrap;cursor:pointer}
+.cp-actions{display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:12px;color:var(--muted)}
+.cp-actions button{padding:4px 10px;border:1px solid var(--line);border-radius:6px;background:#f1f4f8;cursor:pointer}
+.topscroll{overflow-x:auto;overflow-y:hidden;height:18px;border:1px solid var(--line);border-bottom:none;border-radius:6px 6px 0 0;background:#fff}
+.topscroll>div{height:1px}
+.wrap::-webkit-scrollbar,.topscroll::-webkit-scrollbar{height:14px;width:14px}
+.wrap::-webkit-scrollbar-thumb,.topscroll::-webkit-scrollbar-thumb{background:#8a97a6;border-radius:8px;border:3px solid #fff}
+.wrap::-webkit-scrollbar-track,.topscroll::-webkit-scrollbar-track{background:#e9edf2}
+th.sticky{left:0;z-index:4}
+td.sticky{position:sticky;left:0;background:#fff;z-index:1;box-shadow:1px 0 0 var(--line)}
+tr:hover td.sticky{background:#f4f7fb}
+tfoot td.sticky{background:#eef2f6;z-index:3}
 td{padding:4px 8px;border-bottom:1px solid var(--line);white-space:nowrap}td.num{text-align:right;font-variant-numeric:tabular-nums}
 tr:hover td{background:#f4f7fb}td.repo{background:#e2f0d9;font-weight:600}td.no{color:var(--bad)}td.neg{color:#8a94a0}
 tfoot td{position:sticky;bottom:0;background:#eef2f6;font-weight:600;border-top:2px solid #c9d1db;z-index:1}
@@ -725,20 +742,62 @@ __WARNINGS__
 <script>
 const DATA = __DATA__;
 const NUMFMT = new Intl.NumberFormat('ca-ES');
+function esc(v){ return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 function build(id, spec, rows){
   const panel = document.getElementById('p-'+id);
+  const storeKey = 'repo-zld-cols-'+id;
+  let hidden = new Set();
+  try { const s = localStorage.getItem(storeKey); if(s) hidden = new Set(JSON.parse(s)); } catch(e) {}
   const state = {q:'', sortKey: spec.defaultSort, sortDir: -1, onlyRepo: spec.onlyRepoDefault, filters:{}};
   const facets = spec.facets.map(f => ({key:f, values:[...new Set(rows.map(r=>r[f]).filter(v=>v!==null && v!==''))].sort()}));
   let html = '<div class="kpis" id="k-'+id+'"></div><div class="bar">';
   html += '<input type="text" id="q-'+id+'" placeholder="Cerca (model, color, EAN, SKU...)">';
-  facets.forEach(f => { html += '<select data-f="'+f.key+'"><option value="">'+f.key+': tots</option>'+f.values.map(v=>'<option>'+v+'</option>').join('')+'</select>'; });
+  facets.forEach(f => { html += '<select data-f="'+esc(f.key)+'"><option value="">'+esc(f.key)+': tots</option>'+f.values.map(v=>'<option>'+esc(v)+'</option>').join('')+'</select>'; });
   html += '<label><input type="checkbox" id="r-'+id+'" '+(state.onlyRepo?'checked':'')+'> només REPO &gt; 0</label>';
-  html += '<span class="count" id="c-'+id+'"></span></div><div class="wrap"><table id="t-'+id+'"><thead><tr>';
-  spec.cols.forEach(c => { html += '<th class="'+(c.n?'num':'')+(c.hg?' hg-'+c.hg:'')+'" data-k="'+c.k+'">'+c.l+'<span class="arr"></span></th>'; });
-  html += '</tr></thead><tbody></tbody><tfoot><tr></tr></tfoot></table></div>';
+  html += '<div class="colwrap"><button type="button" class="btn" id="cb-'+id+'">Columnes ▾</button><div class="colpick" id="cp-'+id+'" hidden></div></div>';
+  html += '<span class="count" id="c-'+id+'"></span></div>';
+  html += '<div class="topscroll" id="ts-'+id+'"><div></div></div>';
+  html += '<div class="wrap" id="w-'+id+'"><table id="t-'+id+'"><thead><tr></tr></thead><tbody></tbody><tfoot><tr></tr></tfoot></table></div>';
   panel.innerHTML = html;
-  const tbody = panel.querySelector('tbody'), tfoot = panel.querySelector('tfoot tr');
+  const wrap = panel.querySelector('.wrap'), table = panel.querySelector('table');
+  const thead = panel.querySelector('thead tr'), tbody = panel.querySelector('tbody'), tfoot = panel.querySelector('tfoot tr');
+  const topscroll = panel.querySelector('.topscroll'), topinner = topscroll.firstElementChild;
+  const colpick = panel.querySelector('.colpick'), colbtn = panel.querySelector('#cb-'+id);
+  function visCols(){ return spec.cols.filter(c => !hidden.has(c.k)); }
+  function saveCols(){ try { localStorage.setItem(storeKey, JSON.stringify([...hidden])); } catch(e) {} }
+  function setHidden(next){ hidden = next; saveCols(); renderPicker(); renderHead(); render(); }
+  function renderPicker(){
+    let h = '<div class="cp-actions"><button type="button" data-a="all">Totes</button><button type="button" data-a="none">Cap</button>';
+    h += '<span>'+(spec.cols.length-hidden.size)+' de '+spec.cols.length+' columnes visibles</span></div><div class="cp-grid">';
+    spec.cols.forEach(c => { h += '<label><input type="checkbox" data-c="'+esc(c.k)+'" '+(hidden.has(c.k)?'':'checked')+'> '+esc(c.l)+'</label>'; });
+    colpick.innerHTML = h + '</div>';
+    colpick.querySelectorAll('input').forEach(i => i.addEventListener('change', e => {
+      const k = e.target.dataset.c; const next = new Set(hidden);
+      if(e.target.checked) next.delete(k); else next.add(k);
+      if(next.size >= spec.cols.length){ e.target.checked = true; return; }
+      setHidden(next);
+    }));
+    colpick.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      if(b.dataset.a === 'all') setHidden(new Set());
+      else setHidden(new Set(spec.cols.slice(1).map(c => c.k)));
+    }));
+  }
+  function renderHead(){
+    const cols = visCols();
+    thead.innerHTML = cols.map((c,i) => '<th class="'+(c.n?'num':'')+(c.hg?' hg-'+c.hg:'')+(i===0?' sticky':'')+'" data-k="'+esc(c.k)+'" title="'+esc(c.l)+'">'+esc(c.l)+'<span class="arr"></span></th>').join('');
+    thead.querySelectorAll('th').forEach(th => th.addEventListener('click', () => {
+      const k = th.dataset.k;
+      if(state.sortKey===k) state.sortDir*=-1; else { state.sortKey=k; state.sortDir = spec.cols.find(c=>c.k===k).n ? -1 : 1; }
+      render();
+    }));
+  }
+  function fitHeight(){
+    const top = wrap.getBoundingClientRect().top;
+    wrap.style.maxHeight = Math.max(240, window.innerHeight - top - 16) + 'px';
+    topinner.style.width = table.scrollWidth + 'px';
+  }
   function render(){
+    const cols = visCols();
     const q = state.q.toLowerCase();
     let out = rows.filter(r => {
       if(state.onlyRepo && !(r.REPO > 0)) return false;
@@ -748,47 +807,57 @@ function build(id, spec, rows){
     });
     const sk = state.sortKey, sd = state.sortDir;
     out.sort((a,b) => { const x=a[sk], y=b[sk]; if(x===y) return 0; if(x===null||x===undefined) return 1; if(y===null||y===undefined) return -1; return (x>y?1:-1)*sd; });
-    panel.querySelectorAll('th').forEach(th => th.querySelector('.arr').textContent = th.dataset.k===sk ? (sd>0?'▲':'▼') : '');
+    thead.querySelectorAll('th').forEach(th => th.querySelector('.arr').textContent = th.dataset.k===sk ? (sd>0?'▲':'▼') : '');
     const MAX = 6000; const shown = out.slice(0, MAX);
     let h = '';
     for(const r of shown){
       h += '<tr>';
-      for(const c of spec.cols){
+      cols.forEach((c,i) => {
         let v = r[c.k]; let cls = c.n ? 'num' : '';
         if(c.k === 'REPO' && v > 0) cls += ' repo';
         if(c.k === 'CREAT A ZLD?' && v === 'NO CONSTA') cls += ' no';
         if(c.k === 'DIF' && v < 0) cls += ' neg';
         if(c.key) cls += ' key';
+        if(i===0) cls += ' sticky';
         if(v === null || v === undefined) v = '';
         else if(c.n && typeof v === 'number') v = Number.isInteger(v) ? NUMFMT.format(v) : v.toFixed(1);
-        h += '<td class="'+cls+'">'+String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</td>';
-      }
+        h += '<td class="'+cls+'">'+esc(v)+'</td>';
+      });
       h += '</tr>';
     }
     tbody.innerHTML = h;
     let f = '';
-    for(const c of spec.cols){
-      if(c.sum){ const s = out.reduce((a,r)=>a+(Number(r[c.k])||0),0); f += '<td class="num">'+NUMFMT.format(s)+'</td>'; }
-      else f += '<td>'+(c.k===spec.cols[0].k ? 'TOTAL ('+NUMFMT.format(out.length)+' files)' : '')+'</td>';
-    }
+    cols.forEach((c,i) => {
+      const st = i===0 ? ' sticky' : '';
+      if(c.sum){ const s = out.reduce((a,r)=>a+(Number(r[c.k])||0),0); f += '<td class="num'+st+'">'+NUMFMT.format(s)+'</td>'; }
+      else f += '<td class="'+st.trim()+'">'+(i===0 ? 'TOTAL ('+NUMFMT.format(out.length)+' files)' : '')+'</td>';
+    });
     tfoot.innerHTML = f;
     document.getElementById('c-'+id).textContent = out.length + ' files' + (out.length>MAX ? ' (es mostren '+MAX+')' : '');
     const k = document.getElementById('k-'+id);
     const repoRows = out.filter(r=>r.REPO>0);
     const sum = key => out.reduce((a,r)=>a+(Number(r[key])||0),0);
-    k.innerHTML = spec.kpis.map(x => '<div class="kpi"><b>'+NUMFMT.format(x.k==='__rows__'?repoRows.length:sum(x.k))+'</b><span>'+x.l+'</span></div>').join('');
+    k.innerHTML = spec.kpis.map(x => '<div class="kpi"><b>'+NUMFMT.format(x.k==='__rows__'?repoRows.length:sum(x.k))+'</b><span>'+esc(x.l)+'</span></div>').join('');
+    fitHeight();
   }
   panel.querySelector('#q-'+id).addEventListener('input', e => { state.q = e.target.value; render(); });
   panel.querySelector('#r-'+id).addEventListener('change', e => { state.onlyRepo = e.target.checked; render(); });
   panel.querySelectorAll('select').forEach(s => s.addEventListener('change', e => { state.filters[e.target.dataset.f] = e.target.value; render(); }));
-  panel.querySelectorAll('th').forEach(th => th.addEventListener('click', () => { const k = th.dataset.k; if(state.sortKey===k) state.sortDir*=-1; else {state.sortKey=k; state.sortDir = spec.cols.find(c=>c.k===k).n ? -1 : 1;} render(); }));
-  render();
+  colbtn.addEventListener('click', e => { e.stopPropagation(); colpick.hidden = !colpick.hidden; });
+  colpick.addEventListener('click', e => e.stopPropagation());
+  document.addEventListener('click', () => { colpick.hidden = true; });
+  let syncing = false;
+  topscroll.addEventListener('scroll', () => { if(syncing) return; syncing = true; wrap.scrollLeft = topscroll.scrollLeft; syncing = false; });
+  wrap.addEventListener('scroll', () => { if(syncing) return; syncing = true; topscroll.scrollLeft = wrap.scrollLeft; syncing = false; });
+  window.addEventListener('resize', fitHeight);
+  renderPicker(); renderHead(); render();
+  return { fit: fitHeight };
 }
-build('mc', DATA.mcSpec, DATA.mc);
-build('sku', DATA.skuSpec, DATA.sku);
+const views = { mc: build('mc', DATA.mcSpec, DATA.mc), sku: build('sku', DATA.skuSpec, DATA.sku) };
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='p-'+t.dataset.t));
+  views[t.dataset.t].fit();
 }));
 </script></body></html>
 """
