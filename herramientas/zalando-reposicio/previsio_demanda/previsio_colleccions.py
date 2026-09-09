@@ -11,11 +11,12 @@ Fonts:
       models amb Temporada = HI26 -> col·lecció (GrupArticle) i gènere (Código grupo talla).
 
 Sortides (carpeta Previsió demanda):
-  Càlcul venda per col·leccio 2025.xlsx  pestanya HI26: blocs DONA / HOME / NEN, una fila per col·lecció,
+  Càlcul venda per col·leccio 2025.xlsx  un full per temporada (HI26, ES26): blocs DONA / HOME / NEN, una fila per col·lecció,
                                          % de cada mes sobre el total 2025 de la col·lecció (suma 100%).
   Venda 2025 en € i %.xlsx               segon bloc: unitats totals per mes del 2025 i % del total.
 
-Ús:  python previsio_colleccions.py [--any 2025] [--nomes-taula]
+Ús:  python previsio_colleccions.py [--any 2025] [--temporada HI26|ES26] [--nomes-taula]
+     (executar-lo un cop per temporada: HI26 escriu el full HI26, ES26 el full ES26)
 """
 import argparse
 import datetime as dt
@@ -37,7 +38,7 @@ TP_INFO = os.path.join(DATA, "Informació models zalando", "TP Info Complerta Mo
 CACHE = os.path.join(os.environ.get("LOCALAPPDATA", HERE), "Temp", "zalando_repo_cache", "previsio")
 EXCLOU = ("acumulat", "anàlisi", "analisi", "no tenir en compte", "parcial", "brutes")
 WEEK_RE = re.compile(r"DEL (\d\d)\.(\d\d) al (\d\d)\.(\d\d)", re.I)
-GENERE = {"MUJER": "DONA", "CABALLERO": "HOME", "NIÑO": "NEN", "NINO": "NEN", "MINI": "NEN", "JUNIOR": "NEN"}
+GENERE = {"MUJER": "DONA", "UNISEX": "DONA", "CABALLERO": "HOME", "NIÑO": "NEN", "NINO": "NEN", "MINI": "NEN", "JUNIOR": "NEN"}
 MESOS_CA = ["gen", "feb", "mar", "abr", "mai", "jun", "jul", "ago", "set", "oct", "nov", "des"]
 
 
@@ -133,9 +134,9 @@ def linies_any(any_: int) -> tuple[pd.DataFrame, list[str]]:
 
 
 # ----------------------------------------------------------------------------- TP Info
-def models_hi26() -> pd.DataFrame:
-    """model -> col·lecció (GrupArticle) i gènere (DONA/HOME/NEN) dels models amb Temporada HI26."""
-    cache = os.path.join(CACHE, f"tpinfo_hi26.{int(os.path.getmtime(TP_INFO))}.json")
+def models_temporada(temp: str) -> pd.DataFrame:
+    """model -> col·lecció (GrupArticle) i gènere (DONA/HOME/NEN) dels models amb la Temporada indicada (HI26, ES26...)."""
+    cache = os.path.join(CACHE, f"tpinfo_{temp}.{int(os.path.getmtime(TP_INFO))}.json")
     if os.path.exists(cache):
         recs = json.load(open(cache, encoding="utf-8"))
     else:
@@ -147,7 +148,7 @@ def models_hi26() -> pd.DataFrame:
         ix = {h: i for i, h in enumerate(hdr)}
         recs = []
         for r in it:
-            if r[ix["Temporada"]] == "HI26":
+            if r[ix["Temporada"]] == temp:
                 recs.append([r[ix["Model"]], r[ix["GrupArticle"]], r[ix["Código grupo talla"]]])
         os.makedirs(CACHE, exist_ok=True)
         json.dump(recs, open(cache, "w", encoding="utf-8"), ensure_ascii=False)
@@ -168,26 +169,26 @@ HDR_FONT = Font(bold=True, color="FFFFFF")
 NOTE_FONT = Font(italic=True, color="7F7F7F")
 
 
-def escriu_colleccions(path: str, taula: pd.DataFrame, any_: int):
+def escriu_colleccions(path: str, taula: pd.DataFrame, any_: int, temp: str = "HI26"):
     wb = openpyxl.load_workbook(readable(path))
-    ws = wb[wb.sheetnames[0]]
+    ws = wb[temp] if temp in wb.sheetnames else wb.create_sheet(temp)
     # neteja el contingut anterior (conserva la pestanya)
     for row in ws.iter_rows(min_row=1, max_row=ws.max_row, max_col=max(ws.max_column, 20)):
         for c in row:
             c.value = None
             c.fill = PatternFill()
             c.font = Font()
-    ws.cell(row=1, column=2, value=f"% de la venda {any_} de cada mes sobre el total de l'any, per col·lecció dels models HI26 (mes = data de comanda)").font = NOTE_FONT
+    ws.cell(row=1, column=2, value=f"% de la venda {any_} de cada mes sobre el total de l'any, per col·lecció dels models {temp} (mes = data de comanda)").font = NOTE_FONT
     r = 2
     for genere in ["DONA", "HOME", "NEN"]:
-        cap = [genere] + list(range(1, 13)) + ["TOTAL", f"UNITATS {any_}", f"MODELS AMB VENDA {any_}", "MODELS HI26", "NOTA"]
+        cap = [genere] + list(range(1, 13)) + ["TOTAL", f"UNITATS {any_}", f"MODELS AMB VENDA {any_}", f"MODELS {temp}", "NOTA"]
         for j, v in enumerate(cap):
             c = ws.cell(row=r, column=2 + j, value=v)
             c.fill, c.font = HDR_FILL, HDR_FONT
             c.alignment = Alignment(horizontal="center" if j else "left")
         r += 1
         blk = taula[taula["genere"] == genere].copy()
-        blk["_tot"] = blk["colleccio"].eq("TOTS ELS MODELS HI26")
+        blk["_tot"] = blk["colleccio"].str.startswith("TOTS ELS MODELS")
         blk = blk.sort_values(["_tot", "unitats"], ascending=[True, False])
         gen = blk[blk["_tot"]].iloc[0] if blk["_tot"].any() else None
         gen_pct = ([float(gen[f"m{m + 1}"]) / float(gen["unitats"]) for m in range(12)]
@@ -259,13 +260,20 @@ def escriu_unitats_totals(path: str, per_mes: list[int]):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--any", type=int, default=2025)
+    ap.add_argument("--temporada", default="HI26", help="temporada dels models al TP Info: HI26 (hivern) o ES26 (estiu)")
     ap.add_argument("--nomes-taula", action="store_true", help="no escriu cap Excel, només mostra la taula")
     a = ap.parse_args()
+    temp = a.temporada.upper()
+    hivern = temp.startswith("HI")
+    # mesos de temporada (per al resum en pantalla) i mes a partir del qual una primera venda es considera llançament
+    idx_temp = (0, 1, 8, 9, 10, 11) if hivern else (2, 3, 4, 5, 6, 7)
+    etiq_temp = "set-feb" if hivern else "mar-ago"
+    mes_llanc = 6 if hivern else 3
 
     print("Vendes setmanals", a.any, "(T:)")
     lines, avisos = linies_any(a.any)
-    print("Models HI26 (TP Info)")
-    hi26 = models_hi26()
+    print(f"Models {temp} (TP Info)")
+    hi26 = models_temporada(temp)
     sense_genere = hi26[hi26["genere"].isna()]
     hi26 = hi26[hi26["genere"].notna()]
 
@@ -286,7 +294,7 @@ def main():
     tot["models_hi26"] = gg.size()
     tot["models_venda"] = gg["unitats"].apply(lambda s: int((s > 0).sum()))
     tot = tot.reset_index()
-    tot["colleccio"] = "TOTS ELS MODELS HI26"
+    tot["colleccio"] = f"TOTS ELS MODELS {temp}"
     taula = pd.concat([taula, tot[taula.columns]], ignore_index=True)
 
     def nota(r):
@@ -296,18 +304,18 @@ def main():
         notes = []
         if r["unitats"] < 500 or r["models_venda"] < 3:
             notes.append("poques dades")
-        if mesos and mesos[0] >= 6:
+        if mesos and mesos[0] > mes_llanc:
             notes.append(f"venda només des del mes {mesos[0]} (llançament {a.any}): no té històric de gen-{MESOS_CA[mesos[0] - 2]}")
         return "; ".join(notes)
     taula["nota"] = taula.apply(nota, axis=1)
 
     # taula per pantalla
     print()
-    print(f"{'GÈNERE':6s} {'COL·LECCIÓ':18s} {'UNIT.':>7s} {'MOD':>4s} " + " ".join(f"{m:>5s}" for m in MESOS_CA) + "   set-feb")
+    print(f"{'GÈNERE':6s} {'COL·LECCIÓ':18s} {'UNIT.':>7s} {'MOD':>4s} " + " ".join(f"{m:>5s}" for m in MESOS_CA) + f"   {etiq_temp}")
     for _, r in taula.sort_values(["genere", "unitats"], ascending=[True, False]).iterrows():
         if r["unitats"] > 0:
             pct = [r[f"m{m}"] / r["unitats"] for m in range(1, 13)]
-            hiv = sum(pct[i] for i in (0, 1, 8, 9, 10, 11))
+            hiv = sum(pct[i] for i in idx_temp)
             print(f"{r['genere']:6s} {str(r['colleccio'])[:18]:18s} {int(r['unitats']):7d} {int(r['models_venda']):4d} "
                   + " ".join(f"{p * 100:5.1f}" for p in pct) + f"   {hiv * 100:5.1f}%")
         else:
@@ -317,15 +325,15 @@ def main():
     for av in avisos:
         print("AVÍS:", av)
     if len(sense_genere):
-        print("AVÍS: models HI26 sense gènere de calçat (complements, bosses, cinturons...):", len(sense_genere), "->", ", ".join(sense_genere["model"].head(12)))
+        print(f"AVÍS: models {temp} sense gènere de calçat (complements, bosses, cinturons...):", len(sense_genere), "->", ", ".join(sense_genere["model"].head(12)))
     no_hi26 = lines[~lines["model"].isin(set(hi26["model"]))]
-    print(f"Info: {int(no_hi26['unitats'].sum())} unitats {a.any} són de models que no són HI26 (no entren a la taula)")
+    print(f"Info: {int(no_hi26['unitats'].sum())} unitats {a.any} són de models que no són {temp} (no entren a la taula)")
 
     if a.nomes_taula:
         return
     p1 = os.path.join(HERE, f"Càlcul venda per col·leccio {a.any}.xlsx")
-    escriu_colleccions(p1, taula, a.any)
-    print("Escrit:", p1)
+    escriu_colleccions(p1, taula, a.any, temp)
+    print(f"Escrit: {p1} (full {temp})")
     p2 = os.path.join(HERE, f"Venda {a.any} en € i %.xlsx")
     if os.path.exists(p2):
         r = escriu_unitats_totals(p2, tot_mes)

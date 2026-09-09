@@ -602,27 +602,31 @@ def load_previsio(folder: str) -> dict | None:
     path = max(files, key=lambda f: (re.search(r"(20\d\d)", os.path.basename(f)).group(1) if re.search(r"(20\d\d)", os.path.basename(f)) else "", os.path.getmtime(f)))
     m = re.search(r"(20\d\d)", os.path.basename(path))
     wb = openpyxl.load_workbook(readable_copy(path), read_only=True, data_only=True)
-    ws = wb[wb.sheetnames[0]]
-    blocks, cur = [], None
 
     def num(v):
         return int(v) if isinstance(v, (int, float)) else 0
 
-    for r in ws.iter_rows(values_only=True):
-        r = list(r) + [None] * (19 - len(r))
-        b = r[1]
-        if b in ("DONA", "HOME", "NEN"):
-            cur = {"genere": b, "rows": []}
-            blocks.append(cur)
-            continue
-        if cur is None or b is None:
-            continue
-        pct = r[2:14]
-        ok = all(isinstance(v, (int, float)) for v in pct)
-        cur["rows"].append({"colleccio": str(b), "pct": [float(v) for v in pct] if ok else None,
-                            "unitats": num(r[15]), "models_venda": num(r[16]), "models_hi26": num(r[17]),
-                            "nota": str(r[18]) if r[18] else "", "total": str(b) == "TOTS ELS MODELS HI26"})
-    return {"any": int(m.group(1)) if m else None, "fitxer": os.path.basename(path), "blocks": blocks}
+    seasons: dict = {}
+    for ws in wb.worksheets:   # un full per temporada (HI26, ES26...)
+        blocks, cur = [], None
+        for r in ws.iter_rows(values_only=True):
+            r = list(r) + [None] * (19 - len(r))
+            b = r[1]
+            if b in ("DONA", "HOME", "NEN"):
+                cur = {"genere": b, "rows": []}
+                blocks.append(cur)
+                continue
+            if cur is None or b is None:
+                continue
+            pct = r[2:14]
+            ok = all(isinstance(v, (int, float)) for v in pct)
+            cur["rows"].append({"colleccio": str(b), "pct": [float(v) for v in pct] if ok else None,
+                                "unitats": num(r[15]), "models_venda": num(r[16]), "models_hi26": num(r[17]),
+                                "nota": str(r[18]) if r[18] else "", "total": str(b).upper().startswith("TOTS ELS MODELS")})
+        if blocks:
+            seasons[ws.title.strip().upper()] = blocks
+    hi = next((k for k in seasons if k.startswith("HI")), None)
+    return {"any": int(m.group(1)) if m else None, "fitxer": os.path.basename(path), "blocks": seasons.get(hi, []), "seasons": seasons}
 
 
 def load_almacen(folder: str) -> tuple[pd.DataFrame, dict]:
@@ -667,9 +671,14 @@ def previsio_fins_desembre(mc: pd.DataFrame, prev: dict | None, hi_start: dt.dat
     if not prev or not prev.get("blocks") or cover_end.month < 9 or cover_end < hi_start:
         return out, avisos, detail
     curves: dict = {}
+    generic: dict = {}
     for b in prev["blocks"]:
         for r in b["rows"]:
-            if r["pct"]:
+            if not r["pct"]:
+                continue
+            if r.get("total"):
+                generic[b["genere"]] = r["pct"]
+            else:
                 curves[(b["genere"], norm(r["colleccio"]))] = r["pct"]
     GEN = {"DONA": "DONA", "UNISEX": "DONA", "HOME": "HOME", "NENS": "NEN", "NEN": "NEN", "MINI": "NEN"}
 
@@ -681,7 +690,7 @@ def previsio_fins_desembre(mc: pd.DataFrame, prev: dict | None, hi_start: dt.dat
         for k in (c, c.replace(" dona", "").replace(" home", "").strip(), c.split("-")[0].strip(), c.split(" ")[0].strip()):
             if (g, k) in curves:
                 return curves[(g, k)], k
-        return curves.get((g, norm("TOTS ELS MODELS HI26"))), "genèrica"
+        return generic.get(g), "genèrica"
 
     dim = calendar.monthrange(cover_end.year, cover_end.month)[1]
     usats = set()
@@ -1112,6 +1121,8 @@ table.prev td.generic{font-style:italic;color:var(--muted)}table.prev td.heat{fo
 table.prev th.num,table.prev td.num{text-align:right}
 table.prev th{overflow:hidden;text-overflow:ellipsis}table.prev td{overflow:hidden;text-overflow:ellipsis}
 .subpanel{margin-top:22px;border-top:1px solid var(--line);padding-top:12px}.subpanel h3{font-size:14px;margin:0 0 8px;color:var(--muted);font-weight:600}
+.prevsec{margin-bottom:34px}.prevsec>h2{font-size:19px;color:#1f3864;margin:4px 0 12px;letter-spacing:.6px;border-left:5px solid #1f3864;padding-left:10px}
+.prevsec .wrap{max-height:none!important}
 .kpis:empty{display:none}
 .btn.primary{background:#1f3864;color:#fff;border-color:#1f3864}.btn.primary:hover{background:#2c4a7c}
 th.selcol,td.selcol{width:36px;text-align:center;padding:4px 6px;overflow:visible}
@@ -1317,6 +1328,7 @@ function niceStep(raw){ const p = Math.pow(10, Math.floor(Math.log10(Math.max(ra
 
 function build(id, spec, rows){
   const panel = document.getElementById('p-'+id);
+  if(spec.seasonPrefix) rows = rows.filter(r => String(r.SEASON || '').toUpperCase().startsWith(spec.seasonPrefix));
   const hasSel = !!spec.select;
   const selFilter = !!spec.selectFilter;
   const stickyLeft = hasSel ? SELW : 0;
@@ -1582,30 +1594,39 @@ function prevCells(pct){
   return pct.map(v => '<td class="num heat" style="background:rgba(31,56,100,'+Math.min(0.6, v*2.4).toFixed(2)+')'+(v >= 0.17 ? ';color:#fff' : '')+'">'+(v*100).toFixed(1)+'%</td>').join('')
        + '<td class="num"><b>'+Math.round(s*100)+'%</b></td>';
 }
-function buildPrev(){
-  const panel = document.getElementById('p-prev'); const P = DATA.prev;
-  if(!P || !P.blocks || !P.blocks.length){ panel.innerHTML = '<p class="muted">No s’ha trobat el fitxer «Càlcul venda per col·leccio».</p><div class="subpanel"><h3>Model_color, ordenats per la venda de la setmana</h3><div id="p-pmc"></div></div>'; return; }
-  let h = '<p class="muted" style="margin:4px 0 10px">Distribució mensual de la venda '+P.any+' per col·lecció dels models HI26 (mes de la data de comanda). Clica un gènere per desplegar-ne les col·leccions. Les files en cursiva usen la corba genèrica del gènere perquè tenen poques dades o cap venda '+P.any+'; passa el ratolí per veure el motiu. Font: '+esc(P.fitxer)+'.</p>';
+function prevTable(P, blocks, sec, temp){
+  if(!blocks || !blocks.length) return '<p class="muted">No hi ha el full «'+esc(temp)+'» al fitxer «Càlcul venda per col·leccio». Executa previsio_colleccions.py --temporada '+esc(temp)+'.</p>';
   const W = {col: 230, mes: 84, total: 72, unit: 110};
   const totalW = W.col + 12 * W.mes + W.total + W.unit;
+  let h = '<p class="muted" style="margin:4px 0 10px">Distribució mensual de la venda '+P.any+' per col·lecció dels models '+esc(temp)+' (mes de la data de comanda). Clica un gènere per desplegar-ne les col·leccions. Les files en cursiva usen la corba genèrica del gènere perquè tenen poques dades o cap venda '+P.any+'; passa el ratolí per veure el motiu.</p>';
   h += '<div class="wrap prevwrap"><table class="prev" style="table-layout:fixed;width:'+totalW+'px;min-width:0"><colgroup><col style="width:'+W.col+'px">'
      + MESOS_CA.map(() => '<col style="width:'+W.mes+'px">').join('')
      + '<col style="width:'+W.total+'px"><col style="width:'+W.unit+'px"></colgroup>'
      + '<thead><tr><th class="sticky" style="left:0">Col·lecció</th>'
      + MESOS_CA.map(m => '<th class="num">'+m+'</th>').join('')
      + '<th class="num">Total</th><th class="num">Unitats '+P.any+'</th></tr></thead><tbody>';
-  P.blocks.forEach((b, bi) => {
+  blocks.forEach((b, bi) => {
     const tot = b.rows.find(r => r.total) || {pct:null, unitats:0};
-    const n = b.rows.filter(r => !r.total).length;
-    h += '<tr class="gen" data-b="'+bi+'" title="Clica per desplegar o plegar"><td class="sticky" style="left:0"><span class="tri">▸</span><b>'+esc(b.genere)+'</b> <small>'+n+' col·leccions</small></td>'
+    const n = b.rows.filter(r => !r.total).length; const key = sec + bi;
+    h += '<tr class="gen" data-b="'+key+'" title="Clica per desplegar o plegar"><td class="sticky" style="left:0"><span class="tri">▸</span><b>'+esc(b.genere)+'</b> <small>'+n+' col·leccions</small></td>'
        + prevCells(tot.pct) + '<td class="num"><b>'+NUMFMT.format(tot.unitats)+'</b></td></tr>';
     b.rows.filter(r => !r.total).forEach(r => {
-      h += '<tr class="col b'+bi+'" hidden'+(r.nota ? ' title="'+esc(r.nota)+'"' : '')+'><td class="sticky'+(r.nota ? ' generic' : '')+'" style="left:0">'+esc(r.colleccio)+(r.nota ? ' <small>genèrica</small>' : '')+'</td>'
+      h += '<tr class="col b'+key+'" hidden'+(r.nota ? ' title="'+esc(r.nota)+'"' : '')+'><td class="sticky'+(r.nota ? ' generic' : '')+'" style="left:0">'+esc(r.colleccio)+(r.nota ? ' <small>genèrica</small>' : '')+'</td>'
          + prevCells(r.pct) + '<td class="num">'+NUMFMT.format(r.unitats)+'</td></tr>';
     });
   });
-  h += '</tbody></table></div>';
-  h += '<div class="subpanel"><h3>Model_color, ordenats per la venda de la setmana</h3><div id="p-pmc"></div></div>';
+  return h + '</tbody></table></div>';
+}
+function buildPrev(){
+  const panel = document.getElementById('p-prev'); const P = DATA.prev || {seasons: {}};
+  const seasons = P.seasons || {};
+  const hiKey = Object.keys(seasons).find(k => k.startsWith('HI')) || 'HI26';
+  const esKey = Object.keys(seasons).find(k => k.startsWith('ES')) || 'ES26';
+  let h = '<div class="prevsec"><h2>HIVERN</h2>' + prevTable(P, seasons[hiKey], 'h', hiKey)
+        + '<div class="subpanel"><h3>Model_color d’hivern, ordenats per la venda de la setmana</h3><div id="p-pmc"></div></div></div>';
+  h += '<div class="prevsec"><h2>ESTIU</h2>' + prevTable(P, seasons[esKey], 'e', esKey)
+     + '<div class="subpanel"><h3>Model_color d’estiu, ordenats per la venda de la setmana</h3><div id="p-pmce"></div></div></div>';
+  if(P.fitxer) h += '<p class="muted" style="margin-top:10px">Font de les corbes: '+esc(P.fitxer)+'.</p>';
   panel.innerHTML = h;
   panel.querySelectorAll('tr.gen').forEach(tr => tr.addEventListener('click', () => {
     const open = tr.classList.toggle('open');
@@ -1616,7 +1637,9 @@ function buildPrev(){
 buildPrev();
 const NOVIEW = { fit(){}, refresh(){}, syncWidths(){}, onSel(){}, show(){} };
 VIEWS.pmc = (DATA.pmcSpec && document.getElementById('p-pmc')) ? build('pmc', DATA.pmcSpec, DATA.mc) : NOVIEW;
-VIEWS.prev = { fit(){ VIEWS.pmc.fit(); }, refresh(){}, syncWidths(){ VIEWS.pmc.syncWidths(); }, onSel(){}, show(){ VIEWS.pmc.show(); } };
+VIEWS.pmce = (DATA.pmceSpec && document.getElementById('p-pmce')) ? build('pmce', DATA.pmceSpec, DATA.mc) : NOVIEW;
+VIEWS.prev = { fit(){ VIEWS.pmc.fit(); VIEWS.pmce.fit(); }, refresh(){}, syncWidths(){ VIEWS.pmc.syncWidths(); VIEWS.pmce.syncWidths(); }, onSel(){},
+               show(){ VIEWS.pmc.show(); VIEWS.pmce.show(); } };
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='p-'+t.dataset.t));
@@ -1682,7 +1705,14 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
                         ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"], [], mc_sums | {"DISPONIBLE ALMACÉN", "ACUM HI", "PREVISIÓ", "A COMPRAR"},
                         (("model_color", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc_prev.columns[-1], "green")) + orange_cols,
                         red=RED_RULES_MC, cols=list(mc_prev.columns),
-                        extra={"ownCols": True, "colsKey": "repo-zld-cols-prev", "defaultVisible": prev_default, "select": False, "selectFilter": False}),
+                        extra={"ownCols": True, "colsKey": "repo-zld-cols-prev", "defaultVisible": prev_default, "select": False, "selectFilter": False,
+                               "seasonPrefix": "HI"}),
+        "pmceSpec": spec(mc_prev, num_prev, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"],
+                         ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"], [], mc_sums | {"DISPONIBLE ALMACÉN", "ACUM HI", "PREVISIÓ", "A COMPRAR"},
+                         (("model_color", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc_prev.columns[-1], "green")) + orange_cols,
+                         red=RED_RULES_MC, cols=list(mc_prev.columns),
+                         extra={"ownCols": True, "colsKey": "repo-zld-cols-prev-es", "defaultVisible": prev_default, "select": False, "selectFilter": False,
+                                "seasonPrefix": "ES"}),
         "mc": recs(mc_prev), "sku": recs(sku),
         "mcSpec": spec(mc, num_mc, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
                        [{"k": "__rows__", "l": "model_color amb REPO", "selsub": True}, {"k": "REPO", "l": "parells REPO", "selsub": True},
