@@ -1054,6 +1054,21 @@ function build(id, spec, rows){
     wrap.style.maxHeight = Math.max(240, window.innerHeight - top - 16) + 'px';
     topinner.style.width = table.scrollWidth + 'px';
   }
+  function renderKpis(){
+    const out = lastOut;
+    const k = document.getElementById('k-'+id);
+    const repoRows = out.filter(r=>r.REPO>0);
+    const sum = key => out.reduce((a,r)=>a+(Number(r[key])||0),0);
+    const selRows = hasSel ? rows.filter(r => SEL.has(r.model_color)) : [];
+    const sumSel = key => selRows.reduce((a,r)=>a+(Number(r[key])||0),0);
+    const small = (label, val) => '<small>'+esc(label)+': <b style="display:inline;font-size:13px">'+NUMFMT.format(val)+'</b></small>';
+    k.innerHTML = spec.kpis.map(x => {
+      const v = x.k==='__rows__' ? repoRows.length : sum(x.k);
+      if(x.total !== undefined && x.total !== null) return '<div class="kpi"><b>'+NUMFMT.format(x.total)+'</b><span>'+esc(x.l)+'</span>'+small(x.sub||'llistat', v)+'</div>';
+      if(x.selsub && hasSel){ const vs = x.k==='__rows__' ? selRows.length : sumSel(x.k); return '<div class="kpi"><b>'+NUMFMT.format(v)+'</b><span>'+esc(x.l)+'</span>'+small('seleccionats', vs)+'</div>'; }
+      return '<div class="kpi"><b>'+NUMFMT.format(v)+'</b><span>'+esc(x.l)+'</span></div>';
+    }).join('');
+  }
   function updateSelUI(){
     const sa = panel.querySelector('#sa-'+id);
     if(sa){
@@ -1110,14 +1125,7 @@ function build(id, spec, rows){
     });
     tfoot.innerHTML = f;
     document.getElementById('c-'+id).textContent = out.length + ' files' + (out.length>MAX ? ' (es mostren '+MAX+')' : '');
-    const k = document.getElementById('k-'+id);
-    const repoRows = out.filter(r=>r.REPO>0);
-    const sum = key => out.reduce((a,r)=>a+(Number(r[key])||0),0);
-    k.innerHTML = spec.kpis.map(x => {
-      const v = x.k==='__rows__' ? repoRows.length : sum(x.k);
-      if(x.total !== undefined && x.total !== null) return '<div class="kpi"><b>'+NUMFMT.format(x.total)+'</b><span>'+esc(x.l)+'</span><small>'+esc(x.sub||'llistat')+': <b style="display:inline;font-size:13px">'+NUMFMT.format(v)+'</b></small></div>';
-      return '<div class="kpi"><b>'+NUMFMT.format(v)+'</b><span>'+esc(x.l)+'</span></div>';
-    }).join('');
+    renderKpis();
     updateSelUI();
     applyWidths();
     fitHeight();
@@ -1129,7 +1137,7 @@ function build(id, spec, rows){
       const next = new Set(SEL); if(cb.checked) next.add(cb.dataset.mc); else next.delete(cb.dataset.mc);
       SEL = next; saveSel();
       cb.closest('tr').classList.toggle('sel', cb.checked);
-      updateSelUI();
+      updateSelUI(); renderKpis();
       Object.values(VIEWS).forEach(v => { if(v !== VIEWS[id]) v.onSel(); });
     });
     panel.querySelector('#sc-'+id).addEventListener('click', () => setSel(new Set()));
@@ -1205,7 +1213,8 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
         "selKey": f"repo-zld-sel-{sel_key}" if sel_key else "repo-zld-sel",
         "mc": recs(mc), "sku": recs(sku),
         "mcSpec": spec(mc, num_mc, "REPO", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
-                       [{"k": "__rows__", "l": "model_color amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 30d)"},
+                       [{"k": "__rows__", "l": "model_color amb REPO", "selsub": True}, {"k": "REPO", "l": "parells REPO", "selsub": True},
+                        {"k": "PREPARABLE", "l": "preparables (stock 30d)", "selsub": True},
                         {"k": "VENDA SET", "l": "venda setmana (tot Zalando)", "total": totals.get("venda_setm"), "sub": "del llistat"},
                         {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"},
                         {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums,
