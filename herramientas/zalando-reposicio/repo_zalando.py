@@ -861,6 +861,12 @@ table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%
 th{position:sticky;top:0;background:var(--head);color:#fff;padding:6px 8px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;z-index:2;border-right:1px solid rgba(255,255,255,.12)}
 th.num{text-align:right}th .arr{opacity:.7;font-size:10px;margin-left:3px}
 th.hg-grey{background:#d9d9d9;color:#1c2430}th.hg-yellow{background:#ffe699;color:#1c2430}th.hg-green{background:#c6e0b4;color:#1c2430}
+th.selcol,td.selcol{width:36px;text-align:center;padding:4px 6px;overflow:visible}
+th.selcol input,td.selcol input{width:16px;height:16px;margin:0;cursor:pointer;accent-color:#1f3864;vertical-align:middle}
+tr.sel td{background:#dde8f7}tr.sel:hover td{background:#cfdff3}tr.sel td.repo{background:#c5e3b6}tr.sel td.sticky{background:#dde8f7}
+.selinfo{font-size:12.5px;font-weight:600;color:var(--ink)}
+.btn.small{padding:5px 10px;font-size:12.5px}
+td.empty{padding:18px 14px;color:var(--muted);font-style:italic;white-space:normal}
 th{overflow:hidden}th .rs{position:absolute;top:0;right:0;width:8px;height:100%;cursor:col-resize;user-select:none}
 th .rs:hover,th.resizing .rs{background:rgba(255,255,255,.45)}th.resizing{background:#2c4a7c}
 td{overflow:hidden;text-overflow:ellipsis}
@@ -899,9 +905,11 @@ const DATA = __DATA__;
 const NUMFMT = new Intl.NumberFormat('ca-ES');
 const STORE_KEY = 'repo-zld-cols-shared';
 const WIDTH_KEY = 'repo-zld-widths';
+const SEL_KEY = DATA.selKey || 'repo-zld-sel';
 const VIEWS = {};
 let HIDDEN = new Set();
 let WIDTHS = {};
+let SEL = new Set();   // model_color seleccionats per reposar
 try {
   const s = localStorage.getItem(STORE_KEY);
   if(s) HIDDEN = new Set(JSON.parse(s));
@@ -909,23 +917,32 @@ try {
     ['repo-zld-cols-mc','repo-zld-cols-sku'].forEach(k => { const o = localStorage.getItem(k); if(o) JSON.parse(o).forEach(c => HIDDEN.add(c)); localStorage.removeItem(k); });
   }
   const w = localStorage.getItem(WIDTH_KEY); if(w) WIDTHS = JSON.parse(w) || {};
+  const sl = localStorage.getItem(SEL_KEY); if(sl) SEL = new Set(JSON.parse(sl));
 } catch(e) {}
 function saveHidden(){ try { localStorage.setItem(STORE_KEY, JSON.stringify([...HIDDEN])); } catch(e) {} }
 function saveWidths(){ try { localStorage.setItem(WIDTH_KEY, JSON.stringify(WIDTHS)); } catch(e) {} }
+function saveSel(){ try { localStorage.setItem(SEL_KEY, JSON.stringify([...SEL])); } catch(e) {} }
 function setHidden(next){ HIDDEN = next; saveHidden(); Object.values(VIEWS).forEach(v => v.refresh()); }
 function resetWidths(){ WIDTHS = {}; saveWidths(); Object.values(VIEWS).forEach(v => v.refresh()); }
+function setSel(next){ SEL = next; saveSel(); Object.values(VIEWS).forEach(v => v.onSel()); }
 function esc(v){ return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
-const MINW = 40, MAXW_AUTO = 360;
+const MINW = 40, MAXW_AUTO = 360, SELW = 36;
+const REPO_BY_MC = {}; DATA.mc.forEach(r => { REPO_BY_MC[r.model_color] = r.REPO || 0; });
 function build(id, spec, rows){
   const panel = document.getElementById('p-'+id);
+  const hasSel = !!spec.select;          // columna de caselles (model_color)
+  const selFilter = !!spec.selectFilter; // només files dels model_color seleccionats (SKU)
+  const stickyLeft = hasSel ? SELW : 0;
   const state = {q:'', sortKey: spec.defaultSort, sortDir: -1, onlyRepo: spec.onlyRepoDefault, filters:{}};
-  let suppressSort = false;
+  let suppressSort = false, lastOut = [], dirty = false;
   const facets = spec.facets.map(f => ({key:f, values:[...new Set(rows.map(r=>r[f]).filter(v=>v!==null && v!==''))].sort()}));
   let html = '<div class="kpis" id="k-'+id+'"></div><div class="bar">';
   html += '<input type="text" id="q-'+id+'" placeholder="Cerca (model, color, EAN, SKU...)">';
   facets.forEach(f => { html += '<select data-f="'+esc(f.key)+'"><option value="">'+esc(f.key)+': tots</option>'+f.values.map(v=>'<option>'+esc(v)+'</option>').join('')+'</select>'; });
   html += '<label><input type="checkbox" id="r-'+id+'" '+(state.onlyRepo?'checked':'')+'> només REPO &gt; 0</label>';
   html += '<div class="colwrap"><button type="button" class="btn" id="cb-'+id+'">Columnes ▾</button><div class="colpick" id="cp-'+id+'" hidden></div></div>';
+  html += '<span class="selinfo" id="si-'+id+'"></span>';
+  if(hasSel) html += '<button type="button" class="btn small" id="sc-'+id+'" title="Treu la marca de tots els model_color, també els que no es veuen pel filtre">Desmarcar tot</button>';
   html += '<span class="count" id="c-'+id+'"></span></div>';
   html += '<div class="topscroll" id="ts-'+id+'"><div></div></div>';
   html += '<div class="wrap" id="w-'+id+'"><table id="t-'+id+'"><colgroup></colgroup><thead><tr></tr></thead><tbody></tbody><tfoot><tr></tr></tfoot></table></div>';
@@ -934,6 +951,7 @@ function build(id, spec, rows){
   const thead = panel.querySelector('thead tr'), tbody = panel.querySelector('tbody'), tfoot = panel.querySelector('tfoot tr');
   const topscroll = panel.querySelector('.topscroll'), topinner = topscroll.firstElementChild;
   const colpick = panel.querySelector('.colpick'), colbtn = panel.querySelector('#cb-'+id);
+  const selinfo = panel.querySelector('#si-'+id);
   function visCols(){ const v = spec.cols.filter(c => !HIDDEN.has(c.k)); return v.length ? v : [spec.cols[0]]; }
   function renderPicker(){
     const vis = visCols().length;
@@ -953,14 +971,13 @@ function build(id, spec, rows){
       else { const next = new Set(HIDDEN); spec.cols.slice(1).forEach(c => next.add(c.k)); next.delete(spec.cols[0].k); setHidden(next); }
     }));
   }
-  function totalWidth(){ return visCols().reduce((a,c) => a + (WIDTHS[c.k] || 100), 0); }
+  function totalWidth(){ return visCols().reduce((a,c) => a + (WIDTHS[c.k] || 100), 0) + (hasSel ? SELW : 0); }
   function applyWidths(){
     const cols = visCols();
     if(cols.some(c => !WIDTHS[c.k])){
-      // mesura l'amplada natural (capçalera + dades) de les columnes sense amplada guardada
       table.style.tableLayout = 'auto'; table.style.width = 'max-content'; table.style.minWidth = '0';
       colgroup.innerHTML = '';
-      const ths = [...thead.children];
+      const ths = [...thead.children].filter(t => !t.classList.contains('selcol'));
       cols.forEach((c,i) => {
         if(WIDTHS[c.k]) return;
         const th = ths[i]; const w = th && th.getBoundingClientRect ? th.getBoundingClientRect().width : 120;
@@ -968,13 +985,15 @@ function build(id, spec, rows){
       });
       saveWidths();
     }
-    colgroup.innerHTML = cols.map(c => '<col style="width:'+WIDTHS[c.k]+'px">').join('');
+    colgroup.innerHTML = (hasSel ? '<col style="width:'+SELW+'px">' : '') + cols.map(c => '<col style="width:'+WIDTHS[c.k]+'px">').join('');
     table.style.tableLayout = 'fixed'; table.style.minWidth = '0'; table.style.width = totalWidth() + 'px';
   }
   function renderHead(){
     const cols = visCols();
-    thead.innerHTML = cols.map((c,i) => '<th class="'+(c.n?'num':'')+(c.hg?' hg-'+c.hg:'')+(i===0?' sticky':'')+'" data-k="'+esc(c.k)+'" title="'+esc(c.h||c.l)+'">'+esc(c.l)+'<span class="arr"></span><span class="rs" title="Arrossega per canviar l’amplada · doble clic: ajustar"></span></th>').join('');
-    thead.querySelectorAll('th').forEach(th => th.addEventListener('click', () => {
+    let h = hasSel ? '<th class="selcol sticky" style="left:0" title="Marca o desmarca tots els model_color de la vista actual (respecta filtres i cerca)"><input type="checkbox" id="sa-'+id+'"></th>' : '';
+    h += cols.map((c,i) => '<th class="'+(c.n?'num':'')+(c.hg?' hg-'+c.hg:'')+(i===0?' sticky':'')+'"'+(i===0?' style="left:'+stickyLeft+'px"':'')+' data-k="'+esc(c.k)+'" title="'+esc(c.h||c.l)+'">'+esc(c.l)+'<span class="arr"></span><span class="rs" title="Arrossega per canviar l’amplada · doble clic: ajustar"></span></th>').join('');
+    thead.innerHTML = h;
+    thead.querySelectorAll('th[data-k]').forEach(th => th.addEventListener('click', () => {
       if(suppressSort) return;
       const k = th.dataset.k;
       if(state.sortKey===k) state.sortDir*=-1; else { state.sortKey=k; state.sortDir = spec.cols.find(c=>c.k===k).n ? -1 : 1; }
@@ -987,9 +1006,10 @@ function build(id, spec, rows){
         e.preventDefault(); e.stopPropagation();
         const c = visCols()[i]; const startX = e.clientX; const startW = WIDTHS[c.k] || 100; const th = hnd.parentElement;
         th.classList.add('resizing');
+        const off = hasSel ? 1 : 0;
         const move = ev => {
           WIDTHS[c.k] = Math.max(MINW, Math.round(startW + ev.clientX - startX));
-          if(colgroup.children[i]) colgroup.children[i].style.width = WIDTHS[c.k] + 'px';
+          if(colgroup.children[i+off]) colgroup.children[i+off].style.width = WIDTHS[c.k] + 'px';
           table.style.width = totalWidth() + 'px';
         };
         const up = () => {
@@ -1001,16 +1021,34 @@ function build(id, spec, rows){
         document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
       });
     });
+    const sa = panel.querySelector('#sa-'+id);
+    if(sa) sa.addEventListener('change', () => {
+      const keys = lastOut.map(r => r.model_color); const next = new Set(SEL);
+      const all = keys.length > 0 && keys.every(k => SEL.has(k));
+      if(all) keys.forEach(k => next.delete(k)); else keys.forEach(k => next.add(k));
+      setSel(next);
+    });
   }
   function fitHeight(){
     const top = wrap.getBoundingClientRect().top;
     wrap.style.maxHeight = Math.max(240, window.innerHeight - top - 16) + 'px';
     topinner.style.width = table.scrollWidth + 'px';
   }
+  function updateSelUI(){
+    const sa = panel.querySelector('#sa-'+id);
+    if(sa){
+      const keys = lastOut.map(r => r.model_color); const n = keys.filter(k => SEL.has(k)).length;
+      sa.checked = keys.length > 0 && n === keys.length; sa.indeterminate = n > 0 && n < keys.length;
+    }
+    const pares = [...SEL].reduce((a,k) => a + (REPO_BY_MC[k] || 0), 0);
+    if(hasSel) selinfo.textContent = SEL.size ? SEL.size + ' model_color marcats · ' + NUMFMT.format(pares) + ' parells REPO' : 'Cap model_color marcat';
+    else selinfo.textContent = SEL.size ? 'SKU dels ' + SEL.size + ' model_color marcats' : '';
+  }
   function render(){
     const cols = visCols();
     const q = state.q.toLowerCase();
     let out = rows.filter(r => {
+      if(selFilter && !SEL.has(r.model_color)) return false;
       if(state.onlyRepo && !(r.REPO > 0)) return false;
       for(const k in state.filters){ if(state.filters[k] && String(r[k]) !== state.filters[k]) return false; }
       if(!q) return true;
@@ -1018,11 +1056,17 @@ function build(id, spec, rows){
     });
     const sk = state.sortKey, sd = state.sortDir;
     out.sort((a,b) => { const x=a[sk], y=b[sk]; if(x===y) return 0; if(x===null||x===undefined) return 1; if(y===null||y===undefined) return -1; return (x>y?1:-1)*sd; });
-    thead.querySelectorAll('th').forEach(th => th.querySelector('.arr').textContent = th.dataset.k===sk ? (sd>0?'▲':'▼') : '');
+    lastOut = out;
+    thead.querySelectorAll('th[data-k]').forEach(th => { const a = th.querySelector('.arr'); if(a) a.textContent = th.dataset.k===sk ? (sd>0?'▲':'▼') : ''; });
     const MAX = 6000; const shown = out.slice(0, MAX);
     let h = '';
+    if(selFilter && SEL.size === 0){
+      h = '<tr><td class="empty" colspan="'+cols.length+'">Cap model_color marcat. Marca’ls amb les caselles de la pestanya «Per model_color» i aquí apareixeran les seves talles.</td></tr>';
+    }
     for(const r of shown){
-      h += '<tr>';
+      const selected = SEL.has(r.model_color);
+      h += '<tr'+(hasSel && selected ? ' class="sel"' : '')+'>';
+      if(hasSel) h += '<td class="selcol sticky" style="left:0"><input type="checkbox" data-mc="'+esc(r.model_color)+'"'+(selected?' checked':'')+'></td>';
       cols.forEach((c,i) => {
         let v = r[c.k]; let cls = c.n ? 'num' : '';
         if(c.k === 'REPO' && v > 0) cls += ' repo';
@@ -1033,16 +1077,16 @@ function build(id, spec, rows){
         if(i===0) cls += ' sticky';
         if(v === null || v === undefined) v = '';
         else if(c.n && typeof v === 'number') v = Number.isInteger(v) ? NUMFMT.format(v) : v.toFixed(1);
-        h += '<td class="'+cls+'" title="'+esc(v)+'">'+esc(v)+'</td>';
+        h += '<td class="'+cls+'"'+(i===0?' style="left:'+stickyLeft+'px"':'')+' title="'+esc(v)+'">'+esc(v)+'</td>';
       });
       h += '</tr>';
     }
     tbody.innerHTML = h;
-    let f = '';
+    let f = hasSel ? '<td class="selcol sticky" style="left:0"></td>' : '';
     cols.forEach((c,i) => {
-      const st = i===0 ? ' sticky' : '';
-      if(c.sum){ const s = out.reduce((a,r)=>a+(Number(r[c.k])||0),0); f += '<td class="num'+st+'">'+NUMFMT.format(s)+'</td>'; }
-      else f += '<td class="'+st.trim()+'">'+(i===0 ? 'TOTAL ('+NUMFMT.format(out.length)+' files)' : '')+'</td>';
+      const st = i===0 ? ' sticky' : ''; const stl = i===0 ? ' style="left:'+stickyLeft+'px"' : '';
+      if(c.sum){ const s = out.reduce((a,r)=>a+(Number(r[c.k])||0),0); f += '<td class="num'+st+'"'+stl+'>'+NUMFMT.format(s)+'</td>'; }
+      else f += '<td class="'+st.trim()+'"'+stl+'>'+(i===0 ? 'TOTAL ('+NUMFMT.format(out.length)+' files)' : '')+'</td>';
     });
     tfoot.innerHTML = f;
     document.getElementById('c-'+id).textContent = out.length + ' files' + (out.length>MAX ? ' (es mostren '+MAX+')' : '');
@@ -1054,8 +1098,21 @@ function build(id, spec, rows){
       if(x.total !== undefined && x.total !== null) return '<div class="kpi"><b>'+NUMFMT.format(x.total)+'</b><span>'+esc(x.l)+'</span><small>'+esc(x.sub||'llistat')+': <b style="display:inline;font-size:13px">'+NUMFMT.format(v)+'</b></small></div>';
       return '<div class="kpi"><b>'+NUMFMT.format(v)+'</b><span>'+esc(x.l)+'</span></div>';
     }).join('');
+    updateSelUI();
     applyWidths();
     fitHeight();
+    dirty = false;
+  }
+  if(hasSel){
+    tbody.addEventListener('change', e => {
+      const cb = e.target; if(!cb.matches || !cb.matches('input[data-mc]')) return;
+      const next = new Set(SEL); if(cb.checked) next.add(cb.dataset.mc); else next.delete(cb.dataset.mc);
+      SEL = next; saveSel();
+      cb.closest('tr').classList.toggle('sel', cb.checked);
+      updateSelUI();
+      Object.values(VIEWS).forEach(v => { if(v !== VIEWS[id]) v.onSel(); });
+    });
+    panel.querySelector('#sc-'+id).addEventListener('click', () => setSel(new Set()));
   }
   panel.querySelector('#q-'+id).addEventListener('input', e => { state.q = e.target.value; render(); });
   panel.querySelector('#r-'+id).addEventListener('change', e => { state.onlyRepo = e.target.checked; render(); });
@@ -1068,20 +1125,27 @@ function build(id, spec, rows){
   wrap.addEventListener('scroll', () => { if(syncing) return; syncing = true; topscroll.scrollLeft = wrap.scrollLeft; syncing = false; });
   window.addEventListener('resize', fitHeight);
   renderPicker(); renderHead(); render();
-  return { fit: fitHeight, refresh(){ renderPicker(); renderHead(); render(); }, syncWidths(){ applyWidths(); fitHeight(); } };
+  return {
+    fit: fitHeight,
+    refresh(){ renderPicker(); renderHead(); render(); },
+    syncWidths(){ applyWidths(); fitHeight(); },
+    onSel(){ if(panel.classList.contains('active')) render(); else dirty = true; },
+    show(){ if(dirty) render(); else { applyWidths(); fitHeight(); } }
+  };
 }
 VIEWS.mc = build('mc', DATA.mcSpec, DATA.mc);
 VIEWS.sku = build('sku', DATA.skuSpec, DATA.sku);
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='p-'+t.dataset.t));
-  VIEWS[t.dataset.t].syncWidths();
+  VIEWS[t.dataset.t].show();
 }));
 </script></body></html>
 """
 
 
-def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, warnings: list[str], path: str, totals: dict | None = None):
+def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, warnings: list[str], path: str, totals: dict | None = None,
+               sel_key: str = ""):
     totals = totals or {}
     sku = sku.drop(columns=[c for c in HTML_HIDE if c in sku.columns])
     mc = mc.drop(columns=[c for c in HTML_HIDE if c in mc.columns])
@@ -1114,9 +1178,11 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
                 for k in range(names.index(start), names.index(end) + 1):
                     hg[names[k]] = cls
         return {"cols": [{"k": c, "l": c, "n": c in nums, "sum": c in sum_ok, "key": c in key_cols, "hg": hg.get(c, ""), "h": col_help(c)} for c in df.columns],
-                "defaultSort": default_sort, "onlyRepoDefault": only_repo, "facets": facets, "search": search, "kpis": kpis, "red": red or {}}
+                "defaultSort": default_sort, "onlyRepoDefault": only_repo, "facets": facets, "search": search, "kpis": kpis, "red": red or {},
+                "select": df is mc, "selectFilter": df is sku}
     mc_sums = sum_cols - {"VENDA SET", "VENDA 4 SETM"} | {"VENDA SET"}
     data = {
+        "selKey": f"repo-zld-sel-{sel_key}" if sel_key else "repo-zld-sel",
         "mc": recs(mc), "sku": recs(sku),
         "mcSpec": spec(mc, num_mc, "REPO", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
                        [{"k": "__rows__", "l": "model_color amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 30d)"},
@@ -1237,7 +1303,7 @@ def main():
     subtitle = (f"Setmana {week_lbl} · stock Zalando {snap_meta['fitxer']} · enviaments pendents {', '.join(pend_labels) or 'cap'} · "
                 f"regla venda x{mult:g} ({mult_src}) → nivell · generat {dt.datetime.now():%d/%m/%Y %H:%M}")
     write_html(sku, mc, title, subtitle, warnings, html_path,
-               totals={"stock_zld": snap_meta["total"], "venda_setm": info["venda_setm_total"]})
+               totals={"stock_zld": snap_meta["total"], "venda_setm": info["venda_setm_total"]}, sel_key=args.date)
 
     # resum
     print()
