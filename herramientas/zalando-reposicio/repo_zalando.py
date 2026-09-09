@@ -1842,7 +1842,8 @@ def main():
     previsio = prev_hi.combine_first(prev_es)
     prev_avisos = av_hi + av_es
     prev_detail = {**det_hi, **det_es}
-    a_comprar = (previsio - mc_prev["STOCK ZLD"] - mc_prev["ENV PENDENTS"] - mc_prev["DISPONIBLE ALMACÉN"]).clip(lower=0)
+    # el disponible negatiu (més compromès que estoc) es tracta com a 0: no ha d'inflar el que cal comprar
+    a_comprar = (previsio - mc_prev["STOCK ZLD"] - mc_prev["ENV PENDENTS"] - mc_prev["DISPONIBLE ALMACÉN"].clip(lower=0)).clip(lower=0)
     for frame in (mc, mc_prev):
         pos = list(frame.columns).index("AVÍS")
         frame.insert(pos, "PREVISIÓ", pd.array(previsio.round(), dtype="Int64"))
