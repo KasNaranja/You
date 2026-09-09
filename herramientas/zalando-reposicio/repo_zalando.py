@@ -793,6 +793,7 @@ KEY_FILL = PatternFill("solid", fgColor="FFF2CC")
 GREY_HDR = "D9D9D9"
 YELLOW_HDR = "FFE699"
 GREEN_HDR = "C6E0B4"
+ORANGE_HDR = "F8CBAD"
 RED_FILL = PatternFill("solid", fgColor="FFC7CE")
 RED_FONT = Font(color="9C0006")
 RED_RULES_MC = {"COBERTURA SET": 4, "DISPO 30 DIES": 100}  # en vermell si el valor és < llindar (vista model_color)
@@ -898,8 +899,8 @@ def write_excel(sku: pd.DataFrame, mc: pd.DataFrame, fora: pd.DataFrame, params:
         fora.to_excel(xw, sheet_name="FORA LLISTA", index=False)
         par.to_excel(xw, sheet_name="PARÀMETRES", index=False)
         lvl.to_excel(xw, sheet_name="NIVELLS", index=False, header=False)
-        groups_sku = (("EAN", "CREAT HI26", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("DIF", sku.columns[-1], GREEN_HDR))
-        groups_mc = (("model_color", "CREAT HI26", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("DIF", mc.columns[-1], GREEN_HDR))
+        groups_sku = (("EAN", "CREAT HI26", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("DIF", sku.columns[-1], GREEN_HDR), ("DTE", "DTE", ORANGE_HDR))
+        groups_mc = (("model_color", "CREAT HI26", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("DIF", mc.columns[-1], GREEN_HDR), ("DTE", "DTE", ORANGE_HDR))
         style_sheet(xw.sheets["CÀLCUL SKU"], sku, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "DIF", "REPO", "PREPARABLE"), header_groups=groups_sku)
         style_sheet(xw.sheets["MODEL_COLOR"], mc, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "REPO", "PREPARABLE"), header_groups=groups_mc,
                     red_rules=RED_RULES_MC)
@@ -934,7 +935,7 @@ header .sub{opacity:.85;font-size:12.5px;margin-top:4px}
 table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:12.5px}
 th{position:sticky;top:0;background:var(--head);color:#fff;padding:6px 8px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;z-index:2;border-right:1px solid rgba(255,255,255,.12)}
 th.num{text-align:right}th .arr{opacity:.7;font-size:10px;margin-left:3px}
-th.hg-grey{background:#d9d9d9;color:#1c2430}th.hg-yellow{background:#ffe699;color:#1c2430}th.hg-green{background:#c6e0b4;color:#1c2430}
+th.hg-grey{background:#d9d9d9;color:#1c2430}th.hg-yellow{background:#ffe699;color:#1c2430}th.hg-green{background:#c6e0b4;color:#1c2430}th.hg-orange{background:#f8cbad;color:#1c2430}
 th.selcol,td.selcol{width:36px;text-align:center;padding:4px 6px;overflow:visible}
 th.selcol input,td.selcol input{width:16px;height:16px;margin:0;cursor:pointer;accent-color:#1f3864;vertical-align:middle}
 tr.sel td{background:#dde8f7}tr.sel:hover td{background:#cfdff3}tr.sel td.repo{background:#c5e3b6}tr.sel td.sticky{background:#dde8f7}
@@ -1274,11 +1275,11 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
                         {"k": "VENDA SET", "l": "venda setmana (tot Zalando)", "total": totals.get("venda_setm"), "sub": "del llistat"},
                         {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"},
                         {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums,
-                       (("model_color", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc.columns[-1], "green")), red=RED_RULES_MC),
+                       (("model_color", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc.columns[-1], "green"), ("DTE", "DTE", "orange")), red=RED_RULES_MC),
         "skuSpec": spec(sku, num_sku, "REPO", True, ["GÈNERE", "SEASON", "TEMPORADA", "CREAT A ZLD?", "CREAT HI26"], ["EAN", "SKU", "model_color", "model", "color", "talla", "AVÍS"],
                         [{"k": "__rows__", "l": "SKUs amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 30d)"},
                          {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"}], sum_cols - {"VENDA SET", "VENDA 4 SETM", "ACUM'25", "ACUM'26"},
-                        (("EAN", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", sku.columns[-1], "green"))),
+                        (("EAN", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", sku.columns[-1], "green"), ("DTE", "DTE", "orange"))),
     }
     warn_html = "".join(f'<div class="warn">{html.escape(w)}</div>' for w in warnings)
     page = (HTML_TEMPLATE.replace("__TITLE__", html.escape(title)).replace("__SUBTITLE__", html.escape(subtitle))
