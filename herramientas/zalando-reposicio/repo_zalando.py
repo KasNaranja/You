@@ -473,7 +473,10 @@ def load_pending(folder: str) -> tuple[pd.DataFrame, list[str]]:
             print(f"AVÍS: {base} sense columnes ean/quantity, s'ignora")
             continue
         m = re.search(r"(\d\d)(\d\d)(\d{4})", base)
-        label = f"ENV {m.group(1)}.{m.group(2)}" if m else f"ENV {os.path.splitext(base)[0][:12]}"
+        if m:
+            label = f"ENV {m.group(1)}.{m.group(2)}"
+        else:  # sense data al nom: data de modificació del fitxer
+            label = f"ENV {dt.date.fromtimestamp(os.path.getmtime(f)):%d.%m}"
         while label in labels:
             label += "'"
         labels.append(label)
