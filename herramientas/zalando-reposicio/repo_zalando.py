@@ -1468,8 +1468,12 @@ function build(id, spec, rows){
     });
   }
   function fitHeight(){
-    const top = wrap.getBoundingClientRect().top;
-    wrap.style.maxHeight = Math.max(240, window.innerHeight - top - 16) + 'px';
+    if(spec.fullHeight){   // taula al mig d'una pàgina llarga: alçada gairebé de tota la finestra, independent d'on estigui
+      wrap.style.maxHeight = Math.max(400, window.innerHeight - 70) + 'px';
+    } else {
+      const top = wrap.getBoundingClientRect().top;
+      wrap.style.maxHeight = Math.max(240, window.innerHeight - top - 16) + 'px';
+    }
     topinner.style.width = table.scrollWidth + 'px';
   }
   function renderKpis(){
@@ -1726,7 +1730,8 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
                         ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"], [], mc_sums | {"DISPONIBLE ALMACÉN", "ACUM HI", "ACUM ES", "PREVISIÓ", "A COMPRAR"},
                         (("model_color", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc_prev.columns[-1], "green")) + orange_cols,
                         red=RED_RULES_MC, cols=list(mc_prev.columns),
-                        extra={"ownCols": True, "colsKey": "repo-zld-cols-prev", "defaultVisible": prev_default, "select": False, "selectFilter": False}),
+                        extra={"ownCols": True, "colsKey": "repo-zld-cols-prev", "defaultVisible": prev_default, "select": False, "selectFilter": False,
+                               "fullHeight": True}),
         "mc": recs(mc_prev), "sku": recs(sku),
         "mcSpec": spec(mc, num_mc, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
                        [{"k": "__rows__", "l": "model_color amb REPO", "selsub": True}, {"k": "REPO", "l": "parells REPO", "selsub": True},
