@@ -92,7 +92,8 @@ COL_HELP = {
     "ACUM'25": "Unitats venudes del model_color durant tot el 2025 (Venda 2025.xlsx).",
     "ACUM'26": "Unitats venudes del model_color el 2026 fins a la setmana de referència (suma de tots els fitxers setmanals).",
     "ACUM HI": "Unitats venudes del model_color des de l'1 de setembre (inici de la temporada d'hivern) fins a l'última setmana carregada, per data de comanda. Cada setmana s'hi va sumant.",
-    "PREVISIÓ": "Parells que es preveu vendre des de l'última setmana carregada fins al 31/12: ACUM HI ÷ (part de la corba de la col·lecció ja transcorreguda des de l'1 de setembre) × (% de setembre a desembre) − ACUM HI. La corba és la del gènere i col·lecció de la pestanya Previsió demanda (la genèrica del gènere si la col·lecció no hi és). Només models HI26/HI25; buit si no hi ha corba o no hi ha venda des de l'1 de setembre.",
+    "ACUM ES": "Unitats venudes del model_color de l'1 de març al 31 d'agost (temporada d'estiu) de l'any en curs, per data de comanda. Cada setmana s'hi va sumant fins que acaba l'agost.",
+    "PREVISIÓ": "Parells que es preveu vendre des de l'última setmana carregada fins al final de la temporada: hivern (models HI) fins al 31/12 a partir d'ACUM HI; estiu (models ES) fins al 31/8 a partir d'ACUM ES. Càlcul: acumulat ÷ (part de la corba de la col·lecció ja transcorreguda) × (% dels mesos de la temporada) − acumulat. Corba del gènere i col·lecció de la pestanya Previsió demanda (genèrica del gènere si la col·lecció no hi és). 0 si la temporada ja s'ha acabat; buit si no hi ha corba o venda acumulada.",
     "A COMPRAR": "PREVISIÓ − STOCK ZLD − ENV PENDENTS − DISPONIBLE ALMACÉN, si és positiu: parells que faltarien per cobrir la previsió fins al 31/12 amb el stock que ja tenim.",
     "VENDA 4 SETM": "Suma de les últimes 4 setmanes de venda del model_color. Només informativa.",
     "MULT": "Multiplicador de la venda setmanal. Surt de 'VENTA POR MES.xlsx' segons el mes de la data de càlcul (p.ex. setembre 3, abril 5). Es pot canviar per model_color a 'Ajustos repo.xlsx'.",
@@ -660,19 +661,21 @@ def load_almacen(folder: str) -> tuple[pd.DataFrame, dict]:
     return out, meta
 
 
-def previsio_fins_desembre(mc: pd.DataFrame, prev: dict | None, hi_start: dt.date, cover_end: dt.date) -> tuple[pd.Series, list[str], dict]:
-    """PREVISIÓ per model_color: parells a vendre des de cover_end fins al 31/12, extrapolant ACUM HI amb la corba
-    mensual (% del 2025) de la col·lecció del seu gènere. NaN si no hi ha corba, no és model d'hivern o no hi ha venda.
-    També retorna el detall per model_color (total set-des previst, corba i origen) per al gràfic de l'HTML."""
+def previsio_temporada(mc: pd.DataFrame, blocks: list | None, acum_col: str, start: dt.date, end: dt.date, cover_end: dt.date,
+                       prefix: str) -> tuple[pd.Series, list[str], dict]:
+    """PREVISIÓ per model_color d'una temporada (HI: 1/9-31/12 amb ACUM HI; ES: 1/3-31/8 amb ACUM ES): parells a vendre
+    des de cover_end fins al final de la temporada, extrapolant l'acumulat amb la corba mensual (% del 2025) de la
+    col·lecció del seu gènere. NaN si no hi ha corba, el model no és de la temporada o no hi ha venda acumulada.
+    També retorna el detall per model_color per al gràfic de l'HTML."""
     import calendar
     out = pd.Series(np.nan, index=mc.index, dtype=float)
     avisos: list[str] = []
     detail: dict = {}
-    if not prev or not prev.get("blocks") or cover_end.month < 9 or cover_end < hi_start:
+    if not blocks or cover_end < start:
         return out, avisos, detail
     curves: dict = {}
     generic: dict = {}
-    for b in prev["blocks"]:
+    for b in blocks:
         for r in b["rows"]:
             if not r["pct"]:
                 continue
@@ -692,26 +695,32 @@ def previsio_fins_desembre(mc: pd.DataFrame, prev: dict | None, hi_start: dt.dat
                 return curves[(g, k)], k
         return generic.get(g), "genèrica"
 
-    dim = calendar.monthrange(cover_end.year, cover_end.month)[1]
+    months = list(range(start.month, end.month + 1))
+    closed = cover_end > end                       # temporada acabada: tot és venda real, previsió 0
+    cm = min(cover_end, end)
+    dim = calendar.monthrange(cm.year, cm.month)[1]
     usats = set()
     for i, r in mc.iterrows():
-        if str(r.get("SEASON", "")).upper()[:2] != "HI" or r.get("ACUM HI", 0) <= 0:
+        acum = r.get(acum_col, 0) or 0
+        if not str(r.get("SEASON", "")).upper().startswith(prefix) or acum <= 0:
             continue
         p, k = corba(r.get("GÈNERE"), r.get("COL·LECCIÓ"))
         if p is None:
             continue
-        f = sum(p[m - 1] for m in range(9, cover_end.month)) + p[cover_end.month - 1] * cover_end.day / dim
-        tot = sum(p[8:12])
-        if f <= 0:
+        tot = sum(p[m - 1] for m in months)
+        f = tot if closed else sum(p[m - 1] for m in months if m < cm.month) + p[cm.month - 1] * cm.day / dim
+        if f <= 0 or tot <= 0:
             continue
-        total_sep_des = r["ACUM HI"] / f * tot
-        out.at[i] = max(0.0, round(total_sep_des - r["ACUM HI"]))
+        total = acum / f * tot
+        out.at[i] = max(0.0, round(total - acum))
         usats.add((r.get("GÈNERE"), r.get("COL·LECCIÓ"), k))
-        detail[r["model_color"]] = {"total": round(float(total_sep_des), 1), "curve": [round(float(x), 5) for x in p],
-                                    "src": ("genèrica " + str(GEN.get(str(r.get("GÈNERE")).upper()))) if k == "genèrica" else str(k).upper()}
+        detail[r["model_color"]] = {"total": round(float(total), 1), "curve": [round(float(x), 5) for x in p],
+                                    "src": ("genèrica " + str(GEN.get(str(r.get("GÈNERE")).upper()))) if k == "genèrica" else str(k).upper(),
+                                    "season": prefix, "months": months, "acum": int(acum), "start": start.isoformat(), "end": end.isoformat(),
+                                    "closed": bool(closed), "acumCol": acum_col}
     gen = sorted({f"{g}/{c}" for g, c, k in usats if k == "genèrica"})
     if gen:
-        avisos.append("Col·leccions sense corba pròpia (s'usa la genèrica del gènere): " + ", ".join(gen))
+        avisos.append(f"{prefix}: col·leccions sense corba pròpia (s'usa la genèrica del gènere): " + ", ".join(gen))
     return out, avisos, detail
 
 
@@ -778,7 +787,8 @@ def size_qty(table: dict, group: str, gender: str, talla: str) -> tuple[int, str
 def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.Series,
             stock_tp: pd.DataFrame, snap: pd.DataFrame, pending: pd.DataFrame, pend_labels: list[str],
             adjust: pd.DataFrame, mult: float, min_level: int, min_level_kids: int, max_level: int | None = None,
-            created: set | None = None, zinfo: pd.DataFrame | None = None, hi_start: dt.date | None = None):
+            created: set | None = None, zinfo: pd.DataFrame | None = None, hi_start: dt.date | None = None,
+            es_start: dt.date | None = None, es_end: dt.date | None = None):
     last_end = lines["end"].max()
     last_start = lines.loc[lines["end"] == last_end, "start"].iloc[0]
     week_ends = sorted(lines["end"].unique())
@@ -793,6 +803,8 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     mc_26 = lines.groupby("MODEL_COLOR")["units"].sum()
     hi_lines = lines[lines["data"] >= pd.Timestamp(hi_start)] if hi_start else lines.iloc[0:0]
     mc_hi = hi_lines.groupby("MODEL_COLOR")["units"].sum()
+    es_lines = lines[(lines["data"] >= pd.Timestamp(es_start)) & (lines["data"] <= pd.Timestamp(es_end))] if (es_start and es_end) else lines.iloc[0:0]
+    mc_es = es_lines.groupby("MODEL_COLOR")["units"].sum()
     sku_week = lw.groupby(["MODEL_COLOR", "TALLA"])["units"].sum()
     sku_26 = lines.groupby(["MODEL_COLOR", "TALLA"])["units"].sum()
 
@@ -805,6 +817,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     df["ACUM'25"] = df["model_color"].map(acum25).fillna(0).astype(int)
     df["ACUM'26"] = df["model_color"].map(mc_26).fillna(0).astype(int)
     df["ACUM HI"] = df["model_color"].map(mc_hi).fillna(0).astype(int)
+    df["ACUM ES"] = df["model_color"].map(mc_es).fillna(0).astype(int)
     key = list(zip(df["model_color"], df["talla"]))
     df["VENDA SKU 1 SETM"] = [int(sku_week.get(k, 0)) for k in key]
     df["VENDA SKU ACUM'26"] = [int(sku_26.get(k, 0)) for k in key]
@@ -896,7 +909,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     df = df.sort_values(["VENDA SET", "model_color", "_tk"], ascending=[False, True, True]).drop(columns="_tk").reset_index(drop=True)
 
     sku_cols = ["EAN", "SKU", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "model", "color", "model_color", "talla",
-                "SEASON ZLD", "ES POT ENVIAR?", "CREAT A ZLD?", "CREAT HI26", "VENDA SET", "ACUM'25", "ACUM'26", "ACUM HI", "VENDA 4 SETM",
+                "SEASON ZLD", "ES POT ENVIAR?", "CREAT A ZLD?", "CREAT HI26", "VENDA SET", "ACUM'25", "ACUM'26", "ACUM HI", "ACUM ES", "VENDA 4 SETM",
                 "MULT", "OBJECTIU", "NIVELL", "HAURIA", "STOCK ZLD", "OFFERABLE", "NON OFFERABLE"] + pend_labels + \
                ["ENV PENDENTS", "DIF", "REPO", "STOCK TP 01 02", "DISPO 30 DIES", "DTE", "PREPARABLE",
                 "VENDA SKU 1 SETM", "VENDA SKU ACUM'26", "AVÍS"]
@@ -905,7 +918,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     # vista model_color
     first = {c: "first" for c in ["model", "color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "SEASON ZLD", "ES POT ENVIAR?",
                                  "CREAT A ZLD?", "CREAT HI26", "VENDA SET", "VENDA SETM ANT", "VENDA 4 SETM", "MULT", "OBJECTIU", "GRUP NIVELL",
-                                 "NIVELL", "ACUM'25", "ACUM'26", "ACUM HI"]}
+                                 "NIVELL", "ACUM'25", "ACUM'26", "ACUM HI", "ACUM ES"]}
     sums = {c: "sum" for c in ["HAURIA", "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "DIF", "REPO", "PREPARABLE", "FALTA STOCK TP",
                                "STOCK TP 01 02", "DISPO 30 DIES", "DISPO 59 DIES"]}
     sums["DTE"] = "max"
@@ -917,7 +930,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     mc["AVÍS"] = df.groupby("model_color")["AVÍS"].agg(lambda s: "; ".join(sorted({x for x in s if x})))
     mc = mc.reset_index()
     mc_cols = ["model_color", "model", "color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "SEASON ZLD", "CREAT A ZLD?", "CREAT HI26",
-               "VENDA SET", "ACUM'25", "ACUM'26", "ACUM HI", "VENDA 4 SETM", "MULT", "OBJECTIU", "NIVELL", "HAURIA",
+               "VENDA SET", "ACUM'25", "ACUM'26", "ACUM HI", "ACUM ES", "VENDA 4 SETM", "MULT", "OBJECTIU", "NIVELL", "HAURIA",
                "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "COBERTURA SET", "DIF", "REPO", "PREPARABLE",
                "STOCK TP 01 02", "DISPO 30 DIES", "DTE", "AVÍS"]
     mc = mc[mc_cols].sort_values(["VENDA SET", "REPO", "ACUM'26"], ascending=[False, False, False]).reset_index(drop=True)
@@ -1067,7 +1080,7 @@ def write_excel(sku: pd.DataFrame, mc: pd.DataFrame, fora: pd.DataFrame, params:
         style_sheet(xw.sheets["MODEL_COLOR"], mc, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "REPO", "PREPARABLE"), header_groups=groups_mc,
                     red_rules=RED_RULES_MC)
         # columnes de previsió: ocultes als fulls de càlcul (es veuen a la pestanya Previsió demanda de l'HTML); Excel > Mostrar per veure-les
-        for sheet_name, frame, cols_ in (("CÀLCUL SKU", sku, ("ACUM HI",)), ("MODEL_COLOR", mc, ("ACUM HI", "PREVISIÓ", "A COMPRAR"))):
+        for sheet_name, frame, cols_ in (("CÀLCUL SKU", sku, ("ACUM HI", "ACUM ES")), ("MODEL_COLOR", mc, ("ACUM HI", "ACUM ES", "PREVISIÓ", "A COMPRAR"))):
             for c in cols_:
                 if c in frame.columns:
                     xw.sheets[sheet_name].column_dimensions[get_column_letter(list(frame.columns).index(c) + 1)].hidden = True
@@ -1260,14 +1273,16 @@ const MC_INFO = {}; DATA.mc.forEach(r => { MC_INFO[r.model_color] = r; });
 function openChart(mc){
   const C = DATA.chart || {}; const info = MC_INFO[mc] || {}; const actual = (C.months && C.months[mc]) ? C.months[mc] : new Array(12).fill(0);
   const fc = C.forecast && C.forecast[mc]; const cover = C.coverEnd ? new Date(C.coverEnd) : null; const cm = cover ? cover.getMonth() + 1 : 0;
+  const months = (fc && fc.months) ? fc.months : [9,10,11,12];
+  const sStart = fc && fc.start ? new Date(fc.start) : null, sEnd = fc && fc.end ? new Date(fc.end) : null;
   const forecast = new Array(12).fill(0);
-  if(fc && fc.curve){
-    const tot = fc.curve.slice(8, 12).reduce((a,v)=>a+v, 0) || 1;
-    for(let m = 9; m <= 12; m++){
+  if(fc && fc.curve && !fc.closed){
+    const tot = months.reduce((a,m)=>a+fc.curve[m-1], 0) || 1;
+    months.forEach(m => {
       const f = fc.total * fc.curve[m-1] / tot;
-      if(m < cm) continue;                                   // mes ja tancat: només real
-      forecast[m-1] = (m === cm) ? Math.max(0, f - actual[m-1]) : f;   // mes en curs: la part que falta
-    }
+      if(m < cm) return;                                                     // mes ja tancat: només real
+      forecast[m-1] = (m === cm) ? Math.max(0, f - actual[m-1]) : f;        // mes en curs: la part que falta
+    });
   }
   const totalsBar = actual.map((a,i) => a + forecast[i]);
   const maxV = Math.max(1, ...totalsBar);
@@ -1291,27 +1306,34 @@ function openChart(mc){
   }
   s += '<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(0)+'" y2="'+y(0)+'" stroke="#c9d1db"/></svg>';
   const acum = actual.reduce((a,v)=>a+v,0), prevTot = Math.round(forecast.reduce((a,v)=>a+v,0));
-  const chips = [['Venda '+(C.year||''), NUMFMT.format(acum)], ["Des de l'1/9", NUMFMT.format(info['ACUM HI']||0)], ['Previsió fins 31/12', fc ? NUMFMT.format(prevTot) : '—'],
-                 ['Stock Zalando', NUMFMT.format((info['STOCK ZLD']||0) + (info['ENV PENDENTS']||0))], ['Corba', fc ? fc.src : 'sense previsió']];
+  const dm = d => d ? d.getDate() + '/' + (d.getMonth() + 1) : '';
+  const chips = [['Venda '+(C.year||''), NUMFMT.format(acum)],
+                 [fc ? 'Des de l’' + dm(sStart) : 'Des de l’1/9', NUMFMT.format(fc ? fc.acum : (info['ACUM HI']||0))],
+                 ['Previsió fins ' + (fc ? dm(sEnd) : '31/12'), fc ? (fc.closed ? '0 (temporada acabada)' : NUMFMT.format(prevTot)) : '—'],
+                 ['Stock Zalando', NUMFMT.format((info['STOCK ZLD']||0) + (info['ENV PENDENTS']||0))], ['Corba', fc ? fc.src + (fc.season === 'ES' ? ' (estiu)' : ' (hivern)') : 'sense previsió']];
   let html = '<div class="modal" id="chart-modal"><div class="card">'
     + '<div class="mhead"><div><div class="mtitle">'+esc(mc)+'</div><div class="msub">'+esc([info['GÈNERE'], info['COL·LECCIÓ'], info['SEASON'], info['TEMPORADA']].filter(Boolean).join(' · '))+'</div></div><button type="button" class="mclose" title="Tancar (Esc)">×</button></div>'
     + '<div class="chips">'+chips.map(c => '<div class="chip"><span>'+esc(c[0])+'</span><b>'+esc(c[1])+'</b></div>').join('')+'</div>'
     + s
-    + '<div class="legend"><span class="lg solid"></span> venda real '+(C.year||'')+' <span class="lg fc"></span> previsió (corba de la col·lecció aplicada a la venda des de l’1 de setembre)'
-    + (fc ? '' : ' · <i>aquest model no té previsió: no és d’hivern o no ha venut des de l’1 de setembre</i>')+'</div>';
+    + '<div class="legend"><span class="lg solid"></span> venda real '+(C.year||'')+' <span class="lg fc"></span> previsió (corba de la col·lecció aplicada a la venda acumulada de la temporada)'
+    + (fc ? '' : ' · <i>aquest model no té previsió: no té corba de col·lecció o no ha venut dins de la temporada</i>')+'</div>';
   if(fc && fc.curve && cover){
     const pct = v => (v*100).toFixed(1).replace('.', ',') + ' %';
-    const dim = new Date(cover.getFullYear(), cm, 0).getDate(); const day = cover.getDate();
-    const tot = fc.curve.slice(8, 12).reduce((a,v)=>a+v, 0);
-    let f = 0; for(let m = 9; m < cm; m++) f += fc.curve[m-1]; f += fc.curve[cm-1] * day / dim;
-    const acumHI = info['ACUM HI'] || 0;
-    const perMes = [9,10,11,12].map(m => { const tm = fc.total * fc.curve[m-1] / tot; return MES_CURT[m-1] + ' ' + NUMFMT.format(Math.round(tm)) + (m === cm ? ' ('+NUMFMT.format(actual[m-1])+' venuts + '+NUMFMT.format(Math.round(Math.max(0, tm - actual[m-1])))+' previstos)' : (m < cm ? ' (tancat)' : '')); });
+    const first = months[0], last = months[months.length-1];
+    const eff = (sEnd && cover > sEnd) ? sEnd : cover; const em = eff.getMonth() + 1;   // data efectiva dins la temporada
+    const dim = new Date(eff.getFullYear(), em, 0).getDate(); const day = eff.getDate();
+    const tot = months.reduce((a,m)=>a+fc.curve[m-1], 0);
+    let f = 0; if(fc.closed) f = tot; else { months.forEach(m => { if(m < em) f += fc.curve[m-1]; }); f += fc.curve[em-1] * day / dim; }
+    const acumT = fc.acum || 0; const rang = MESOS_CA[first-1] + '–' + MESOS_CA[last-1];
+    const perMes = months.map(m => { const tm = fc.total * fc.curve[m-1] / tot; return MES_CURT[m-1] + ' ' + NUMFMT.format(Math.round(tm)) + (fc.closed || m < cm ? ' (tancat)' : (m === cm ? ' ('+NUMFMT.format(actual[m-1])+' venuts + '+NUMFMT.format(Math.round(Math.max(0, tm - actual[m-1])))+' previstos)' : '')); });
     html += '<details class="calc"><summary>Com s’ha calculat</summary><ol>'
-      + '<li>Corba <b>'+esc(fc.src)+'</b> (% de la venda 2025 de la col·lecció): set '+pct(fc.curve[8])+' · oct '+pct(fc.curve[9])+' · nov '+pct(fc.curve[10])+' · des '+pct(fc.curve[11])+' → de setembre a desembre <b>'+pct(tot)+'</b> de l’any.</li>'
-      + '<li>Part de la corba ja transcorreguda des de l’1/9 fins al '+day+'/'+cm+': '+(cm > 9 ? 'mesos tancats + ' : '')+pct(fc.curve[cm-1])+' × '+day+'/'+dim+' = <b>'+pct(f)+'</b>.</li>'
-      + '<li>Venda total prevista set–des = venda des de l’1/9 ÷ part transcorreguda × % set–des = '+NUMFMT.format(acumHI)+' ÷ '+pct(f)+' × '+pct(tot)+' = <b>'+NUMFMT.format(Math.round(fc.total))+'</b> parells.</li>'
-      + '<li>Previsió fins al 31/12 = '+NUMFMT.format(Math.round(fc.total))+' − '+NUMFMT.format(acumHI)+' ja venuts = <b>'+NUMFMT.format(Math.max(0, Math.round(fc.total - acumHI)))+'</b> parells.</li>'
-      + '<li>Repartiment per mes (total × % del mes ÷ % set–des): '+perMes.join(' · ')+'.</li>'
+      + '<li>Corba <b>'+esc(fc.src)+'</b> (% de la venda 2025 de la col·lecció): '+months.map(m => MES_CURT[m-1]+' '+pct(fc.curve[m-1])).join(' · ')+' → de '+rang+' <b>'+pct(tot)+'</b> de l’any.</li>'
+      + (fc.closed
+          ? '<li>La temporada ('+dm(sStart)+' – '+dm(sEnd)+') ja s’ha acabat: la part transcorreguda és el 100 % i la previsió pendent és 0.</li>'
+          : '<li>Part de la corba ja transcorreguda des de l’'+dm(sStart)+' fins al '+day+'/'+em+': '+(em > first ? 'mesos tancats + ' : '')+pct(fc.curve[em-1])+' × '+day+'/'+dim+' = <b>'+pct(f)+'</b>.</li>')
+      + '<li>Venda total prevista '+rang+' = acumulat de la temporada ÷ part transcorreguda × % '+rang+' = '+NUMFMT.format(acumT)+' ÷ '+pct(f)+' × '+pct(tot)+' = <b>'+NUMFMT.format(Math.round(fc.total))+'</b> parells.</li>'
+      + '<li>Previsió fins al '+dm(sEnd)+' = '+NUMFMT.format(Math.round(fc.total))+' − '+NUMFMT.format(acumT)+' ja venuts = <b>'+NUMFMT.format(Math.max(0, Math.round(fc.total - acumT)))+'</b> parells.</li>'
+      + '<li>Repartiment per mes (total × % del mes ÷ % '+rang+'): '+perMes.join(' · ')+'.</li>'
       + '</ol></details>';
   }
   html += '</div></div>';
@@ -1695,6 +1717,7 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
     num_prev = {c for c in mc_prev.columns if pd.api.types.is_numeric_dtype(mc_prev[c])}
     prev_default = ["model_color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "VENDA SET", "ACUM'25", "ACUM'26", "ACUM HI", "STOCK ZLD", "OFFERABLE",
                     "ENV PENDENTS", "COBERTURA SET", "STOCK TP 01 02", "DISPO 30 DIES", "DISPONIBLE ALMACÉN", "PREVISIÓ", "A COMPRAR"]
+    prev_default_es = [c if c != "ACUM HI" else "ACUM ES" for c in prev_default]
     orange_cols = ("DTE", "DTE", "orange"), ("PREVISIÓ", "A COMPRAR", "orange")
     data = {
         "selKey": f"repo-zld-sel-{sel_key}" if sel_key else "repo-zld-sel",
@@ -1702,16 +1725,16 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
         "prev": prev,
         "chart": chart or {},
         "pmcSpec": spec(mc_prev, num_prev, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"],
-                        ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"], [], mc_sums | {"DISPONIBLE ALMACÉN", "ACUM HI", "PREVISIÓ", "A COMPRAR"},
+                        ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"], [], mc_sums | {"DISPONIBLE ALMACÉN", "ACUM HI", "ACUM ES", "PREVISIÓ", "A COMPRAR"},
                         (("model_color", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc_prev.columns[-1], "green")) + orange_cols,
                         red=RED_RULES_MC, cols=list(mc_prev.columns),
                         extra={"ownCols": True, "colsKey": "repo-zld-cols-prev", "defaultVisible": prev_default, "select": False, "selectFilter": False,
                                "seasonPrefix": "HI"}),
         "pmceSpec": spec(mc_prev, num_prev, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"],
-                         ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"], [], mc_sums | {"DISPONIBLE ALMACÉN", "ACUM HI", "PREVISIÓ", "A COMPRAR"},
+                         ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"], [], mc_sums | {"DISPONIBLE ALMACÉN", "ACUM HI", "ACUM ES", "PREVISIÓ", "A COMPRAR"},
                          (("model_color", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc_prev.columns[-1], "green")) + orange_cols,
                          red=RED_RULES_MC, cols=list(mc_prev.columns),
-                         extra={"ownCols": True, "colsKey": "repo-zld-cols-prev-es", "defaultVisible": prev_default, "select": False, "selectFilter": False,
+                         extra={"ownCols": True, "colsKey": "repo-zld-cols-prev-es", "defaultVisible": prev_default_es, "select": False, "selectFilter": False,
                                 "seasonPrefix": "ES"}),
         "mc": recs(mc_prev), "sku": recs(sku),
         "mcSpec": spec(mc, num_mc, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
@@ -1721,12 +1744,12 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
                         {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"},
                         {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums,
                        (("model_color", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc.columns[-1], "green")) + orange_cols, red=RED_RULES_MC,
-                       extra={"defaultHidden": ["ACUM HI", "PREVISIÓ", "A COMPRAR"]}),
+                       extra={"defaultHidden": ["ACUM HI", "ACUM ES", "PREVISIÓ", "A COMPRAR"]}),
         "skuSpec": spec(sku, num_sku, "VENDA SET", True, ["GÈNERE", "SEASON", "TEMPORADA", "CREAT A ZLD?", "CREAT HI26"], ["EAN", "SKU", "model_color", "model", "color", "talla", "AVÍS"],
                         [{"k": "__rows__", "l": "SKUs amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 30d)"},
                          {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"}], sum_cols - {"VENDA SET", "VENDA 4 SETM", "ACUM'25", "ACUM'26"},
                         (("EAN", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", sku.columns[-1], "green"), ("DTE", "DTE", "orange")),
-                        extra={"defaultHidden": ["ACUM HI"]}),
+                        extra={"defaultHidden": ["ACUM HI", "ACUM ES"]}),
     }
     warn_html = "".join(f'<div class="warn">{html.escape(w)}</div>' for w in warnings)
     page = (HTML_TEMPLATE.replace("__TITLE__", html.escape(title)).replace("__SUBTITLE__", html.escape(subtitle))
@@ -1792,14 +1815,16 @@ def main():
     if mult is None:
         mult, mult_src = 3.0, "per defecte"
 
-    # inici de la temporada d'hivern: 1 de setembre (de l'any de càlcul si ja hi som, si no de l'any anterior)
+    # temporades: hivern 1/9-31/12 (de l'any de càlcul si ja hi som, si no de l'anterior); estiu 1/3-31/8 de l'any de càlcul
     calc_year = dt.date.today().year
     hi_start = dt.date(calc_year if month >= 9 else calc_year - 1, 9, 1)
+    hi_end = dt.date(hi_start.year, 12, 31)
+    es_start, es_end = dt.date(calc_year, 3, 1), dt.date(calc_year, 8, 31)
 
     print("Calculant...")
     sku, mc, fora, info = compute(models, levels, lines, acum25, stock_tp, snap, pending, pend_labels, adjust,
                                   mult, args.min_level, args.min_level_kids, args.max_level, created=created, zinfo=zinfo,
-                                  hi_start=hi_start)
+                                  hi_start=hi_start, es_start=es_start, es_end=es_end)
 
     # model_color per a la secció de Previsió demanda: les mateixes columnes + DISPONIBLE ALMACÉN (només HTML)
     disp_mc = sku[["SKU", "model_color"]].merge(almacen, on="SKU", how="left").fillna({"DISPONIBLE ALMACÉN": 0}) \
@@ -1809,7 +1834,14 @@ def main():
                    mc_prev["model_color"].map(disp_mc).fillna(0).astype(int))
     # PREVISIÓ fins al 31/12 i A COMPRAR (net del stock que ja tenim), a les dues taules de model_color
     cover_end = dt.date.fromisoformat(info["setmana_fi"])
-    previsio, prev_avisos, prev_detail = previsio_fins_desembre(mc_prev, prev, hi_start, cover_end)
+    seasons = (prev or {}).get("seasons", {})
+    blocks_hi = next((v for k, v in seasons.items() if k.startswith("HI")), None)
+    blocks_es = next((v for k, v in seasons.items() if k.startswith("ES")), None)
+    prev_hi, av_hi, det_hi = previsio_temporada(mc_prev, blocks_hi, "ACUM HI", hi_start, hi_end, cover_end, "HI")
+    prev_es, av_es, det_es = previsio_temporada(mc_prev, blocks_es, "ACUM ES", es_start, es_end, cover_end, "ES")
+    previsio = prev_hi.combine_first(prev_es)
+    prev_avisos = av_hi + av_es
+    prev_detail = {**det_hi, **det_es}
     a_comprar = (previsio - mc_prev["STOCK ZLD"] - mc_prev["ENV PENDENTS"] - mc_prev["DISPONIBLE ALMACÉN"]).clip(lower=0)
     for frame in (mc, mc_prev):
         pos = list(frame.columns).index("AVÍS")
@@ -1856,8 +1888,10 @@ def main():
         ("Creats Zalando HI26", f"{len(created)} model_color a la llista; {int((mc['CREAT HI26'] == 'SÍ').sum())} són a Models a reposar" if created else "fitxer no trobat"),
         ("Previsió demanda", f"{prev['fitxer']} ({len(prev['blocks'])} blocs)" if prev else "fitxer no trobat"),
         ("ACUM HI", f"unitats per data de comanda des del {hi_start.strftime('%d/%m/%Y')} fins al {info['setmana_fi']} (última setmana carregada)"),
-        ("PREVISIÓ / A COMPRAR", f"PREVISIÓ = ACUM HI / (part de la corba de la col·lecció transcorreguda de l'1/9 al {info['setmana_fi']}) x (% set-des) - ACUM HI, "
-                                 f"models HI; A COMPRAR = PREVISIÓ - STOCK ZLD - ENV PENDENTS - DISPONIBLE ALMACÉN (>= 0). "
+        ("ACUM ES", f"unitats per data de comanda del {es_start.strftime('%d/%m/%Y')} al {es_end.strftime('%d/%m/%Y')} (temporada d'estiu)"),
+        ("PREVISIÓ / A COMPRAR", "PREVISIÓ = acumulat de la temporada / (part de la corba de la col·lecció ja transcorreguda) x (% dels mesos de la temporada) - acumulat; "
+                                 f"hivern (models HI): ACUM HI, de l'1/9 al 31/12; estiu (models ES): ACUM ES, de l'1/3 al 31/8; dades fins al {info['setmana_fi']}. "
+                                 "A COMPRAR = PREVISIÓ - STOCK ZLD - ENV PENDENTS - DISPONIBLE ALMACÉN (>= 0). "
                                  + (" | ".join(prev_avisos) if prev_avisos else "")),
         ("Disponible almacén (Previsió demanda)", f"{almacen_meta['fitxer']}: {almacen_meta['skus']} SKUs, {almacen_meta['total']} parells disponibles" if almacen_meta else "fitxer no trobat"),
         ("Informació models zalando (DTE)", (f"{zinfo_meta['fitxer']} ({zinfo_meta['data']}), país {zinfo_meta['pais']}: {zinfo_meta['eans']} EANs, "
