@@ -936,6 +936,7 @@ table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%
 th{position:sticky;top:0;background:var(--head);color:#fff;padding:6px 8px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;z-index:2;border-right:1px solid rgba(255,255,255,.12)}
 th.num{text-align:right}th .arr{opacity:.7;font-size:10px;margin-left:3px}
 th.hg-grey{background:#d9d9d9;color:#1c2430}th.hg-yellow{background:#ffe699;color:#1c2430}th.hg-green{background:#c6e0b4;color:#1c2430}th.hg-orange{background:#f8cbad;color:#1c2430}
+.btn.primary{background:#1f3864;color:#fff;border-color:#1f3864}.btn.primary:hover{background:#2c4a7c}
 th.selcol,td.selcol{width:36px;text-align:center;padding:4px 6px;overflow:visible}
 th.selcol input,td.selcol input{width:16px;height:16px;margin:0;cursor:pointer;accent-color:#1f3864;vertical-align:middle}
 tr.sel td{background:#dde8f7}tr.sel:hover td{background:#cfdff3}tr.sel td.repo{background:#c5e3b6}tr.sel td.sticky{background:#dde8f7}
@@ -984,29 +985,90 @@ const SEL_KEY = DATA.selKey || 'repo-zld-sel';
 const VIEWS = {};
 let HIDDEN = new Set();
 let WIDTHS = {};
-let SEL = new Set();   // model_color seleccionats per reposar
+let SEL = new Set();   // model_color seleccionats per reposar (es desa al navegador amb la data de la repo)
+function storeGet(k){ try { return localStorage.getItem(k); } catch(e) { return null; } }
+function storeSet(k, v){ try { localStorage.setItem(k, v); return true; } catch(e) { return false; } }
 try {
-  const s = localStorage.getItem(STORE_KEY);
+  const s = storeGet(STORE_KEY);
   if(s) HIDDEN = new Set(JSON.parse(s));
-  else { // migració de la selecció antiga per pestanya
-    ['repo-zld-cols-mc','repo-zld-cols-sku'].forEach(k => { const o = localStorage.getItem(k); if(o) JSON.parse(o).forEach(c => HIDDEN.add(c)); localStorage.removeItem(k); });
-  }
-  const w = localStorage.getItem(WIDTH_KEY); if(w) WIDTHS = JSON.parse(w) || {};
-  const sl = localStorage.getItem(SEL_KEY); if(sl) SEL = new Set(JSON.parse(sl));
+  else { ['repo-zld-cols-mc','repo-zld-cols-sku'].forEach(k => { const o = storeGet(k); if(o) JSON.parse(o).forEach(c => HIDDEN.add(c)); try { localStorage.removeItem(k); } catch(e) {} }); }
+  const w = storeGet(WIDTH_KEY); if(w) WIDTHS = JSON.parse(w) || {};
+  const sl = storeGet(SEL_KEY); if(sl) SEL = new Set(JSON.parse(sl));
 } catch(e) {}
-function saveHidden(){ try { localStorage.setItem(STORE_KEY, JSON.stringify([...HIDDEN])); } catch(e) {} }
-function saveWidths(){ try { localStorage.setItem(WIDTH_KEY, JSON.stringify(WIDTHS)); } catch(e) {} }
-function saveSel(){ try { localStorage.setItem(SEL_KEY, JSON.stringify([...SEL])); } catch(e) {} }
+let STORE_OK = true;
+function saveHidden(){ storeSet(STORE_KEY, JSON.stringify([...HIDDEN])); }
+function saveWidths(){ storeSet(WIDTH_KEY, JSON.stringify(WIDTHS)); }
+function saveSel(){ STORE_OK = storeSet(SEL_KEY, JSON.stringify([...SEL])); }
 function setHidden(next){ HIDDEN = next; saveHidden(); Object.values(VIEWS).forEach(v => v.refresh()); }
 function resetWidths(){ WIDTHS = {}; saveWidths(); Object.values(VIEWS).forEach(v => v.refresh()); }
 function setSel(next){ SEL = next; saveSel(); Object.values(VIEWS).forEach(v => v.onSel()); }
 function esc(v){ return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 const MINW = 40, MAXW_AUTO = 360, SELW = 36;
 const REPO_BY_MC = {}; DATA.mc.forEach(r => { REPO_BY_MC[r.model_color] = r.REPO || 0; });
+
+// ---------- Escriptor XLSX sense dependències (zip "stored" + XML) ----------
+const CRC_TABLE = (() => { const t = new Uint32Array(256); for(let n = 0; n < 256; n++){ let c = n; for(let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();
+function crc32(u8){ let c = 0xFFFFFFFF; for(let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(files){
+  const enc = new TextEncoder(); const parts = [], central = []; let offset = 0;
+  const dosTime = 0, dosDate = (1 << 5) | 1;
+  for(const f of files){
+    const name = enc.encode(f.name), crc = crc32(f.data), size = f.data.length;
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+    lh.setUint16(10, dosTime, true); lh.setUint16(12, dosDate, true); lh.setUint32(14, crc, true); lh.setUint32(18, size, true); lh.setUint32(22, size, true);
+    lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+    parts.push(new Uint8Array(lh.buffer), name, f.data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+    ch.setUint16(12, dosTime, true); ch.setUint16(14, dosDate, true); ch.setUint32(16, crc, true); ch.setUint32(20, size, true); ch.setUint32(24, size, true);
+    ch.setUint16(28, name.length, true); ch.setUint16(30, 0, true); ch.setUint16(32, 0, true); ch.setUint16(34, 0, true); ch.setUint16(36, 0, true); ch.setUint32(38, 0, true); ch.setUint32(42, offset, true);
+    central.push(new Uint8Array(ch.buffer), name);
+    offset += 30 + name.length + size;
+  }
+  const cdSize = central.reduce((a, p) => a + p.length, 0);
+  const eocd = new DataView(new ArrayBuffer(22));
+  eocd.setUint32(0, 0x06054b50, true); eocd.setUint16(4, 0, true); eocd.setUint16(6, 0, true); eocd.setUint16(8, files.length, true); eocd.setUint16(10, files.length, true);
+  eocd.setUint32(12, cdSize, true); eocd.setUint32(16, offset, true); eocd.setUint16(20, 0, true);
+  return new Blob([...parts, ...central, new Uint8Array(eocd.buffer)], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function xmlEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function colName(n){ let s = ''; n++; while(n > 0){ const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+function sheetXml(header, rows, widths){
+  const cell = (v, r, c, style) => {
+    if(v === null || v === undefined || v === '') return '';
+    const ref = colName(c) + r, st = style ? ' s="' + style + '"' : '';
+    if(typeof v === 'number' && isFinite(v)) return '<c r="' + ref + '"' + st + '><v>' + v + '</v></c>';
+    return '<c r="' + ref + '"' + st + ' t="inlineStr"><is><t xml:space="preserve">' + xmlEsc(v) + '</t></is></c>';
+  };
+  let x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
+  x += '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>';
+  x += '<cols>' + header.map((h, i) => '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + (widths[i] || 12) + '" customWidth="1"/>').join('') + '</cols><sheetData>';
+  x += '<row r="1">' + header.map((h, i) => cell(h, 1, i, 1)).join('') + '</row>';
+  rows.forEach((r, ri) => { x += '<row r="' + (ri + 2) + '">' + r.map((v, ci) => cell(v, ri + 2, ci, 0)).join('') + '</row>'; });
+  x += '</sheetData><autoFilter ref="A1:' + colName(header.length - 1) + (rows.length + 1) + '"/></worksheet>';
+  return x;
+}
+function buildXlsx(sheets){
+  const enc = new TextEncoder(); const files = [];
+  const X = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  files.push({name: '[Content_Types].xml', data: enc.encode(X + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' + sheets.map((s, i) => '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('') + '</Types>')});
+  files.push({name: '_rels/.rels', data: enc.encode(X + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>')});
+  files.push({name: 'xl/workbook.xml', data: enc.encode(X + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' + sheets.map((s, i) => '<sheet name="' + xmlEsc(s.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join('') + '</sheets></workbook>')});
+  files.push({name: 'xl/_rels/workbook.xml.rels', data: enc.encode(X + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + sheets.map((s, i) => '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>').join('') + '<Relationship Id="rId' + (sheets.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>')});
+  files.push({name: 'xl/styles.xml', data: enc.encode(X + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F3864"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs></styleSheet>')});
+  sheets.forEach((s, i) => files.push({name: 'xl/worksheets/sheet' + (i + 1) + '.xml', data: enc.encode(sheetXml(s.header, s.rows, s.widths || []))}));
+  return zipStore(files);
+}
+function downloadBlob(blob, filename){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+
 function build(id, spec, rows){
   const panel = document.getElementById('p-'+id);
-  const hasSel = !!spec.select;          // columna de caselles (model_color)
-  const selFilter = !!spec.selectFilter; // només files dels model_color seleccionats (SKU)
+  const hasSel = !!spec.select;
+  const selFilter = !!spec.selectFilter;
   const stickyLeft = hasSel ? SELW : 0;
   const state = {q:'', sortKey: spec.defaultSort, sortDir: -1, onlyRepo: spec.onlyRepoDefault, filters:{}};
   let suppressSort = false, lastOut = [], dirty = false;
@@ -1018,6 +1080,7 @@ function build(id, spec, rows){
   html += '<div class="colwrap"><button type="button" class="btn" id="cb-'+id+'">Columnes ▾</button><div class="colpick" id="cp-'+id+'" hidden></div></div>';
   html += '<span class="selinfo" id="si-'+id+'"></span>';
   if(hasSel) html += '<button type="button" class="btn small" id="sc-'+id+'" title="Treu la marca de tots els model_color, també els que no es veuen pel filtre">Desmarcar tot</button>';
+  if(selFilter) html += '<button type="button" class="btn primary" id="xl-'+id+'" title="Excel amb els SKU que es veuen (model_color marcats + filtres), un resum per model_color i la llista per a SAP">Generar excel REPO</button>';
   html += '<span class="count" id="c-'+id+'"></span></div>';
   html += '<div class="topscroll" id="ts-'+id+'"><div></div></div>';
   html += '<div class="wrap" id="w-'+id+'"><table id="t-'+id+'"><colgroup></colgroup><thead><tr></tr></thead><tbody></tbody><tfoot><tr></tr></tfoot></table></div>';
@@ -1131,8 +1194,20 @@ function build(id, spec, rows){
       sa.checked = keys.length > 0 && n === keys.length; sa.indeterminate = n > 0 && n < keys.length;
     }
     const pares = [...SEL].reduce((a,k) => a + (REPO_BY_MC[k] || 0), 0);
-    if(hasSel) selinfo.textContent = SEL.size ? SEL.size + ' model_color marcats · ' + NUMFMT.format(pares) + ' parells REPO' : 'Cap model_color marcat';
+    const warn = STORE_OK ? '' : ' · ⚠ el navegador no deixa desar la selecció';
+    if(hasSel) selinfo.textContent = (SEL.size ? SEL.size + ' model_color marcats · ' + NUMFMT.format(pares) + ' parells REPO' : 'Cap model_color marcat') + warn;
     else selinfo.textContent = SEL.size ? 'SKU dels ' + SEL.size + ' model_color marcats' : '';
+  }
+  function exportXlsx(){
+    const cols = visCols(); const out = lastOut;
+    if(!out.length){ alert('No hi ha cap SKU per exportar: marca model_color a la pestanya «Per model_color».'); return; }
+    const sheet1 = { name: 'REPO SKU', header: cols.map(c => c.l), rows: out.map(r => cols.map(c => (r[c.k] === null || r[c.k] === undefined) ? '' : r[c.k])),
+                     widths: cols.map(c => Math.min(45, Math.max(8, Math.round((WIDTHS[c.k] || 100) / 7)))) };
+    const mcSel = DATA.mc.filter(r => SEL.has(r.model_color)).map(r => [r.model_color, r['GÈNERE'], r['VENDA SET'], r.NIVELL, r.HAURIA, r['STOCK ZLD'], r['ENV PENDENTS'], r.REPO, r.PREPARABLE, r.DTE || '']);
+    const sheet2 = { name: 'MODEL_COLOR', header: ['model_color','GÈNERE','VENDA SET','NIVELL','HAURIA','STOCK ZLD','ENV PENDENTS','REPO','PREPARABLE','DTE %'], rows: mcSel, widths: [24,10,10,8,9,10,13,8,12,7] };
+    const sap = out.filter(r => r.REPO > 0).map(r => [r.EAN, r.SKU, r.model_color, r.talla, r.REPO, r.PREPARABLE]);
+    const sheet3 = { name: 'SAP', header: ['EAN','SKU','model_color','talla','REPO','PREPARABLE'], rows: sap, widths: [16,26,24,8,8,12] };
+    downloadBlob(buildXlsx([sheet1, sheet2, sheet3]), 'REPO ZALANDO ' + (DATA.dateLabel || '') + ' - seleccio.xlsx');
   }
   function render(){
     const cols = visCols();
@@ -1198,6 +1273,7 @@ function build(id, spec, rows){
     });
     panel.querySelector('#sc-'+id).addEventListener('click', () => setSel(new Set()));
   }
+  if(selFilter) panel.querySelector('#xl-'+id).addEventListener('click', exportXlsx);
   panel.querySelector('#q-'+id).addEventListener('input', e => { state.q = e.target.value; render(); });
   panel.querySelector('#r-'+id).addEventListener('change', e => { state.onlyRepo = e.target.checked; render(); });
   panel.querySelectorAll('select').forEach(s => s.addEventListener('change', e => { state.filters[e.target.dataset.f] = e.target.value; render(); }));
@@ -1214,7 +1290,8 @@ function build(id, spec, rows){
     refresh(){ renderPicker(); renderHead(); render(); },
     syncWidths(){ applyWidths(); fitHeight(); },
     onSel(){ if(panel.classList.contains('active')) render(); else dirty = true; },
-    show(){ if(dirty) render(); else { applyWidths(); fitHeight(); } }
+    show(){ if(dirty) render(); else { applyWidths(); fitHeight(); } },
+    exportXlsx, buildForTest(){ return { cols: visCols(), out: lastOut }; }
   };
 }
 VIEWS.mc = build('mc', DATA.mcSpec, DATA.mc);
@@ -1224,6 +1301,7 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='p-'+t.dataset.t));
   VIEWS[t.dataset.t].show();
 }));
+window.addEventListener('pageshow', () => { const sl = storeGet(SEL_KEY); if(sl){ try { const s = new Set(JSON.parse(sl)); if(s.size !== SEL.size) setSel(s); } catch(e) {} } });
 </script></body></html>
 """
 
@@ -1268,6 +1346,7 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
     mc_sums = sum_cols - {"VENDA SET", "VENDA 4 SETM"} | {"VENDA SET"}
     data = {
         "selKey": f"repo-zld-sel-{sel_key}" if sel_key else "repo-zld-sel",
+        "dateLabel": sel_key,
         "mc": recs(mc), "sku": recs(sku),
         "mcSpec": spec(mc, num_mc, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
                        [{"k": "__rows__", "l": "model_color amb REPO", "selsub": True}, {"k": "REPO", "l": "parells REPO", "selsub": True},
