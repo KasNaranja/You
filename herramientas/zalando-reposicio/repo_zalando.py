@@ -11,6 +11,7 @@ Fonts (carpeta de dades, per defecte la carpeta on hi ha aquest script):
   Stock Zalando/*.csv|*.xlsx         stock snapshot Zalando (EAN, Offerable, Non-offerable, Total)
   Enviaments pendents/*.csv          enviaments ja fets però encara no al snapshot (ean;quantity)
   VENTA POR MES.xlsx                 multiplicador de la venda setmanal per mes (fila de mesos + fila de valors)
+  Creats Zalando HI26.xlsx           model_color HI26 ja creats a Zalando (columna MODEL_COLOR) -> columna CREAT HI26
   Ajustos repo.xlsx (opcional)       multiplicador / nivell forçat per model_color
 
 Regla:
@@ -85,6 +86,7 @@ COL_HELP = {
     "SEASON ZLD": "Season amb què l'article està donat d'alta a Zalando (columna amb data de 'Models a reposar'). Buit = no constava a Zalando en aquella data.",
     "ES POT ENVIAR?": "Marca de 'Models a reposar' per als HI26 nous que ja es poden enviar (creats a Zalando). Buit = sense marca.",
     "CREAT A ZLD?": "SÍ, o NO CONSTA per als HI26 NOU sense marca a 'es pot enviar?'. Els NO CONSTA queden amb REPO = 0.",
+    "CREAT HI26": "SÍ si el model_color és a la llista 'Creats Zalando HI26.xlsx' (articles HI26 creats a Zalando i que ja es poden enviar). Només informativa.",
     "VENDA SET": "Unitats venudes del model_color (totes les talles) la setmana de referència (INITIAL+SHIPPED de la pestanya DADES2). És la base del càlcul.",
     "ACUM'25": "Unitats venudes del model_color durant tot el 2025 (Venda 2025.xlsx).",
     "ACUM'26": "Unitats venudes del model_color el 2026 fins a la setmana de referència (suma de tots els fitxers setmanals).",
@@ -516,6 +518,22 @@ def load_month_mult(path: str) -> dict[int, float]:
     return {}
 
 
+def load_created_hi26(path: str) -> set[str]:
+    """Creats Zalando HI26.xlsx: llista de model_color HI26 ja creats a Zalando (columna MODEL_COLOR o MODEL + COLOR)."""
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    out: set[str] = set()
+    for ws in wb.worksheets:
+        it = ws.iter_rows(values_only=True)
+        hdr = [norm(v) if v is not None else "" for v in next(it, [])]
+        if "model_color" in hdr:
+            j = hdr.index("model_color")
+            out |= {str(r[j]).strip().upper() for r in it if j < len(r) and r[j]}
+        elif "model" in hdr and "color" in hdr:
+            a, b = hdr.index("model"), hdr.index("color")
+            out |= {f"{str(r[a]).strip()}_{str(r[b]).strip()}".upper() for r in it if r[a] and r[b]}
+    return out
+
+
 def load_adjustments(path: str) -> pd.DataFrame:
     if not os.path.exists(path):
         return pd.DataFrame(columns=["model_color", "multiplicador", "nivell", "comentari"])
@@ -562,7 +580,8 @@ def size_qty(table: dict, group: str, gender: str, talla: str) -> tuple[int, str
 
 def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.Series,
             stock_tp: pd.DataFrame, snap: pd.DataFrame, pending: pd.DataFrame, pend_labels: list[str],
-            adjust: pd.DataFrame, mult: float, min_level: int, min_level_kids: int, max_level: int | None = None):
+            adjust: pd.DataFrame, mult: float, min_level: int, min_level_kids: int, max_level: int | None = None,
+            created: set | None = None):
     last_end = lines["end"].max()
     last_start = lines.loc[lines["end"] == last_end, "start"].iloc[0]
     week_ends = sorted(lines["end"].unique())
@@ -662,6 +681,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     # enviable? (HI26 NOU sense marca a 'es pot enviar?' = encara no creat a Zalando)
     not_created = (df["SEASON"].astype(str).str.upper() == "HI26") & (df["TEMPORADA"].astype(str).str.upper() == "NOU") & (df["ES POT ENVIAR?"] == "")
     df["CREAT A ZLD?"] = np.where(not_created, "NO CONSTA", "SÍ")
+    df["CREAT HI26"] = np.where(df["model_color"].astype(str).str.strip().str.upper().isin(created or set()), "SÍ", "")
 
     df["DIF"] = df["HAURIA"] - df["STOCK ZLD"] - df["ENV PENDENTS"]
     df["REPO"] = np.where(df["CREAT A ZLD?"] == "SÍ", df["DIF"].clip(lower=0), 0).astype(int)
@@ -674,7 +694,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     df = df.sort_values(["model_color", "_tk"]).drop(columns="_tk").reset_index(drop=True)
 
     sku_cols = ["EAN", "SKU", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "model", "color", "model_color", "talla",
-                "SEASON ZLD", "ES POT ENVIAR?", "CREAT A ZLD?", "VENDA SET", "ACUM'25", "ACUM'26", "VENDA 4 SETM",
+                "SEASON ZLD", "ES POT ENVIAR?", "CREAT A ZLD?", "CREAT HI26", "VENDA SET", "ACUM'25", "ACUM'26", "VENDA 4 SETM",
                 "MULT", "OBJECTIU", "NIVELL", "HAURIA", "STOCK ZLD", "OFFERABLE", "NON OFFERABLE"] + pend_labels + \
                ["ENV PENDENTS", "DIF", "REPO", "STOCK TP 01 02", "DISPO 30 DIES", "PREPARABLE",
                 "VENDA SKU 1 SETM", "VENDA SKU ACUM'26", "AVÍS"]
@@ -682,7 +702,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
 
     # vista model_color
     first = {c: "first" for c in ["model", "color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "SEASON ZLD", "ES POT ENVIAR?",
-                                 "CREAT A ZLD?", "VENDA SET", "VENDA SETM ANT", "VENDA 4 SETM", "MULT", "OBJECTIU", "GRUP NIVELL",
+                                 "CREAT A ZLD?", "CREAT HI26", "VENDA SET", "VENDA SETM ANT", "VENDA 4 SETM", "MULT", "OBJECTIU", "GRUP NIVELL",
                                  "NIVELL", "ACUM'25", "ACUM'26"]}
     sums = {c: "sum" for c in ["HAURIA", "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "DIF", "REPO", "PREPARABLE", "FALTA STOCK TP",
                                "STOCK TP 01 02", "DISPO 30 DIES", "DISPO 59 DIES"]}
@@ -693,7 +713,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     mc["COBERTURA SET"] = cov.round(1)
     mc["AVÍS"] = df.groupby("model_color")["AVÍS"].agg(lambda s: "; ".join(sorted({x for x in s if x})))
     mc = mc.reset_index()
-    mc_cols = ["model_color", "model", "color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "SEASON ZLD", "CREAT A ZLD?",
+    mc_cols = ["model_color", "model", "color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "SEASON ZLD", "CREAT A ZLD?", "CREAT HI26",
                "VENDA SET", "ACUM'25", "ACUM'26", "VENDA 4 SETM", "MULT", "OBJECTIU", "NIVELL", "HAURIA",
                "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "COBERTURA SET", "DIF", "REPO", "PREPARABLE",
                "STOCK TP 01 02", "DISPO 30 DIES", "AVÍS"]
@@ -824,8 +844,8 @@ def write_excel(sku: pd.DataFrame, mc: pd.DataFrame, fora: pd.DataFrame, params:
         fora.to_excel(xw, sheet_name="FORA LLISTA", index=False)
         par.to_excel(xw, sheet_name="PARÀMETRES", index=False)
         lvl.to_excel(xw, sheet_name="NIVELLS", index=False, header=False)
-        groups_sku = (("EAN", "CREAT A ZLD?", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("DIF", sku.columns[-1], GREEN_HDR))
-        groups_mc = (("model_color", "CREAT A ZLD?", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("DIF", mc.columns[-1], GREEN_HDR))
+        groups_sku = (("EAN", "CREAT HI26", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("DIF", sku.columns[-1], GREEN_HDR))
+        groups_mc = (("model_color", "CREAT HI26", GREY_HDR), ("VENDA SET", "OBJECTIU", YELLOW_HDR), ("DIF", mc.columns[-1], GREEN_HDR))
         style_sheet(xw.sheets["CÀLCUL SKU"], sku, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "DIF", "REPO", "PREPARABLE"), header_groups=groups_sku)
         style_sheet(xw.sheets["MODEL_COLOR"], mc, highlight_col="REPO", grey_col="CREAT A ZLD?", key_cols=("HAURIA", "REPO", "PREPARABLE"), header_groups=groups_mc,
                     red_rules=RED_RULES_MC)
@@ -1184,16 +1204,16 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
     data = {
         "selKey": f"repo-zld-sel-{sel_key}" if sel_key else "repo-zld-sel",
         "mc": recs(mc), "sku": recs(sku),
-        "mcSpec": spec(mc, num_mc, "REPO", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
+        "mcSpec": spec(mc, num_mc, "REPO", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
                        [{"k": "__rows__", "l": "model_color amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 30d)"},
                         {"k": "VENDA SET", "l": "venda setmana (tot Zalando)", "total": totals.get("venda_setm"), "sub": "del llistat"},
                         {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"},
                         {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums,
-                       (("model_color", "CREAT A ZLD?", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc.columns[-1], "green")), red=RED_RULES_MC),
-        "skuSpec": spec(sku, num_sku, "REPO", True, ["GÈNERE", "SEASON", "TEMPORADA", "CREAT A ZLD?"], ["EAN", "SKU", "model_color", "model", "color", "talla", "AVÍS"],
+                       (("model_color", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc.columns[-1], "green")), red=RED_RULES_MC),
+        "skuSpec": spec(sku, num_sku, "REPO", True, ["GÈNERE", "SEASON", "TEMPORADA", "CREAT A ZLD?", "CREAT HI26"], ["EAN", "SKU", "model_color", "model", "color", "talla", "AVÍS"],
                         [{"k": "__rows__", "l": "SKUs amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 30d)"},
                          {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"}], sum_cols - {"VENDA SET", "VENDA 4 SETM", "ACUM'25", "ACUM'26"},
-                        (("EAN", "CREAT A ZLD?", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", sku.columns[-1], "green"))),
+                        (("EAN", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", sku.columns[-1], "green"))),
     }
     warn_html = "".join(f'<div class="warn">{html.escape(w)}</div>' for w in warnings)
     page = (HTML_TEMPLATE.replace("__TITLE__", html.escape(title)).replace("__SUBTITLE__", html.escape(subtitle))
@@ -1232,6 +1252,10 @@ def main():
     snap, snap_meta = load_snapshot(os.path.join(data, "Stock Zalando"), args.snapshot)
     pending, pend_labels = load_pending(os.path.join(data, "Enviaments pendents"))
     adjust = load_adjustments(os.path.join(data, "Ajustos repo.xlsx"))
+    creats_path = os.path.join(data, "Creats Zalando HI26.xlsx")
+    created = load_created_hi26(readable_copy(creats_path)) if os.path.exists(creats_path) else set()
+    if not os.path.exists(creats_path):
+        print("AVÍS: no trobo 'Creats Zalando HI26.xlsx'; la columna CREAT HI26 quedarà buida")
 
     # multiplicador: línia d'ordres > VENTA POR MES.xlsx (mes de la data de càlcul) > 3
     mult, mult_src = args.mult, "línia d'ordres"
@@ -1248,7 +1272,7 @@ def main():
 
     print("Calculant...")
     sku, mc, fora, info = compute(models, levels, lines, acum25, stock_tp, snap, pending, pend_labels, adjust,
-                                  mult, args.min_level, args.min_level_kids, args.max_level)
+                                  mult, args.min_level, args.min_level_kids, args.max_level, created=created)
 
     warnings = []
     if snap_meta["rebutjats"]:
@@ -1285,6 +1309,7 @@ def main():
         ("Vendes 2026", f"{len(sources)} fitxers setmanals (pestanya DADES2), {int(lines['units'].sum())} unitats"),
         ("Venda 2025", f"{int(acum25.sum())} unitats, {len(acum25)} model_color"),
         ("Model_color HI26 NOU que no consten creats a ZLD (REPO = 0)", str(no_created)),
+        ("Creats Zalando HI26", f"{len(created)} model_color a la llista; {int((mc['CREAT HI26'] == 'SÍ').sum())} són a Models a reposar" if created else "fitxer no trobat"),
         ("Avisos", " | ".join(warnings) or "-"),
     ]
 

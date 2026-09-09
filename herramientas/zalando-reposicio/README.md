@@ -20,6 +20,7 @@ còpia versionada.
 | `Stock Zalando/*.csv` o `*.xlsx` | stock snapshot de Zalando. Es descarten els fitxers amb EANs en notació científica (`8,43453E+12`, passa en desar el CSV des d'Excel) |
 | `Enviaments pendents/*.csv` | `ean;quantity` dels enviaments ja fets però encara no al snapshot |
 | `VENTA POR MES.xlsx` | multiplicador de la venda setmanal per mes: fila amb els mesos i fila amb els valors (gener 2 … abril i maig 5 … setembre 3). El script agafa el del mes de la data de càlcul; `--mult` el força |
+| `Creats Zalando HI26.xlsx` | model_color HI26 ja creats a Zalando (pestanya `articles creats per enviar`, columna MODEL_COLOR); omple la columna CREAT HI26 |
 | `Ajustos repo.xlsx` (opcional) | `model_color`, `multiplicador`, `nivell`, `comentari` per forçar casos concrets |
 
 ## Regla
