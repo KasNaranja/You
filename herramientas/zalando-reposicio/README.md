@@ -18,6 +18,7 @@ còpia versionada.
 | `Vendes/2026/<mes>/VENDES DEL dd.mm al dd.mm.xlsx` | vendes setmanals; es llegeix la pestanya **DADES2** (una línia per comanda). `Hoja1` és una còpia antiga idèntica a tots els fitxers i s'ignora |
 | `Stock Toni Pons/*.txt` | export SAP UTF-16 amb tabuladors (`Stock 01 02`, `Stock Disponible 30/59 Dies`), sumat per EAN |
 | `Stock Zalando/*.csv` o `*.xlsx` | stock snapshot de Zalando. Es descarten els fitxers amb EANs en notació científica (`8,43453E+12`, passa en desar el CSV des d'Excel) |
+| `Informació models zalando/*.csv` | export d'articles de zDirect (EAN × país, `regular_price` i `discounted_price`); el més recent per la data del nom, país DE → columna DTE (% de descompte actual) |
 | `Enviaments pendents/*.csv` | `ean;quantity` dels enviaments ja fets però encara no al snapshot |
 | `VENTA POR MES.xlsx` | multiplicador de la venda setmanal per mes: fila amb els mesos i fila amb els valors (gener 2 … abril i maig 5 … setembre 3). El script agafa el del mes de la data de càlcul; `--mult` el força |
 | `Creats Zalando HI26.xlsx` | model_color HI26 ja creats a Zalando (pestanya `articles creats per enviar`, columna MODEL_COLOR); omple la columna CREAT HI26 |

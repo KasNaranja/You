@@ -12,6 +12,7 @@ Fonts (carpeta de dades, per defecte la carpeta on hi ha aquest script):
   Enviaments pendents/*.csv          enviaments ja fets però encara no al snapshot (ean;quantity)
   VENTA POR MES.xlsx                 multiplicador de la venda setmanal per mes (fila de mesos + fila de valors)
   Creats Zalando HI26.xlsx           model_color HI26 ja creats a Zalando (columna MODEL_COLOR) -> columna CREAT HI26
+  Informació models zalando/*.csv    export d'articles de zDirect (EAN x país, PVP i preu rebaixat) -> columna DTE (% dte a DE)
   Ajustos repo.xlsx (opcional)       multiplicador / nivell forçat per model_color
 
 Regla:
@@ -105,6 +106,7 @@ COL_HELP = {
     "STOCK TP 01 02": "Stock físic al magatzem de Toni Pons (columna 'Stock 01 02' de l'export SAP), sumat per EAN.",
     "DISPO 30 DIES": "Stock disponible a Toni Pons a 30 dies (columna 'Stock Disponible 30 Dies' de l'export SAP): el que queda lliure després de reservar les comandes dels propers 30 dies. A la vista model_color, en vermell si el model té menys de 100 parells.",
     "PREPARABLE": "Part del REPO que es pot preparar avui: el mínim entre REPO i DISPO 30 DIES, talla per talla.",
+    "DTE": "% de descompte actual a Zalando Alemanya (país DE): (PVP − preu rebaixat) / PVP, del CSV més recent de la carpeta 'Informació models zalando'. 0 = sense descompte. A la vista model_color, el màxim de les seves talles.",
     "VENDA SKU 1 SETM": "Unitats venudes d'aquesta talla la setmana de referència.",
     "VENDA SKU ACUM'26": "Unitats venudes d'aquesta talla el 2026.",
     "AVÍS": "Notes del càlcul: nivell mínim aplicat, talla fora de la taula de nivells, sense EAN, objectiu per sobre del nivell màxim, etc.",
@@ -518,6 +520,51 @@ def load_month_mult(path: str) -> dict[int, float]:
     return {}
 
 
+INFO_DATE_RE = re.compile(r"(\d{2})[._-](\d{2})(?:[._-](\d{4}))?")
+
+
+def load_zalando_info(folder: str, country: str = "de") -> tuple[pd.DataFrame, dict]:
+    """Informació models zalando dd.mm.csv (export d'articles de zDirect, una fila per EAN i país):
+    % de descompte actual per EAN al país indicat = (regular_price - discounted_price) / regular_price."""
+    empty = pd.DataFrame({"EAN": pd.Series(dtype=str), "DTE": pd.Series(dtype=int), "PVP DE": pd.Series(dtype=float)})
+    if not os.path.isdir(folder):
+        return empty, {}
+    files = [f for f in glob.glob(os.path.join(folder, "*.csv")) if not os.path.basename(f).startswith("~$")]
+    if not files:
+        return empty, {}
+
+    def fdate(f):
+        m = INFO_DATE_RE.search(os.path.basename(f))
+        if m:
+            y = int(m.group(3)) if m.group(3) else dt.date.fromtimestamp(os.path.getmtime(f)).year
+            try:
+                return dt.date(y, int(m.group(2)), int(m.group(1)))
+            except ValueError:
+                pass
+        return dt.date.fromtimestamp(os.path.getmtime(f))
+
+    path = max(files, key=lambda f: (fdate(f), os.path.getmtime(f)))
+    src = readable_copy(path)
+    with open(src, "r", encoding="utf-8-sig", errors="replace") as fh:
+        head = fh.readline()
+    sep = ";" if head.count(";") >= head.count(",") else ","
+    df = pd.read_csv(src, sep=sep, dtype=str, encoding="utf-8-sig", encoding_errors="replace",
+                     usecols=lambda c: norm(c) in ("ean", "country", "regular_price", "discounted_price"))
+    cols = {norm(c): c for c in df.columns}
+    if not all(k in cols for k in ("ean", "country", "regular_price", "discounted_price")):
+        raise SystemExit(f"{os.path.basename(path)}: falten columnes ean/country/regular_price/discounted_price")
+    df = df[df[cols["country"]].astype(str).str.strip().str.lower() == country.lower()]
+    reg = to_num(df[cols["regular_price"]]).to_numpy()
+    disc = to_num(df[cols["discounted_price"]]).to_numpy()
+    with np.errstate(divide="ignore", invalid="ignore"):
+        dte = np.where((reg > 0) & (disc > 0) & (disc < reg), np.round((reg - disc) / np.where(reg > 0, reg, 1) * 100), 0).astype(int)
+    out = pd.DataFrame({"EAN": df[cols["ean"]].map(clean_ean).to_numpy(), "DTE": dte, "PVP DE": reg})
+    out = out[out["EAN"].notna()].groupby("EAN", as_index=False).agg(DTE=("DTE", "max"), **{"PVP DE": ("PVP DE", "max")})
+    meta = {"fitxer": os.path.basename(path), "data": fdate(path).isoformat(), "eans": int(len(out)), "amb_dte": int((out["DTE"] > 0).sum()),
+            "pais": country.upper()}
+    return out, meta
+
+
 def load_created_hi26(path: str) -> set[str]:
     """Creats Zalando HI26.xlsx: llista de model_color HI26 ja creats a Zalando (columna MODEL_COLOR o MODEL + COLOR)."""
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
@@ -581,7 +628,7 @@ def size_qty(table: dict, group: str, gender: str, talla: str) -> tuple[int, str
 def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.Series,
             stock_tp: pd.DataFrame, snap: pd.DataFrame, pending: pd.DataFrame, pend_labels: list[str],
             adjust: pd.DataFrame, mult: float, min_level: int, min_level_kids: int, max_level: int | None = None,
-            created: set | None = None):
+            created: set | None = None, zinfo: pd.DataFrame | None = None):
     last_end = lines["end"].max()
     last_start = lines.loc[lines["end"] == last_end, "start"].iloc[0]
     week_ends = sorted(lines["end"].unique())
@@ -672,7 +719,9 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
 
     # stocks
     df = df.merge(snap, on="EAN", how="left").merge(pending, on="EAN", how="left").merge(stock_tp, on="EAN", how="left")
-    for c in ["STOCK ZLD", "OFFERABLE", "NON OFFERABLE", "ENV PENDENTS", "STOCK TP 01 02", "DISPO 30 DIES", "DISPO 59 DIES"] + pend_labels:
+    if zinfo is not None and len(zinfo):
+        df = df.merge(zinfo[["EAN", "DTE"]], on="EAN", how="left")
+    for c in ["STOCK ZLD", "OFFERABLE", "NON OFFERABLE", "ENV PENDENTS", "STOCK TP 01 02", "DISPO 30 DIES", "DISPO 59 DIES", "DTE"] + pend_labels:
         if c not in df.columns:
             df[c] = 0
         df[c] = df[c].fillna(0).astype(int)
@@ -696,7 +745,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     sku_cols = ["EAN", "SKU", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "model", "color", "model_color", "talla",
                 "SEASON ZLD", "ES POT ENVIAR?", "CREAT A ZLD?", "CREAT HI26", "VENDA SET", "ACUM'25", "ACUM'26", "VENDA 4 SETM",
                 "MULT", "OBJECTIU", "NIVELL", "HAURIA", "STOCK ZLD", "OFFERABLE", "NON OFFERABLE"] + pend_labels + \
-               ["ENV PENDENTS", "DIF", "REPO", "STOCK TP 01 02", "DISPO 30 DIES", "PREPARABLE",
+               ["ENV PENDENTS", "DIF", "REPO", "STOCK TP 01 02", "DISPO 30 DIES", "DTE", "PREPARABLE",
                 "VENDA SKU 1 SETM", "VENDA SKU ACUM'26", "AVÍS"]
     sku = df[sku_cols].copy()
 
@@ -706,6 +755,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
                                  "NIVELL", "ACUM'25", "ACUM'26"]}
     sums = {c: "sum" for c in ["HAURIA", "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "DIF", "REPO", "PREPARABLE", "FALTA STOCK TP",
                                "STOCK TP 01 02", "DISPO 30 DIES", "DISPO 59 DIES"]}
+    sums["DTE"] = "max"
     mc = df.groupby("model_color").agg({**first, **sums, "talla": "count"}).rename(columns={"talla": "N TALLES"})
     mc["TALLES AMB REPO"] = df[df["REPO"] > 0].groupby("model_color").size().reindex(mc.index).fillna(0).astype(int)
     mc["TALLES SENSE STOCK ZLD"] = df[(df["STOCK ZLD"] + df["ENV PENDENTS"]) <= 0].groupby("model_color").size().reindex(mc.index).fillna(0).astype(int)
@@ -716,7 +766,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     mc_cols = ["model_color", "model", "color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "SEASON ZLD", "CREAT A ZLD?", "CREAT HI26",
                "VENDA SET", "ACUM'25", "ACUM'26", "VENDA 4 SETM", "MULT", "OBJECTIU", "NIVELL", "HAURIA",
                "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "COBERTURA SET", "DIF", "REPO", "PREPARABLE",
-               "STOCK TP 01 02", "DISPO 30 DIES", "AVÍS"]
+               "STOCK TP 01 02", "DISPO 30 DIES", "DTE", "AVÍS"]
     mc = mc[mc_cols].sort_values(["REPO", "VENDA SET", "ACUM'26"], ascending=[False, False, False]).reset_index(drop=True)
 
     # vendes de la setmana de model_colors fora de la llista
@@ -786,6 +836,10 @@ def style_sheet(ws, df: pd.DataFrame, highlight_col: str | None = None, grey_col
         for i, v in enumerate(df[grey_col].tolist(), start=2):
             if v == "NO CONSTA":
                 ws.cell(row=i, column=j).fill = NO_FILL
+    if "DTE" in df.columns:  # percentatge sencer; els zeros no es mostren
+        j = list(df.columns).index("DTE") + 1
+        for i in range(2, len(df) + 2):
+            ws.cell(row=i, column=j).number_format = '0"%";-0"%";'
     for col, threshold in (red_rules or {}).items():
         if col not in df.columns:
             continue
@@ -1111,6 +1165,7 @@ function build(id, spec, rows){
         if(spec.red[c.k] !== undefined && typeof v === 'number' && v < spec.red[c.k]) cls += ' low';
         if(i===0) cls += ' sticky';
         if(v === null || v === undefined) v = '';
+        else if(c.fmt === 'pct') v = (typeof v === 'number' && v > 0) ? NUMFMT.format(v) + '%' : '';
         else if(c.n && typeof v === 'number') v = Number.isInteger(v) ? NUMFMT.format(v) : v.toFixed(1);
         h += '<td class="'+cls+'"'+(i===0?' style="left:'+stickyLeft+'px"':'')+' title="'+esc(v)+'">'+esc(v)+'</td>';
       });
@@ -1205,7 +1260,8 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
             if start in names and end in names:
                 for k in range(names.index(start), names.index(end) + 1):
                     hg[names[k]] = cls
-        return {"cols": [{"k": c, "l": c, "n": c in nums, "sum": c in sum_ok, "key": c in key_cols, "hg": hg.get(c, ""), "h": col_help(c)} for c in df.columns],
+        return {"cols": [{"k": c, "l": c, "n": c in nums, "sum": c in sum_ok, "key": c in key_cols, "hg": hg.get(c, ""), "h": col_help(c),
+                          "fmt": "pct" if c == "DTE" else ""} for c in df.columns],
                 "defaultSort": default_sort, "onlyRepoDefault": only_repo, "facets": facets, "search": search, "kpis": kpis, "red": red or {},
                 "select": df is mc, "selectFilter": df is sku}
     mc_sums = sum_cols - {"VENDA SET", "VENDA 4 SETM"} | {"VENDA SET"}
@@ -1265,6 +1321,9 @@ def main():
     created = load_created_hi26(readable_copy(creats_path)) if os.path.exists(creats_path) else set()
     if not os.path.exists(creats_path):
         print("AVÍS: no trobo 'Creats Zalando HI26.xlsx'; la columna CREAT HI26 quedarà buida")
+    zinfo, zinfo_meta = load_zalando_info(os.path.join(data, "Informació models zalando"))
+    if not zinfo_meta:
+        print("AVÍS: cap CSV a 'Informació models zalando'; la columna DTE quedarà a 0")
 
     # multiplicador: línia d'ordres > VENTA POR MES.xlsx (mes de la data de càlcul) > 3
     mult, mult_src = args.mult, "línia d'ordres"
@@ -1281,7 +1340,7 @@ def main():
 
     print("Calculant...")
     sku, mc, fora, info = compute(models, levels, lines, acum25, stock_tp, snap, pending, pend_labels, adjust,
-                                  mult, args.min_level, args.min_level_kids, args.max_level, created=created)
+                                  mult, args.min_level, args.min_level_kids, args.max_level, created=created, zinfo=zinfo)
 
     warnings = []
     if snap_meta["rebutjats"]:
@@ -1319,6 +1378,9 @@ def main():
         ("Venda 2025", f"{int(acum25.sum())} unitats, {len(acum25)} model_color"),
         ("Model_color HI26 NOU que no consten creats a ZLD (REPO = 0)", str(no_created)),
         ("Creats Zalando HI26", f"{len(created)} model_color a la llista; {int((mc['CREAT HI26'] == 'SÍ').sum())} són a Models a reposar" if created else "fitxer no trobat"),
+        ("Informació models zalando (DTE)", (f"{zinfo_meta['fitxer']} ({zinfo_meta['data']}), país {zinfo_meta['pais']}: {zinfo_meta['eans']} EANs, "
+                                             f"{zinfo_meta['amb_dte']} amb descompte; {int((mc['DTE'] > 0).sum())} model_color del llistat amb DTE")
+                                            if zinfo_meta else "cap fitxer; DTE = 0"),
         ("Avisos", " | ".join(warnings) or "-"),
     ]
 

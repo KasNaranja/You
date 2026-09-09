@@ -51,6 +51,11 @@ code{font:13px ui-monospace,Consolas,"Courier New",monospace;background:#f1f4f8;
   <div class="src">Un CSV <b>ean;quantity</b> por cada envío que ya ha salido pero todavía no aparece en el snapshot de Zalando. Añadir los envíos nuevos y <b>quitar los que ya se hayan recibido</b>, si no se restan dos veces.</div>
 </div><div class="where">Enviaments pendents</div></label>
 
+<label class="item"><input type="checkbox" data-k="zinfo"><div class="body">
+  <div class="name">Informació models zalando / Informació models zalando dd.mm.csv</div>
+  <div class="src">Fuente: <b>zDirect</b> / export de artículos (una fila por EAN y país, con <b>regular_price</b> y <b>discounted_price</b>). El programa coge el CSV más reciente por la fecha del nombre, se queda con el país <b>DE</b> y calcula la columna <b>DTE</b> (% de descuento actual).</div>
+</div><div class="where">Informació models zalando</div></label>
+
 <h2>Genéricos (sólo si cambian)</h2>
 
 <label class="item"><input type="checkbox" data-k="models"><div class="body">
@@ -103,7 +108,7 @@ const KEY='checklist-repo-zalando';
 let done=new Set(); try{ const s=localStorage.getItem(KEY); if(s) done=new Set(JSON.parse(s)); }catch(e){}
 const boxes=[...document.querySelectorAll('input[type=checkbox]')];
 function paint(){ boxes.forEach(b=>{ b.checked=done.has(b.dataset.k); b.closest('.item').classList.toggle('done', b.checked); });
-  const weekly=boxes.filter(b=>['snapshot','stocktp','vendes','pendents'].includes(b.dataset.k));
+  const weekly=boxes.filter(b=>['snapshot','stocktp','vendes','pendents','zinfo'].includes(b.dataset.k));
   document.getElementById('count').textContent='Semanales marcados: '+weekly.filter(b=>b.checked).length+' de '+weekly.length; }
 boxes.forEach(b=>b.addEventListener('change',()=>{ if(b.checked) done.add(b.dataset.k); else done.delete(b.dataset.k); try{localStorage.setItem(KEY,JSON.stringify([...done]))}catch(e){} paint(); }));
 document.getElementById('reset').addEventListener('click',()=>{ done=new Set(); try{localStorage.removeItem(KEY)}catch(e){} paint(); });
