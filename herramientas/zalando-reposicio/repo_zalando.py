@@ -656,14 +656,16 @@ def load_almacen(folder: str) -> tuple[pd.DataFrame, dict]:
     return out, meta
 
 
-def previsio_fins_desembre(mc: pd.DataFrame, prev: dict | None, hi_start: dt.date, cover_end: dt.date) -> tuple[pd.Series, list[str]]:
+def previsio_fins_desembre(mc: pd.DataFrame, prev: dict | None, hi_start: dt.date, cover_end: dt.date) -> tuple[pd.Series, list[str], dict]:
     """PREVISIÓ per model_color: parells a vendre des de cover_end fins al 31/12, extrapolant ACUM HI amb la corba
-    mensual (% del 2025) de la col·lecció del seu gènere. NaN si no hi ha corba, no és model d'hivern o no hi ha venda."""
+    mensual (% del 2025) de la col·lecció del seu gènere. NaN si no hi ha corba, no és model d'hivern o no hi ha venda.
+    També retorna el detall per model_color (total set-des previst, corba i origen) per al gràfic de l'HTML."""
     import calendar
     out = pd.Series(np.nan, index=mc.index, dtype=float)
     avisos: list[str] = []
+    detail: dict = {}
     if not prev or not prev.get("blocks") or cover_end.month < 9 or cover_end < hi_start:
-        return out, avisos
+        return out, avisos, detail
     curves: dict = {}
     for b in prev["blocks"]:
         for r in b["rows"]:
@@ -696,10 +698,12 @@ def previsio_fins_desembre(mc: pd.DataFrame, prev: dict | None, hi_start: dt.dat
         total_sep_des = r["ACUM HI"] / f * tot
         out.at[i] = max(0.0, round(total_sep_des - r["ACUM HI"]))
         usats.add((r.get("GÈNERE"), r.get("COL·LECCIÓ"), k))
+        detail[r["model_color"]] = {"total": round(float(total_sep_des), 1), "curve": [round(float(x), 5) for x in p],
+                                    "src": ("genèrica " + str(GEN.get(str(r.get("GÈNERE")).upper()))) if k == "genèrica" else str(k).upper()}
     gen = sorted({f"{g}/{c}" for g, c, k in usats if k == "genèrica"})
     if gen:
         avisos.append("Col·leccions sense corba pròpia (s'usa la genèrica del gènere): " + ", ".join(gen))
-    return out, avisos
+    return out, avisos, detail
 
 
 def load_created_hi26(path: str) -> set[str]:
@@ -916,9 +920,17 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     fora["ACUM'25"] = fora["MODEL_COLOR"].map(acum25).fillna(0).astype(int)
     fora = fora.sort_values("VENDA SET", ascending=False).reset_index(drop=True)
 
+    # venda mensual de l'any en curs per model_color (per data de comanda), per al gràfic de l'HTML
+    yr = last_end.year
+    ly = lines[lines["data"].dt.year == yr]
+    mm = ly.groupby(["MODEL_COLOR", ly["data"].dt.month])["units"].sum()
+    mc_months: dict = {}
+    for (m_c, mth), v in mm.items():
+        mc_months.setdefault(m_c, [0] * 12)[int(mth) - 1] = int(v)
     info = {"setmana_inici": last_start.date().isoformat(), "setmana_fi": last_end.date().isoformat(),
             "setmanes": len(week_ends), "setmana_ant": (prev_end.date().isoformat() if prev_end is not None else ""),
-            "venda_setm_total": int(lw["units"].sum()), "venda_setm_llistat": int(mc["VENDA SET"].sum())}
+            "venda_setm_total": int(lw["units"].sum()), "venda_setm_llistat": int(mc["VENDA SET"].sum()),
+            "any": yr, "mc_months": mc_months}
     return sku, mc, fora, info
 
 
@@ -1532,7 +1544,7 @@ window.addEventListener('pageshow', () => { const sl = storeGet(SEL_KEY); if(sl)
 
 
 def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, warnings: list[str], path: str, totals: dict | None = None,
-               sel_key: str = "", prev: dict | None = None, mc_prev: pd.DataFrame | None = None):
+               sel_key: str = "", prev: dict | None = None, mc_prev: pd.DataFrame | None = None, chart: dict | None = None):
     totals = totals or {}
     if mc_prev is None:
         mc_prev = mc
@@ -1581,6 +1593,7 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
         "selKey": f"repo-zld-sel-{sel_key}" if sel_key else "repo-zld-sel",
         "dateLabel": sel_key,
         "prev": prev,
+        "chart": chart or {},
         "pmcSpec": spec(mc_prev, num_prev, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"],
                         ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"], [], mc_sums | {"DISPONIBLE ALMACÉN", "ACUM HI", "PREVISIÓ", "A COMPRAR"},
                         (("model_color", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc_prev.columns[-1], "green")) + orange_cols,
@@ -1682,7 +1695,7 @@ def main():
                    mc_prev["model_color"].map(disp_mc).fillna(0).astype(int))
     # PREVISIÓ fins al 31/12 i A COMPRAR (net del stock que ja tenim), a les dues taules de model_color
     cover_end = dt.date.fromisoformat(info["setmana_fi"])
-    previsio, prev_avisos = previsio_fins_desembre(mc_prev, prev, hi_start, cover_end)
+    previsio, prev_avisos, prev_detail = previsio_fins_desembre(mc_prev, prev, hi_start, cover_end)
     a_comprar = (previsio - mc_prev["STOCK ZLD"] - mc_prev["ENV PENDENTS"] - mc_prev["DISPONIBLE ALMACÉN"]).clip(lower=0)
     for frame in (mc, mc_prev):
         pos = list(frame.columns).index("AVÍS")
@@ -1755,7 +1768,7 @@ def main():
                 f"regla venda x{mult:g} ({mult_src}) → nivell · generat {dt.datetime.now():%d/%m/%Y %H:%M}")
     write_html(sku, mc, title, subtitle, warnings, html_path,
                totals={"stock_zld": snap_meta["total"], "venda_setm": info["venda_setm_total"]}, sel_key=args.date, prev=prev,
-               mc_prev=mc_prev)
+               mc_prev=mc_prev, chart={"year": info["any"], "coverEnd": info["setmana_fi"], "months": info["mc_months"], "forecast": prev_detail})
 
     # resum
     print()
