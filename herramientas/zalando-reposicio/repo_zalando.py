@@ -565,6 +565,38 @@ def load_zalando_info(folder: str, country: str = "de") -> tuple[pd.DataFrame, d
     return out, meta
 
 
+def load_previsio(folder: str) -> dict | None:
+    """Previsió demanda/Càlcul venda per col·leccio <any>.xlsx (generat per previsio_colleccions.py):
+    blocs DONA/HOME/NEN amb una fila per col·lecció i el % de cada mes. Retorna l'estructura per a l'HTML."""
+    files = [f for f in glob.glob(os.path.join(folder, "Càlcul venda per col·leccio *.xlsx")) if not os.path.basename(f).startswith("~$")]
+    if not files:
+        return None
+    path = max(files, key=lambda f: (re.search(r"(20\d\d)", os.path.basename(f)).group(1) if re.search(r"(20\d\d)", os.path.basename(f)) else "", os.path.getmtime(f)))
+    m = re.search(r"(20\d\d)", os.path.basename(path))
+    wb = openpyxl.load_workbook(readable_copy(path), read_only=True, data_only=True)
+    ws = wb[wb.sheetnames[0]]
+    blocks, cur = [], None
+
+    def num(v):
+        return int(v) if isinstance(v, (int, float)) else 0
+
+    for r in ws.iter_rows(values_only=True):
+        r = list(r) + [None] * (19 - len(r))
+        b = r[1]
+        if b in ("DONA", "HOME", "NEN"):
+            cur = {"genere": b, "rows": []}
+            blocks.append(cur)
+            continue
+        if cur is None or b is None:
+            continue
+        pct = r[2:14]
+        ok = all(isinstance(v, (int, float)) for v in pct)
+        cur["rows"].append({"colleccio": str(b), "pct": [float(v) for v in pct] if ok else None,
+                            "unitats": num(r[15]), "models_venda": num(r[16]), "models_hi26": num(r[17]),
+                            "nota": str(r[18]) if r[18] else "", "total": str(b) == "TOTS ELS MODELS HI26"})
+    return {"any": int(m.group(1)) if m else None, "fitxer": os.path.basename(path), "blocks": blocks}
+
+
 def load_created_hi26(path: str) -> set[str]:
     """Creats Zalando HI26.xlsx: llista de model_color HI26 ja creats a Zalando (columna MODEL_COLOR o MODEL + COLOR)."""
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
@@ -936,6 +968,12 @@ table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%
 th{position:sticky;top:0;background:var(--head);color:#fff;padding:6px 8px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;z-index:2;border-right:1px solid rgba(255,255,255,.12)}
 th.num{text-align:right}th .arr{opacity:.7;font-size:10px;margin-left:3px}
 th.hg-grey{background:#d9d9d9;color:#1c2430}th.hg-yellow{background:#ffe699;color:#1c2430}th.hg-green{background:#c6e0b4;color:#1c2430}th.hg-orange{background:#f8cbad;color:#1c2430}
+.prevwrap{max-height:none!important}
+table.prev tr.gen{cursor:pointer}table.prev tr.gen td{background:#eef2f6;font-weight:600}table.prev tr.gen:hover td{background:#e3e9f1}
+table.prev tr.gen td.sticky{background:#eef2f6}table.prev .tri{display:inline-block;width:14px;color:var(--muted)}
+table.prev td small{color:var(--muted);font-size:10.5px;margin-left:5px;font-weight:400}
+table.prev td.generic{font-style:italic;color:var(--muted)}table.prev td.heat{font-variant-numeric:tabular-nums}
+table.prev th.num,table.prev td.num{text-align:right}
 .btn.primary{background:#1f3864;color:#fff;border-color:#1f3864}.btn.primary:hover{background:#2c4a7c}
 th.selcol,td.selcol{width:36px;text-align:center;padding:4px 6px;overflow:visible}
 th.selcol input,td.selcol input{width:16px;height:16px;margin:0;cursor:pointer;accent-color:#1f3864;vertical-align:middle}
@@ -973,9 +1011,10 @@ td.key{background:#fffbea}
 </style></head><body>
 <header><h1>__TITLE__</h1><div class="sub">__SUBTITLE__</div></header>
 __WARNINGS__
-<div class="tabs"><div class="tab active" data-t="mc">Per model_color</div><div class="tab" data-t="sku">Detall per SKU</div></div>
+<div class="tabs"><div class="tab active" data-t="mc">Per model_color</div><div class="tab" data-t="sku">Detall per SKU</div><div class="tab" data-t="prev">Previsió demanda</div></div>
 <div id="p-mc" class="panel active"></div>
 <div id="p-sku" class="panel"></div>
+<div id="p-prev" class="panel"></div>
 <script>
 const DATA = __DATA__;
 const NUMFMT = new Intl.NumberFormat('ca-ES');
@@ -1296,6 +1335,42 @@ function build(id, spec, rows){
 }
 VIEWS.mc = build('mc', DATA.mcSpec, DATA.mc);
 VIEWS.sku = build('sku', DATA.skuSpec, DATA.sku);
+
+// ---------- Pestanya Previsió demanda: % mensual de venda per col·lecció (blocs DONA / HOME / NEN desplegables) ----------
+const MESOS_CA = ['gener','febrer','març','abril','maig','juny','juliol','agost','setembre','octubre','novembre','desembre'];
+function prevCells(pct){
+  if(!pct) return '<td class="num" colspan="13"><i>sense dades</i></td>';
+  const s = pct.reduce((a,v)=>a+v,0);
+  return pct.map(v => '<td class="num heat" style="background:rgba(31,56,100,'+Math.min(0.6, v*2.4).toFixed(2)+')'+(v >= 0.17 ? ';color:#fff' : '')+'">'+(v*100).toFixed(1)+'%</td>').join('')
+       + '<td class="num"><b>'+Math.round(s*100)+'%</b></td>';
+}
+function buildPrev(){
+  const panel = document.getElementById('p-prev'); const P = DATA.prev;
+  if(!P || !P.blocks || !P.blocks.length){ panel.innerHTML = '<p class="muted">No s’ha trobat el fitxer «Càlcul venda per col·leccio».</p>'; return; }
+  let h = '<p class="muted" style="margin:4px 0 10px">Distribució mensual de la venda '+P.any+' per col·lecció dels models HI26 (mes de la data de comanda). Clica un gènere per desplegar-ne les col·leccions. Les files en cursiva usen la corba genèrica del gènere perquè tenen poques dades o cap venda '+P.any+'; passa el ratolí per veure el motiu. Font: '+esc(P.fitxer)+'.</p>';
+  h += '<div class="wrap prevwrap"><table class="prev"><thead><tr><th class="sticky" style="left:0">Col·lecció</th>'
+     + MESOS_CA.map(m => '<th class="num">'+m+'</th>').join('')
+     + '<th class="num">Total</th><th class="num">Unitats '+P.any+'</th><th class="num">Models amb venda</th><th class="num">Models HI26</th></tr></thead><tbody>';
+  P.blocks.forEach((b, bi) => {
+    const tot = b.rows.find(r => r.total) || {pct:null, unitats:0, models_venda:0, models_hi26:0};
+    const n = b.rows.filter(r => !r.total).length;
+    h += '<tr class="gen" data-b="'+bi+'" title="Clica per desplegar o plegar"><td class="sticky" style="left:0"><span class="tri">▸</span><b>'+esc(b.genere)+'</b> <small>'+n+' col·leccions</small></td>'
+       + prevCells(tot.pct) + '<td class="num"><b>'+NUMFMT.format(tot.unitats)+'</b></td><td class="num">'+tot.models_venda+'</td><td class="num">'+tot.models_hi26+'</td></tr>';
+    b.rows.filter(r => !r.total).forEach(r => {
+      h += '<tr class="col b'+bi+'" hidden'+(r.nota ? ' title="'+esc(r.nota)+'"' : '')+'><td class="sticky'+(r.nota ? ' generic' : '')+'" style="left:0">'+esc(r.colleccio)+(r.nota ? ' <small>genèrica</small>' : '')+'</td>'
+         + prevCells(r.pct) + '<td class="num">'+NUMFMT.format(r.unitats)+'</td><td class="num">'+r.models_venda+'</td><td class="num">'+r.models_hi26+'</td></tr>';
+    });
+  });
+  h += '</tbody></table></div>';
+  panel.innerHTML = h;
+  panel.querySelectorAll('tr.gen').forEach(tr => tr.addEventListener('click', () => {
+    const open = tr.classList.toggle('open');
+    panel.querySelectorAll('tr.b'+tr.dataset.b).forEach(x => { x.hidden = !open; });
+    tr.querySelector('.tri').textContent = open ? '▾' : '▸';
+  }));
+}
+buildPrev();
+VIEWS.prev = { fit(){}, refresh(){}, syncWidths(){}, onSel(){}, show(){} };
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='p-'+t.dataset.t));
@@ -1307,7 +1382,7 @@ window.addEventListener('pageshow', () => { const sl = storeGet(SEL_KEY); if(sl)
 
 
 def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, warnings: list[str], path: str, totals: dict | None = None,
-               sel_key: str = ""):
+               sel_key: str = "", prev: dict | None = None):
     totals = totals or {}
     sku = sku.drop(columns=[c for c in HTML_HIDE if c in sku.columns])
     mc = mc.drop(columns=[c for c in HTML_HIDE if c in mc.columns])
@@ -1347,6 +1422,7 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
     data = {
         "selKey": f"repo-zld-sel-{sel_key}" if sel_key else "repo-zld-sel",
         "dateLabel": sel_key,
+        "prev": prev,
         "mc": recs(mc), "sku": recs(sku),
         "mcSpec": spec(mc, num_mc, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
                        [{"k": "__rows__", "l": "model_color amb REPO", "selsub": True}, {"k": "REPO", "l": "parells REPO", "selsub": True},
@@ -1404,6 +1480,9 @@ def main():
     zinfo, zinfo_meta = load_zalando_info(os.path.join(data, "Informació models zalando"))
     if not zinfo_meta:
         print("AVÍS: cap CSV a 'Informació models zalando'; la columna DTE quedarà a 0")
+    prev = load_previsio(os.path.join(data, "Previsió demanda"))
+    if prev is None:
+        print("AVÍS: no trobo 'Previsió demanda/Càlcul venda per col·leccio <any>.xlsx'; la pestanya Previsió demanda sortirà buida")
 
     # multiplicador: línia d'ordres > VENTA POR MES.xlsx (mes de la data de càlcul) > 3
     mult, mult_src = args.mult, "línia d'ordres"
@@ -1458,6 +1537,7 @@ def main():
         ("Venda 2025", f"{int(acum25.sum())} unitats, {len(acum25)} model_color"),
         ("Model_color HI26 NOU que no consten creats a ZLD (REPO = 0)", str(no_created)),
         ("Creats Zalando HI26", f"{len(created)} model_color a la llista; {int((mc['CREAT HI26'] == 'SÍ').sum())} són a Models a reposar" if created else "fitxer no trobat"),
+        ("Previsió demanda", f"{prev['fitxer']} ({len(prev['blocks'])} blocs)" if prev else "fitxer no trobat"),
         ("Informació models zalando (DTE)", (f"{zinfo_meta['fitxer']} ({zinfo_meta['data']}), país {zinfo_meta['pais']}: {zinfo_meta['eans']} EANs, "
                                              f"{zinfo_meta['amb_dte']} amb descompte; {int((mc['DTE'] > 0).sum())} model_color del llistat amb DTE")
                                             if zinfo_meta else "cap fitxer; DTE = 0"),
@@ -1479,7 +1559,7 @@ def main():
     subtitle = (f"Setmana {week_lbl} · stock Zalando {snap_meta['fitxer']} · enviaments pendents {', '.join(pend_labels) or 'cap'} · "
                 f"regla venda x{mult:g} ({mult_src}) → nivell · generat {dt.datetime.now():%d/%m/%Y %H:%M}")
     write_html(sku, mc, title, subtitle, warnings, html_path,
-               totals={"stock_zld": snap_meta["total"], "venda_setm": info["venda_setm_total"]}, sel_key=args.date)
+               totals={"stock_zld": snap_meta["total"], "venda_setm": info["venda_setm_total"]}, sel_key=args.date, prev=prev)
 
     # resum
     print()
