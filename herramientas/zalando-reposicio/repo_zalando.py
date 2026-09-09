@@ -1644,11 +1644,10 @@ function buildPrev(){
   const seasons = P.seasons || {};
   const hiKey = Object.keys(seasons).find(k => k.startsWith('HI')) || 'HI26';
   const esKey = Object.keys(seasons).find(k => k.startsWith('ES')) || 'ES26';
-  let h = '<div class="secnav"><span class="muted">Anar a:</span><a href="#sec-hivern">HIVERN</a><a href="#sec-estiu">ESTIU</a></div>';
-  h += '<div class="prevsec" id="sec-hivern"><h2>HIVERN</h2>' + prevTable(P, seasons[hiKey], 'h', hiKey)
-     + '<div class="subpanel"><h3>Model_color d’hivern, ordenats per la venda de la setmana</h3><div id="p-pmc"></div></div></div>';
-  h += '<div class="prevsec" id="sec-estiu"><h2>ESTIU</h2>' + prevTable(P, seasons[esKey], 'e', esKey)
-     + '<div class="subpanel"><h3>Model_color d’estiu, ordenats per la venda de la setmana</h3><div id="p-pmce"></div></div></div>';
+  let h = '<div class="secnav"><span class="muted">Anar a:</span><a href="#sec-hivern">HIVERN</a><a href="#sec-estiu">ESTIU</a><a href="#sec-models">MODELS</a></div>';
+  h += '<div class="prevsec" id="sec-hivern"><h2>HIVERN</h2>' + prevTable(P, seasons[hiKey], 'h', hiKey) + '</div>';
+  h += '<div class="prevsec" id="sec-estiu"><h2>ESTIU</h2>' + prevTable(P, seasons[esKey], 'e', esKey) + '</div>';
+  h += '<div class="prevsec" id="sec-models"><h2>MODELS</h2><p class="muted" style="margin:0 0 8px">Tots els model_color, ordenats per la venda de la setmana. Fes servir el filtre SEASON per separar hivern (HI) i estiu (ES).</p><div id="p-pmc"></div></div>';
   if(P.fitxer) h += '<p class="muted" style="margin-top:10px">Font de les corbes: '+esc(P.fitxer)+'.</p>';
   panel.innerHTML = h;
   panel.querySelectorAll('tr.gen').forEach(tr => tr.addEventListener('click', () => {
@@ -1660,9 +1659,7 @@ function buildPrev(){
 buildPrev();
 const NOVIEW = { fit(){}, refresh(){}, syncWidths(){}, onSel(){}, show(){} };
 VIEWS.pmc = (DATA.pmcSpec && document.getElementById('p-pmc')) ? build('pmc', DATA.pmcSpec, DATA.mc) : NOVIEW;
-VIEWS.pmce = (DATA.pmceSpec && document.getElementById('p-pmce')) ? build('pmce', DATA.pmceSpec, DATA.mc) : NOVIEW;
-VIEWS.prev = { fit(){ VIEWS.pmc.fit(); VIEWS.pmce.fit(); }, refresh(){}, syncWidths(){ VIEWS.pmc.syncWidths(); VIEWS.pmce.syncWidths(); }, onSel(){},
-               show(){ VIEWS.pmc.show(); VIEWS.pmce.show(); } };
+VIEWS.prev = { fit(){ VIEWS.pmc.fit(); }, refresh(){}, syncWidths(){ VIEWS.pmc.syncWidths(); }, onSel(){}, show(){ VIEWS.pmc.show(); } };
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='p-'+t.dataset.t));
@@ -1718,7 +1715,7 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
     num_prev = {c for c in mc_prev.columns if pd.api.types.is_numeric_dtype(mc_prev[c])}
     prev_default = ["model_color", "SEASON", "TEMPORADA", "COL·LECCIÓ", "VENDA SET", "ACUM'25", "ACUM'26", "ACUM HI", "STOCK ZLD", "OFFERABLE",
                     "ENV PENDENTS", "COBERTURA SET", "STOCK TP 01 02", "DISPO 30 DIES", "DISPONIBLE ALMACÉN", "PREVISIÓ", "A COMPRAR"]
-    prev_default_es = [c if c != "ACUM HI" else "ACUM ES" for c in prev_default]
+    prev_default.insert(prev_default.index("ACUM HI") + 1, "ACUM ES")   # una sola taula amb totes les temporades
     orange_cols = ("DTE", "DTE", "orange"), ("PREVISIÓ", "A COMPRAR", "orange")
     data = {
         "selKey": f"repo-zld-sel-{sel_key}" if sel_key else "repo-zld-sel",
@@ -1729,14 +1726,7 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
                         ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"], [], mc_sums | {"DISPONIBLE ALMACÉN", "ACUM HI", "ACUM ES", "PREVISIÓ", "A COMPRAR"},
                         (("model_color", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc_prev.columns[-1], "green")) + orange_cols,
                         red=RED_RULES_MC, cols=list(mc_prev.columns),
-                        extra={"ownCols": True, "colsKey": "repo-zld-cols-prev", "defaultVisible": prev_default, "select": False, "selectFilter": False,
-                               "seasonPrefix": "HI"}),
-        "pmceSpec": spec(mc_prev, num_prev, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"],
-                         ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"], [], mc_sums | {"DISPONIBLE ALMACÉN", "ACUM HI", "ACUM ES", "PREVISIÓ", "A COMPRAR"},
-                         (("model_color", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc_prev.columns[-1], "green")) + orange_cols,
-                         red=RED_RULES_MC, cols=list(mc_prev.columns),
-                         extra={"ownCols": True, "colsKey": "repo-zld-cols-prev-es", "defaultVisible": prev_default_es, "select": False, "selectFilter": False,
-                                "seasonPrefix": "ES"}),
+                        extra={"ownCols": True, "colsKey": "repo-zld-cols-prev", "defaultVisible": prev_default, "select": False, "selectFilter": False}),
         "mc": recs(mc_prev), "sku": recs(sku),
         "mcSpec": spec(mc, num_mc, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
                        [{"k": "__rows__", "l": "model_color amb REPO", "selsub": True}, {"k": "REPO", "l": "parells REPO", "selsub": True},
