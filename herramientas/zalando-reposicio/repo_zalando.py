@@ -740,7 +740,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     def talla_key(t):
         return (0, int(t)) if str(t).isdigit() else (1, str(t))
     df["_tk"] = df["talla"].map(talla_key)
-    df = df.sort_values(["model_color", "_tk"]).drop(columns="_tk").reset_index(drop=True)
+    df = df.sort_values(["VENDA SET", "model_color", "_tk"], ascending=[False, True, True]).drop(columns="_tk").reset_index(drop=True)
 
     sku_cols = ["EAN", "SKU", "SEASON", "TEMPORADA", "COL·LECCIÓ", "GÈNERE", "model", "color", "model_color", "talla",
                 "SEASON ZLD", "ES POT ENVIAR?", "CREAT A ZLD?", "CREAT HI26", "VENDA SET", "ACUM'25", "ACUM'26", "VENDA 4 SETM",
@@ -767,7 +767,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
                "VENDA SET", "ACUM'25", "ACUM'26", "VENDA 4 SETM", "MULT", "OBJECTIU", "NIVELL", "HAURIA",
                "STOCK ZLD", "OFFERABLE", "ENV PENDENTS", "COBERTURA SET", "DIF", "REPO", "PREPARABLE",
                "STOCK TP 01 02", "DISPO 30 DIES", "DTE", "AVÍS"]
-    mc = mc[mc_cols].sort_values(["REPO", "VENDA SET", "ACUM'26"], ascending=[False, False, False]).reset_index(drop=True)
+    mc = mc[mc_cols].sort_values(["VENDA SET", "REPO", "ACUM'26"], ascending=[False, False, False]).reset_index(drop=True)
 
     # vendes de la setmana de model_colors fora de la llista
     fora = lw[~lw["MODEL_COLOR"].isin(set(models["model_color"]))].groupby("MODEL_COLOR").agg(
@@ -1269,14 +1269,14 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
     data = {
         "selKey": f"repo-zld-sel-{sel_key}" if sel_key else "repo-zld-sel",
         "mc": recs(mc), "sku": recs(sku),
-        "mcSpec": spec(mc, num_mc, "REPO", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
+        "mcSpec": spec(mc, num_mc, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT A ZLD?", "CREAT HI26"], ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"],
                        [{"k": "__rows__", "l": "model_color amb REPO", "selsub": True}, {"k": "REPO", "l": "parells REPO", "selsub": True},
                         {"k": "PREPARABLE", "l": "preparables (stock 30d)", "selsub": True},
                         {"k": "VENDA SET", "l": "venda setmana (tot Zalando)", "total": totals.get("venda_setm"), "sub": "del llistat"},
                         {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"},
                         {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums,
                        (("model_color", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc.columns[-1], "green"), ("DTE", "DTE", "orange")), red=RED_RULES_MC),
-        "skuSpec": spec(sku, num_sku, "REPO", True, ["GÈNERE", "SEASON", "TEMPORADA", "CREAT A ZLD?", "CREAT HI26"], ["EAN", "SKU", "model_color", "model", "color", "talla", "AVÍS"],
+        "skuSpec": spec(sku, num_sku, "VENDA SET", True, ["GÈNERE", "SEASON", "TEMPORADA", "CREAT A ZLD?", "CREAT HI26"], ["EAN", "SKU", "model_color", "model", "color", "talla", "AVÍS"],
                         [{"k": "__rows__", "l": "SKUs amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 30d)"},
                          {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"}], sum_cols - {"VENDA SET", "VENDA 4 SETM", "ACUM'25", "ACUM'26"},
                         (("EAN", "CREAT HI26", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", sku.columns[-1], "green"), ("DTE", "DTE", "orange"))),
