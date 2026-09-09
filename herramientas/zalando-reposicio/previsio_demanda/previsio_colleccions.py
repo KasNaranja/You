@@ -189,14 +189,26 @@ def escriu_colleccions(path: str, taula: pd.DataFrame, any_: int):
         blk = taula[taula["genere"] == genere].copy()
         blk["_tot"] = blk["colleccio"].eq("TOTS ELS MODELS HI26")
         blk = blk.sort_values(["_tot", "unitats"], ascending=[True, False])
+        gen = blk[blk["_tot"]].iloc[0] if blk["_tot"].any() else None
+        gen_pct = ([float(gen[f"m{m + 1}"]) / float(gen["unitats"]) for m in range(12)]
+                   if gen is not None and gen["unitats"] > 0 else None)
         for _, t in blk.iterrows():
             c = ws.cell(row=r, column=2, value=t["colleccio"])
             if t["_tot"]:
                 c.font = Font(bold=True)
-            if t.get("nota"):
-                ws.cell(row=r, column=19, value=t["nota"]).font = NOTE_FONT
-            if t["unitats"] > 0:
-                pct = [round(float(t[f"m{m + 1}"]) / float(t["unitats"]), 6) for m in range(12)]
+            nota = t.get("nota") or ""
+            # poques dades, llançament a mig any o sense venda: corba genèrica del gènere, i es deixa dit
+            if nota and not t["_tot"] and gen_pct is not None:
+                src = gen_pct
+                nota = f"% = corba genèrica {genere} (tots els models HI26) perquè: {nota}"
+            elif t["unitats"] > 0:
+                src = [float(t[f"m{m + 1}"]) / float(t["unitats"]) for m in range(12)]
+            else:
+                src = None
+            if nota:
+                ws.cell(row=r, column=19, value=nota).font = NOTE_FONT
+            if src is not None:
+                pct = [round(x, 6) for x in src]
                 pct[pct.index(max(pct))] += round(1.0 - sum(pct), 6)   # que sumi exactament 100%
                 for m in range(12):
                     c = ws.cell(row=r, column=3 + m, value=round(pct[m], 6))
