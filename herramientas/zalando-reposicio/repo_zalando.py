@@ -974,6 +974,7 @@ table.prev tr.gen td.sticky{background:#eef2f6}table.prev .tri{display:inline-bl
 table.prev td small{color:var(--muted);font-size:10.5px;margin-left:5px;font-weight:400}
 table.prev td.generic{font-style:italic;color:var(--muted)}table.prev td.heat{font-variant-numeric:tabular-nums}
 table.prev th.num,table.prev td.num{text-align:right}
+table.prev th{overflow:hidden;text-overflow:ellipsis}table.prev td{overflow:hidden;text-overflow:ellipsis}
 .btn.primary{background:#1f3864;color:#fff;border-color:#1f3864}.btn.primary:hover{background:#2c4a7c}
 th.selcol,td.selcol{width:36px;text-align:center;padding:4px 6px;overflow:visible}
 th.selcol input,td.selcol input{width:16px;height:16px;margin:0;cursor:pointer;accent-color:#1f3864;vertical-align:middle}
@@ -1348,7 +1349,12 @@ function buildPrev(){
   const panel = document.getElementById('p-prev'); const P = DATA.prev;
   if(!P || !P.blocks || !P.blocks.length){ panel.innerHTML = '<p class="muted">No s’ha trobat el fitxer «Càlcul venda per col·leccio».</p>'; return; }
   let h = '<p class="muted" style="margin:4px 0 10px">Distribució mensual de la venda '+P.any+' per col·lecció dels models HI26 (mes de la data de comanda). Clica un gènere per desplegar-ne les col·leccions. Les files en cursiva usen la corba genèrica del gènere perquè tenen poques dades o cap venda '+P.any+'; passa el ratolí per veure el motiu. Font: '+esc(P.fitxer)+'.</p>';
-  h += '<div class="wrap prevwrap"><table class="prev"><thead><tr><th class="sticky" style="left:0">Col·lecció</th>'
+  const W = {col: 230, mes: 84, total: 72, unit: 110, mod: 120, hi26: 100};
+  const totalW = W.col + 12 * W.mes + W.total + W.unit + W.mod + W.hi26;
+  h += '<div class="wrap prevwrap"><table class="prev" style="table-layout:fixed;width:'+totalW+'px;min-width:0"><colgroup><col style="width:'+W.col+'px">'
+     + MESOS_CA.map(() => '<col style="width:'+W.mes+'px">').join('')
+     + '<col style="width:'+W.total+'px"><col style="width:'+W.unit+'px"><col style="width:'+W.mod+'px"><col style="width:'+W.hi26+'px"></colgroup>'
+     + '<thead><tr><th class="sticky" style="left:0">Col·lecció</th>'
      + MESOS_CA.map(m => '<th class="num">'+m+'</th>').join('')
      + '<th class="num">Total</th><th class="num">Unitats '+P.any+'</th><th class="num">Models amb venda</th><th class="num">Models HI26</th></tr></thead><tbody>';
   P.blocks.forEach((b, bi) => {
