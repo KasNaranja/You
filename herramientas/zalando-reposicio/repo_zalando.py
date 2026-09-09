@@ -858,6 +858,9 @@ table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%
 th{position:sticky;top:0;background:var(--head);color:#fff;padding:6px 8px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;z-index:2;border-right:1px solid rgba(255,255,255,.12)}
 th.num{text-align:right}th .arr{opacity:.7;font-size:10px;margin-left:3px}
 th.hg-grey{background:#d9d9d9;color:#1c2430}th.hg-yellow{background:#ffe699;color:#1c2430}th.hg-green{background:#c6e0b4;color:#1c2430}
+th{overflow:hidden}th .rs{position:absolute;top:0;right:0;width:8px;height:100%;cursor:col-resize;user-select:none}
+th .rs:hover,th.resizing .rs{background:rgba(255,255,255,.45)}th.resizing{background:#2c4a7c}
+td{overflow:hidden;text-overflow:ellipsis}
 [hidden]{display:none!important}
 .btn{padding:7px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;font-weight:600;color:var(--ink)}
 .colwrap{position:relative}
@@ -892,21 +895,28 @@ __WARNINGS__
 const DATA = __DATA__;
 const NUMFMT = new Intl.NumberFormat('ca-ES');
 const STORE_KEY = 'repo-zld-cols-shared';
+const WIDTH_KEY = 'repo-zld-widths';
 const VIEWS = {};
 let HIDDEN = new Set();
+let WIDTHS = {};
 try {
   const s = localStorage.getItem(STORE_KEY);
   if(s) HIDDEN = new Set(JSON.parse(s));
   else { // migració de la selecció antiga per pestanya
     ['repo-zld-cols-mc','repo-zld-cols-sku'].forEach(k => { const o = localStorage.getItem(k); if(o) JSON.parse(o).forEach(c => HIDDEN.add(c)); localStorage.removeItem(k); });
   }
+  const w = localStorage.getItem(WIDTH_KEY); if(w) WIDTHS = JSON.parse(w) || {};
 } catch(e) {}
 function saveHidden(){ try { localStorage.setItem(STORE_KEY, JSON.stringify([...HIDDEN])); } catch(e) {} }
+function saveWidths(){ try { localStorage.setItem(WIDTH_KEY, JSON.stringify(WIDTHS)); } catch(e) {} }
 function setHidden(next){ HIDDEN = next; saveHidden(); Object.values(VIEWS).forEach(v => v.refresh()); }
+function resetWidths(){ WIDTHS = {}; saveWidths(); Object.values(VIEWS).forEach(v => v.refresh()); }
 function esc(v){ return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+const MINW = 40, MAXW_AUTO = 360;
 function build(id, spec, rows){
   const panel = document.getElementById('p-'+id);
   const state = {q:'', sortKey: spec.defaultSort, sortDir: -1, onlyRepo: spec.onlyRepoDefault, filters:{}};
+  let suppressSort = false;
   const facets = spec.facets.map(f => ({key:f, values:[...new Set(rows.map(r=>r[f]).filter(v=>v!==null && v!==''))].sort()}));
   let html = '<div class="kpis" id="k-'+id+'"></div><div class="bar">';
   html += '<input type="text" id="q-'+id+'" placeholder="Cerca (model, color, EAN, SKU...)">';
@@ -915,17 +925,17 @@ function build(id, spec, rows){
   html += '<div class="colwrap"><button type="button" class="btn" id="cb-'+id+'">Columnes ▾</button><div class="colpick" id="cp-'+id+'" hidden></div></div>';
   html += '<span class="count" id="c-'+id+'"></span></div>';
   html += '<div class="topscroll" id="ts-'+id+'"><div></div></div>';
-  html += '<div class="wrap" id="w-'+id+'"><table id="t-'+id+'"><thead><tr></tr></thead><tbody></tbody><tfoot><tr></tr></tfoot></table></div>';
+  html += '<div class="wrap" id="w-'+id+'"><table id="t-'+id+'"><colgroup></colgroup><thead><tr></tr></thead><tbody></tbody><tfoot><tr></tr></tfoot></table></div>';
   panel.innerHTML = html;
-  const wrap = panel.querySelector('.wrap'), table = panel.querySelector('table');
+  const wrap = panel.querySelector('.wrap'), table = panel.querySelector('table'), colgroup = panel.querySelector('colgroup');
   const thead = panel.querySelector('thead tr'), tbody = panel.querySelector('tbody'), tfoot = panel.querySelector('tfoot tr');
   const topscroll = panel.querySelector('.topscroll'), topinner = topscroll.firstElementChild;
   const colpick = panel.querySelector('.colpick'), colbtn = panel.querySelector('#cb-'+id);
   function visCols(){ const v = spec.cols.filter(c => !HIDDEN.has(c.k)); return v.length ? v : [spec.cols[0]]; }
   function renderPicker(){
     const vis = visCols().length;
-    let h = '<div class="cp-actions"><button type="button" data-a="all">Totes</button><button type="button" data-a="none">Cap</button>';
-    h += '<span>'+vis+' de '+spec.cols.length+' columnes visibles · la selecció es comparteix amb l’altra pestanya</span></div><div class="cp-grid">';
+    let h = '<div class="cp-actions"><button type="button" data-a="all">Totes</button><button type="button" data-a="none">Cap</button><button type="button" data-a="widths">Amplades automàtiques</button>';
+    h += '<span>'+vis+' de '+spec.cols.length+' columnes visibles · la selecció i les amplades es comparteixen amb l’altra pestanya</span></div><div class="cp-grid">';
     spec.cols.forEach(c => { h += '<label><input type="checkbox" data-c="'+esc(c.k)+'" '+(HIDDEN.has(c.k)?'':'checked')+'> '+esc(c.l)+'</label>'; });
     colpick.innerHTML = h + '</div>';
     colpick.querySelectorAll('input').forEach(i => i.addEventListener('change', e => {
@@ -936,17 +946,58 @@ function build(id, spec, rows){
     }));
     colpick.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
       if(b.dataset.a === 'all') setHidden(new Set());
+      else if(b.dataset.a === 'widths') resetWidths();
       else { const next = new Set(HIDDEN); spec.cols.slice(1).forEach(c => next.add(c.k)); next.delete(spec.cols[0].k); setHidden(next); }
     }));
   }
+  function totalWidth(){ return visCols().reduce((a,c) => a + (WIDTHS[c.k] || 100), 0); }
+  function applyWidths(){
+    const cols = visCols();
+    if(cols.some(c => !WIDTHS[c.k])){
+      // mesura l'amplada natural (capçalera + dades) de les columnes sense amplada guardada
+      table.style.tableLayout = 'auto'; table.style.width = 'max-content'; table.style.minWidth = '0';
+      colgroup.innerHTML = '';
+      const ths = [...thead.children];
+      cols.forEach((c,i) => {
+        if(WIDTHS[c.k]) return;
+        const th = ths[i]; const w = th && th.getBoundingClientRect ? th.getBoundingClientRect().width : 120;
+        WIDTHS[c.k] = Math.max(MINW + 8, Math.min(MAXW_AUTO, Math.ceil(w || 120)));
+      });
+      saveWidths();
+    }
+    colgroup.innerHTML = cols.map(c => '<col style="width:'+WIDTHS[c.k]+'px">').join('');
+    table.style.tableLayout = 'fixed'; table.style.minWidth = '0'; table.style.width = totalWidth() + 'px';
+  }
   function renderHead(){
     const cols = visCols();
-    thead.innerHTML = cols.map((c,i) => '<th class="'+(c.n?'num':'')+(c.hg?' hg-'+c.hg:'')+(i===0?' sticky':'')+'" data-k="'+esc(c.k)+'" title="'+esc(c.h||c.l)+'">'+esc(c.l)+'<span class="arr"></span></th>').join('');
+    thead.innerHTML = cols.map((c,i) => '<th class="'+(c.n?'num':'')+(c.hg?' hg-'+c.hg:'')+(i===0?' sticky':'')+'" data-k="'+esc(c.k)+'" title="'+esc(c.h||c.l)+'">'+esc(c.l)+'<span class="arr"></span><span class="rs" title="Arrossega per canviar l’amplada · doble clic: ajustar"></span></th>').join('');
     thead.querySelectorAll('th').forEach(th => th.addEventListener('click', () => {
+      if(suppressSort) return;
       const k = th.dataset.k;
       if(state.sortKey===k) state.sortDir*=-1; else { state.sortKey=k; state.sortDir = spec.cols.find(c=>c.k===k).n ? -1 : 1; }
       render();
     }));
+    thead.querySelectorAll('th .rs').forEach((hnd,i) => {
+      hnd.addEventListener('click', e => e.stopPropagation());
+      hnd.addEventListener('dblclick', e => { e.stopPropagation(); const c = visCols()[i]; delete WIDTHS[c.k]; applyWidths(); fitHeight(); });
+      hnd.addEventListener('mousedown', e => {
+        e.preventDefault(); e.stopPropagation();
+        const c = visCols()[i]; const startX = e.clientX; const startW = WIDTHS[c.k] || 100; const th = hnd.parentElement;
+        th.classList.add('resizing');
+        const move = ev => {
+          WIDTHS[c.k] = Math.max(MINW, Math.round(startW + ev.clientX - startX));
+          if(colgroup.children[i]) colgroup.children[i].style.width = WIDTHS[c.k] + 'px';
+          table.style.width = totalWidth() + 'px';
+        };
+        const up = () => {
+          document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
+          th.classList.remove('resizing'); saveWidths(); fitHeight();
+          suppressSort = true; setTimeout(() => { suppressSort = false; }, 0);
+          Object.values(VIEWS).forEach(v => { if(v !== VIEWS[id]) v.syncWidths(); });
+        };
+        document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
+      });
+    });
   }
   function fitHeight(){
     const top = wrap.getBoundingClientRect().top;
@@ -979,7 +1030,7 @@ function build(id, spec, rows){
         if(i===0) cls += ' sticky';
         if(v === null || v === undefined) v = '';
         else if(c.n && typeof v === 'number') v = Number.isInteger(v) ? NUMFMT.format(v) : v.toFixed(1);
-        h += '<td class="'+cls+'">'+esc(v)+'</td>';
+        h += '<td class="'+cls+'" title="'+esc(v)+'">'+esc(v)+'</td>';
       });
       h += '</tr>';
     }
@@ -1000,6 +1051,7 @@ function build(id, spec, rows){
       if(x.total !== undefined && x.total !== null) return '<div class="kpi"><b>'+NUMFMT.format(x.total)+'</b><span>'+esc(x.l)+'</span><small>'+esc(x.sub||'llistat')+': <b style="display:inline;font-size:13px">'+NUMFMT.format(v)+'</b></small></div>';
       return '<div class="kpi"><b>'+NUMFMT.format(v)+'</b><span>'+esc(x.l)+'</span></div>';
     }).join('');
+    applyWidths();
     fitHeight();
   }
   panel.querySelector('#q-'+id).addEventListener('input', e => { state.q = e.target.value; render(); });
@@ -1013,14 +1065,14 @@ function build(id, spec, rows){
   wrap.addEventListener('scroll', () => { if(syncing) return; syncing = true; topscroll.scrollLeft = wrap.scrollLeft; syncing = false; });
   window.addEventListener('resize', fitHeight);
   renderPicker(); renderHead(); render();
-  return { fit: fitHeight, refresh(){ renderPicker(); renderHead(); render(); } };
+  return { fit: fitHeight, refresh(){ renderPicker(); renderHead(); render(); }, syncWidths(){ applyWidths(); fitHeight(); } };
 }
 VIEWS.mc = build('mc', DATA.mcSpec, DATA.mc);
 VIEWS.sku = build('sku', DATA.skuSpec, DATA.sku);
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='p-'+t.dataset.t));
-  VIEWS[t.dataset.t].fit();
+  VIEWS[t.dataset.t].syncWidths();
 }));
 </script></body></html>
 """
