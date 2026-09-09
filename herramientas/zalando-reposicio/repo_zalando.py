@@ -1134,8 +1134,8 @@ table.prev td.generic{font-style:italic;color:var(--muted)}table.prev td.heat{fo
 table.prev th.num,table.prev td.num{text-align:right}
 table.prev th{overflow:hidden;text-overflow:ellipsis}table.prev td{overflow:hidden;text-overflow:ellipsis}
 .subpanel{margin-top:22px;border-top:1px solid var(--line);padding-top:12px}.subpanel h3{font-size:14px;margin:0 0 8px;color:var(--muted);font-weight:600}
-.prevsec{margin-bottom:34px}.prevsec>h2{font-size:19px;color:#1f3864;margin:4px 0 12px;letter-spacing:.6px;border-left:5px solid #1f3864;padding-left:10px}
-.prevsec .wrap{max-height:none!important}
+.prevsec{margin-bottom:34px;scroll-margin-top:12px}.prevsec>h2{font-size:19px;color:#1f3864;margin:4px 0 12px;letter-spacing:.6px;border-left:5px solid #1f3864;padding-left:10px}
+.secnav{display:flex;gap:8px;align-items:center;margin:0 0 14px;font-size:13px}.secnav a{background:#eef2f6;border:1px solid var(--line);border-radius:999px;padding:5px 14px;color:#1f3864;font-weight:600;text-decoration:none}.secnav a:hover{background:#e3e9f1}
 .kpis:empty{display:none}
 .btn.primary{background:#1f3864;color:#fff;border-color:#1f3864}.btn.primary:hover{background:#2c4a7c}
 th.selcol,td.selcol{width:36px;text-align:center;padding:4px 6px;overflow:visible}
@@ -1644,9 +1644,10 @@ function buildPrev(){
   const seasons = P.seasons || {};
   const hiKey = Object.keys(seasons).find(k => k.startsWith('HI')) || 'HI26';
   const esKey = Object.keys(seasons).find(k => k.startsWith('ES')) || 'ES26';
-  let h = '<div class="prevsec"><h2>HIVERN</h2>' + prevTable(P, seasons[hiKey], 'h', hiKey)
-        + '<div class="subpanel"><h3>Model_color d’hivern, ordenats per la venda de la setmana</h3><div id="p-pmc"></div></div></div>';
-  h += '<div class="prevsec"><h2>ESTIU</h2>' + prevTable(P, seasons[esKey], 'e', esKey)
+  let h = '<div class="secnav"><span class="muted">Anar a:</span><a href="#sec-hivern">HIVERN</a><a href="#sec-estiu">ESTIU</a></div>';
+  h += '<div class="prevsec" id="sec-hivern"><h2>HIVERN</h2>' + prevTable(P, seasons[hiKey], 'h', hiKey)
+     + '<div class="subpanel"><h3>Model_color d’hivern, ordenats per la venda de la setmana</h3><div id="p-pmc"></div></div></div>';
+  h += '<div class="prevsec" id="sec-estiu"><h2>ESTIU</h2>' + prevTable(P, seasons[esKey], 'e', esKey)
      + '<div class="subpanel"><h3>Model_color d’estiu, ordenats per la venda de la setmana</h3><div id="p-pmce"></div></div></div>';
   if(P.fitxer) h += '<p class="muted" style="margin-top:10px">Font de les corbes: '+esc(P.fitxer)+'.</p>';
   panel.innerHTML = h;
