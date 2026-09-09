@@ -1094,6 +1094,16 @@ table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%
 th{position:sticky;top:0;background:var(--head);color:#fff;padding:6px 8px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;z-index:2;border-right:1px solid rgba(255,255,255,.12)}
 th.num{text-align:right}th .arr{opacity:.7;font-size:10px;margin-left:3px}
 th.hg-grey{background:#d9d9d9;color:#1c2430}th.hg-yellow{background:#ffe699;color:#1c2430}th.hg-green{background:#c6e0b4;color:#1c2430}th.hg-orange{background:#f8cbad;color:#1c2430}
+td.mclink{cursor:pointer;color:#1f3864;font-weight:600}td.mclink:hover{text-decoration:underline}
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
+.modal .card{background:#fff;border-radius:14px;box-shadow:0 24px 70px rgba(0,0,0,.35);width:min(900px,96vw);max-height:94vh;overflow:auto;padding:18px 22px 16px}
+.mhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+.mtitle{font-size:20px;font-weight:700;color:#1f3864}.msub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.mclose{border:none;background:#f1f4f8;border-radius:50%;width:34px;height:34px;font-size:22px;line-height:1;cursor:pointer;color:#4a5c7a}.mclose:hover{background:#e3e9f1}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}.chip{background:#f1f4f8;border-radius:10px;padding:6px 12px;min-width:110px}.chip span{display:block;font-size:11px;color:var(--muted)}.chip b{font-size:16px;color:#1c2430}
+.legend{font-size:12px;color:var(--muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.lg{display:inline-block;width:16px;height:12px;border-radius:3px;vertical-align:middle;margin:0 2px 0 6px}.lg.solid{background:#1f3864}.lg.fc{background:rgba(31,56,100,.18);border:1px dashed rgba(31,56,100,.6)}
+details.calc{margin-top:10px;background:#f7f8fa;border-radius:10px;padding:8px 14px;font-size:12.5px;color:var(--ink)}details.calc summary{cursor:pointer;font-weight:600;color:#1f3864}details.calc ol{margin:8px 0 2px 18px;padding:0}details.calc li{margin:3px 0}
 .prevwrap{max-height:none!important}
 table.prev tr.gen{cursor:pointer}table.prev tr.gen td{background:#eef2f6;font-weight:600}table.prev tr.gen:hover td{background:#e3e9f1}
 table.prev tr.gen td.sticky{background:#eef2f6}table.prev .tri{display:inline-block;width:14px;color:var(--muted)}
@@ -1232,6 +1242,78 @@ function downloadBlob(blob, filename){
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
 }
+
+// ---------- Gràfic per model_color: venda real (sòlid) + previsió (translúcid) per mes ----------
+const MES_CURT = ['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'];
+const MC_INFO = {}; DATA.mc.forEach(r => { MC_INFO[r.model_color] = r; });
+function openChart(mc){
+  const C = DATA.chart || {}; const info = MC_INFO[mc] || {}; const actual = (C.months && C.months[mc]) ? C.months[mc] : new Array(12).fill(0);
+  const fc = C.forecast && C.forecast[mc]; const cover = C.coverEnd ? new Date(C.coverEnd) : null; const cm = cover ? cover.getMonth() + 1 : 0;
+  const forecast = new Array(12).fill(0);
+  if(fc && fc.curve){
+    const tot = fc.curve.slice(8, 12).reduce((a,v)=>a+v, 0) || 1;
+    for(let m = 9; m <= 12; m++){
+      const f = fc.total * fc.curve[m-1] / tot;
+      if(m < cm) continue;                                   // mes ja tancat: només real
+      forecast[m-1] = (m === cm) ? Math.max(0, f - actual[m-1]) : f;   // mes en curs: la part que falta
+    }
+  }
+  const totalsBar = actual.map((a,i) => a + forecast[i]);
+  const maxV = Math.max(1, ...totalsBar);
+  const W = 820, H = 380, L = 56, R = 18, T = 26, B = 46, cw = (W - L - R) / 12, bw = cw * 0.62;
+  const step = niceStep(maxV / 4); const yMax = Math.ceil(maxV / step) * step; const y = v => T + (H - T - B) * (1 - v / yMax);
+  let s = '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="auto" role="img" aria-label="Venda mensual '+esc(mc)+'">';
+  s += '<defs><linearGradient id="gA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c4a7c"/><stop offset="1" stop-color="#1f3864"/></linearGradient>'
+     + '<pattern id="pF" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="rgba(31,56,100,.16)"/><line x1="0" y1="0" x2="0" y2="6" stroke="rgba(31,56,100,.28)" stroke-width="2"/></pattern></defs>';
+  for(let v = 0; v <= yMax + 1e-9; v += step){
+    s += '<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="#e6eaf0"/>';
+    s += '<text x="'+(L-8)+'" y="'+(y(v)+4)+'" text-anchor="end" font-size="11" fill="#66717f">'+NUMFMT.format(v)+'</text>';
+  }
+  for(let i = 0; i < 12; i++){
+    const x = L + i*cw + (cw - bw)/2; const a = actual[i], f = forecast[i]; const m = i + 1;
+    const past = cover && (m < cm || (m === cm));
+    if(a > 0){ s += '<rect x="'+x+'" y="'+y(a)+'" width="'+bw+'" height="'+(y(0)-y(a))+'" rx="3" fill="url(#gA)"><title>'+MESOS_CA[i]+': '+NUMFMT.format(a)+' parells venuts</title></rect>'; }
+    if(f > 0){ s += '<rect x="'+x+'" y="'+y(a+f)+'" width="'+bw+'" height="'+(y(a)-y(a+f))+'" rx="3" fill="url(#pF)" stroke="#1f3864" stroke-opacity=".55" stroke-dasharray="4 3"><title>'+MESOS_CA[i]+': previsió '+NUMFMT.format(Math.round(f))+' parells'+(a>0?' (a més dels '+NUMFMT.format(a)+' ja venuts)':'')+'</title></rect>'; }
+    if(a + f > 0){ s += '<text x="'+(x+bw/2)+'" y="'+(y(a+f)-6)+'" text-anchor="middle" font-size="11.5" font-weight="600" fill="'+(f>0?'#4a5c7a':'#1f3864')+'">'+NUMFMT.format(Math.round(a+f))+'</text>'; }
+    s += '<text x="'+(x+bw/2)+'" y="'+(H-B+18)+'" text-anchor="middle" font-size="12" fill="'+(m===cm?'#1f3864':'#66717f')+'" font-weight="'+(m===cm?'700':'400')+'">'+MES_CURT[i]+'</text>';
+    if(m === cm && cover){ s += '<text x="'+(x+bw/2)+'" y="'+(H-B+33)+'" text-anchor="middle" font-size="10" fill="#8a94a0">fins '+cover.getDate()+'/'+cm+'</text>'; }
+  }
+  s += '<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(0)+'" y2="'+y(0)+'" stroke="#c9d1db"/></svg>';
+  const acum = actual.reduce((a,v)=>a+v,0), prevTot = Math.round(forecast.reduce((a,v)=>a+v,0));
+  const chips = [['Venda '+(C.year||''), NUMFMT.format(acum)], ["Des de l'1/9", NUMFMT.format(info['ACUM HI']||0)], ['Previsió fins 31/12', fc ? NUMFMT.format(prevTot) : '—'],
+                 ['Stock Zalando', NUMFMT.format((info['STOCK ZLD']||0) + (info['ENV PENDENTS']||0))], ['Corba', fc ? fc.src : 'sense previsió']];
+  let html = '<div class="modal" id="chart-modal"><div class="card">'
+    + '<div class="mhead"><div><div class="mtitle">'+esc(mc)+'</div><div class="msub">'+esc([info['GÈNERE'], info['COL·LECCIÓ'], info['SEASON'], info['TEMPORADA']].filter(Boolean).join(' · '))+'</div></div><button type="button" class="mclose" title="Tancar (Esc)">×</button></div>'
+    + '<div class="chips">'+chips.map(c => '<div class="chip"><span>'+esc(c[0])+'</span><b>'+esc(c[1])+'</b></div>').join('')+'</div>'
+    + s
+    + '<div class="legend"><span class="lg solid"></span> venda real '+(C.year||'')+' <span class="lg fc"></span> previsió (corba de la col·lecció aplicada a la venda des de l’1 de setembre)'
+    + (fc ? '' : ' · <i>aquest model no té previsió: no és d’hivern o no ha venut des de l’1 de setembre</i>')+'</div>';
+  if(fc && fc.curve && cover){
+    const pct = v => (v*100).toFixed(1).replace('.', ',') + ' %';
+    const dim = new Date(cover.getFullYear(), cm, 0).getDate(); const day = cover.getDate();
+    const tot = fc.curve.slice(8, 12).reduce((a,v)=>a+v, 0);
+    let f = 0; for(let m = 9; m < cm; m++) f += fc.curve[m-1]; f += fc.curve[cm-1] * day / dim;
+    const acumHI = info['ACUM HI'] || 0;
+    const perMes = [9,10,11,12].map(m => { const tm = fc.total * fc.curve[m-1] / tot; return MES_CURT[m-1] + ' ' + NUMFMT.format(Math.round(tm)) + (m === cm ? ' ('+NUMFMT.format(actual[m-1])+' venuts + '+NUMFMT.format(Math.round(Math.max(0, tm - actual[m-1])))+' previstos)' : (m < cm ? ' (tancat)' : '')); });
+    html += '<details class="calc"><summary>Com s’ha calculat</summary><ol>'
+      + '<li>Corba <b>'+esc(fc.src)+'</b> (% de la venda 2025 de la col·lecció): set '+pct(fc.curve[8])+' · oct '+pct(fc.curve[9])+' · nov '+pct(fc.curve[10])+' · des '+pct(fc.curve[11])+' → de setembre a desembre <b>'+pct(tot)+'</b> de l’any.</li>'
+      + '<li>Part de la corba ja transcorreguda des de l’1/9 fins al '+day+'/'+cm+': '+(cm > 9 ? 'mesos tancats + ' : '')+pct(fc.curve[cm-1])+' × '+day+'/'+dim+' = <b>'+pct(f)+'</b>.</li>'
+      + '<li>Venda total prevista set–des = venda des de l’1/9 ÷ part transcorreguda × % set–des = '+NUMFMT.format(acumHI)+' ÷ '+pct(f)+' × '+pct(tot)+' = <b>'+NUMFMT.format(Math.round(fc.total))+'</b> parells.</li>'
+      + '<li>Previsió fins al 31/12 = '+NUMFMT.format(Math.round(fc.total))+' − '+NUMFMT.format(acumHI)+' ja venuts = <b>'+NUMFMT.format(Math.max(0, Math.round(fc.total - acumHI)))+'</b> parells.</li>'
+      + '<li>Repartiment per mes (total × % del mes ÷ % set–des): '+perMes.join(' · ')+'.</li>'
+      + '</ol></details>';
+  }
+  html += '</div></div>';
+  const old = document.getElementById('chart-modal'); if(old) old.remove();
+  document.body.insertAdjacentHTML('beforeend', html);
+  const modal = document.getElementById('chart-modal');
+  const close = () => { modal.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if(e.key === 'Escape') close(); };
+  modal.addEventListener('click', e => { if(e.target === modal) close(); });
+  modal.querySelector('.mclose').addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
+}
+function niceStep(raw){ const p = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1)))); const n = raw / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p; }
 
 function build(id, spec, rows){
   const panel = document.getElementById('p-'+id);
@@ -1424,6 +1506,7 @@ function build(id, spec, rows){
         if(c.key) cls += ' key';
         if(spec.red[c.k] !== undefined && typeof v === 'number' && v < spec.red[c.k]) cls += ' low';
         if(i===0) cls += ' sticky';
+        if(c.k === 'model_color') cls += ' mclink';
         if(v === null || v === undefined) v = '';
         else if(c.fmt === 'pct') v = (typeof v === 'number' && v > 0) ? NUMFMT.format(v) + '%' : '';
         else if(c.n && typeof v === 'number') v = Number.isInteger(v) ? NUMFMT.format(v) : v.toFixed(1);
@@ -1458,6 +1541,7 @@ function build(id, spec, rows){
     panel.querySelector('#sc-'+id).addEventListener('click', () => setSel(new Set()));
   }
   if(selFilter) panel.querySelector('#xl-'+id).addEventListener('click', exportXlsx);
+  tbody.addEventListener('click', e => { const td = e.target.closest ? e.target.closest('td.mclink') : null; if(td) openChart(td.textContent.trim()); });
   panel.querySelector('#q-'+id).addEventListener('input', e => { state.q = e.target.value; render(); });
   panel.querySelector('#r-'+id).addEventListener('change', e => { state.onlyRepo = e.target.checked; render(); });
   panel.querySelectorAll('select').forEach(s => s.addEventListener('change', e => { state.filters[e.target.dataset.f] = e.target.value; render(); }));
