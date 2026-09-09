@@ -663,7 +663,7 @@ def load_almacen(folder: str) -> tuple[pd.DataFrame, dict]:
 
 def previsio_temporada(mc: pd.DataFrame, blocks: list | None, acum_col: str, start: dt.date, end: dt.date, cover_end: dt.date,
                        prefix: str) -> tuple[pd.Series, list[str], dict]:
-    """PREVISIÓ per model_color d'una temporada (HI: 1/9-31/12 amb ACUM HI; ES: 1/3-31/8 amb ACUM ES): parells a vendre
+    """PREVISIÓ per model_color d'una temporada (HI: 1/9-31/12 amb ACUM HI; ES: 1/3-31/12 amb ACUM ES): parells a vendre
     des de cover_end fins al final de la temporada, extrapolant l'acumulat amb la corba mensual (% del 2025) de la
     col·lecció del seu gènere. NaN si no hi ha corba, el model no és de la temporada o no hi ha venda acumulada.
     També retorna el detall per model_color per al gràfic de l'HTML."""
@@ -1276,12 +1276,13 @@ function openChart(mc){
   const months = (fc && fc.months) ? fc.months : [9,10,11,12];
   const sStart = fc && fc.start ? new Date(fc.start) : null, sEnd = fc && fc.end ? new Date(fc.end) : null;
   const forecast = new Array(12).fill(0);
+  const dimC = cover ? new Date(cover.getFullYear(), cm, 0).getDate() : 30, restC = cover ? 1 - cover.getDate() / dimC : 1;   // part del mes en curs que encara falta
   if(fc && fc.curve && !fc.closed){
     const tot = months.reduce((a,m)=>a+fc.curve[m-1], 0) || 1;
     months.forEach(m => {
       const f = fc.total * fc.curve[m-1] / tot;
       if(m < cm) return;                                                     // mes ja tancat: només real
-      forecast[m-1] = (m === cm) ? Math.max(0, f - actual[m-1]) : f;        // mes en curs: la part que falta
+      forecast[m-1] = (m === cm) ? f * restC : f;                            // mes en curs: la part proporcional als dies que falten (així la suma = total − acumulat, com a l’Excel)
     });
   }
   const totalsBar = actual.map((a,i) => a + forecast[i]);
@@ -1325,7 +1326,7 @@ function openChart(mc){
     const tot = months.reduce((a,m)=>a+fc.curve[m-1], 0);
     let f = 0; if(fc.closed) f = tot; else { months.forEach(m => { if(m < em) f += fc.curve[m-1]; }); f += fc.curve[em-1] * day / dim; }
     const acumT = fc.acum || 0; const rang = MESOS_CA[first-1] + '–' + MESOS_CA[last-1];
-    const perMes = months.map(m => { const tm = fc.total * fc.curve[m-1] / tot; return MES_CURT[m-1] + ' ' + NUMFMT.format(Math.round(tm)) + (fc.closed || m < cm ? ' (tancat)' : (m === cm ? ' ('+NUMFMT.format(actual[m-1])+' venuts + '+NUMFMT.format(Math.round(Math.max(0, tm - actual[m-1])))+' previstos)' : '')); });
+    const perMes = months.map(m => { const tm = fc.total * fc.curve[m-1] / tot; return MES_CURT[m-1] + ' ' + NUMFMT.format(Math.round(tm)) + (fc.closed || m < cm ? ' (tancat)' : (m === cm ? ' ('+NUMFMT.format(actual[m-1])+' ja venuts fins al '+day+'/'+em+' + '+NUMFMT.format(Math.round(tm * restC))+' previstos pels '+(dim-day)+' dies que falten)' : '')); });
     html += '<details class="calc"><summary>Com s’ha calculat</summary><ol>'
       + '<li>Corba <b>'+esc(fc.src)+'</b> (% de la venda 2025 de la col·lecció): '+months.map(m => MES_CURT[m-1]+' '+pct(fc.curve[m-1])).join(' · ')+' → de '+rang+' <b>'+pct(tot)+'</b> de l’any.</li>'
       + (fc.closed
@@ -1885,10 +1886,10 @@ def main():
         ("Model_color HI26 NOU que no consten creats a ZLD (REPO = 0)", str(no_created)),
         ("Creats Zalando HI26", f"{len(created)} model_color a la llista; {int((mc['CREAT HI26'] == 'SÍ').sum())} són a Models a reposar" if created else "fitxer no trobat"),
         ("Previsió demanda", f"{prev['fitxer']} ({len(prev['blocks'])} blocs)" if prev else "fitxer no trobat"),
-        ("ACUM HI", f"unitats per data de comanda des del {hi_start.strftime('%d/%m/%Y')} fins al {info['setmana_fi']} (última setmana carregada)"),
-        ("ACUM ES", f"unitats per data de comanda des del {es_start.strftime('%d/%m/%Y')} fins al {info['setmana_fi']} (última setmana carregada)"),
+        ("ACUM HI", f"unitats per data de comanda des del {hi_start.strftime('%d/%m/%Y')} fins al {cover_end.strftime('%d/%m/%Y')} (última setmana carregada)"),
+        ("ACUM ES", f"unitats per data de comanda des del {es_start.strftime('%d/%m/%Y')} fins al {cover_end.strftime('%d/%m/%Y')} (última setmana carregada)"),
         ("PREVISIÓ / A COMPRAR", "PREVISIÓ = acumulat de la temporada / (part de la corba de la col·lecció ja transcorreguda) x (% dels mesos de la temporada) - acumulat; "
-                                 f"hivern (models HI): ACUM HI, de l'1/9 al 31/12; estiu (models ES): ACUM ES, de l'1/3 al 31/12; dades fins al {info['setmana_fi']}. "
+                                 f"hivern (models HI): ACUM HI, de l'1/9 al 31/12; estiu (models ES): ACUM ES, de l'1/3 al 31/12; dades fins al {cover_end.strftime('%d/%m/%Y')}. "
                                  "A COMPRAR = PREVISIÓ - STOCK ZLD - ENV PENDENTS - DISPONIBLE ALMACÉN (>= 0). "
                                  + (" | ".join(prev_avisos) if prev_avisos else "")),
         ("Disponible almacén (Previsió demanda)", f"{almacen_meta['fitxer']}: {almacen_meta['skus']} SKUs, {almacen_meta['total']} parells disponibles" if almacen_meta else "fitxer no trobat"),
