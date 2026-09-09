@@ -1674,6 +1674,23 @@ def main():
                                   mult, args.min_level, args.min_level_kids, args.max_level, created=created, zinfo=zinfo,
                                   hi_start=hi_start)
 
+    # model_color per a la secció de Previsió demanda: les mateixes columnes + DISPONIBLE ALMACÉN (només HTML)
+    disp_mc = sku[["SKU", "model_color"]].merge(almacen, on="SKU", how="left").fillna({"DISPONIBLE ALMACÉN": 0}) \
+        .groupby("model_color")["DISPONIBLE ALMACÉN"].sum()
+    mc_prev = mc.copy()
+    mc_prev.insert(list(mc_prev.columns).index("DISPO 30 DIES") + 1, "DISPONIBLE ALMACÉN",
+                   mc_prev["model_color"].map(disp_mc).fillna(0).astype(int))
+    # PREVISIÓ fins al 31/12 i A COMPRAR (net del stock que ja tenim), a les dues taules de model_color
+    cover_end = dt.date.fromisoformat(info["setmana_fi"])
+    previsio, prev_avisos = previsio_fins_desembre(mc_prev, prev, hi_start, cover_end)
+    a_comprar = (previsio - mc_prev["STOCK ZLD"] - mc_prev["ENV PENDENTS"] - mc_prev["DISPONIBLE ALMACÉN"]).clip(lower=0)
+    for frame in (mc, mc_prev):
+        pos = list(frame.columns).index("AVÍS")
+        frame.insert(pos, "PREVISIÓ", pd.array(previsio.round(), dtype="Int64"))
+        frame.insert(pos + 1, "A COMPRAR", pd.array(a_comprar.round(), dtype="Int64"))
+    for av in prev_avisos:
+        print("AVÍS:", av)
+
     warnings = []
     if snap_meta["rebutjats"]:
         warnings.append("Snapshots de stock Zalando rebutjats per EANs no íntegres (notació científica 8,43453E+12 en desar des d'Excel): "
@@ -1736,22 +1753,6 @@ def main():
     title = f"Reposició Zalando {args.date}"
     subtitle = (f"Setmana {week_lbl} · stock Zalando {snap_meta['fitxer']} · enviaments pendents {', '.join(pend_labels) or 'cap'} · "
                 f"regla venda x{mult:g} ({mult_src}) → nivell · generat {dt.datetime.now():%d/%m/%Y %H:%M}")
-    # model_color per a la secció de Previsió demanda: les mateixes columnes + DISPONIBLE ALMACÉN (només HTML)
-    disp_mc = sku[["SKU", "model_color"]].merge(almacen, on="SKU", how="left").fillna({"DISPONIBLE ALMACÉN": 0}) \
-        .groupby("model_color")["DISPONIBLE ALMACÉN"].sum()
-    mc_prev = mc.copy()
-    mc_prev.insert(list(mc_prev.columns).index("DISPO 30 DIES") + 1, "DISPONIBLE ALMACÉN",
-                   mc_prev["model_color"].map(disp_mc).fillna(0).astype(int))
-    # PREVISIÓ fins al 31/12 i A COMPRAR (net del stock que ja tenim), a les dues taules de model_color
-    cover_end = dt.date.fromisoformat(info["setmana_fi"])
-    previsio, prev_avisos = previsio_fins_desembre(mc_prev, prev, hi_start, cover_end)
-    a_comprar = (previsio - mc_prev["STOCK ZLD"] - mc_prev["ENV PENDENTS"] - mc_prev["DISPONIBLE ALMACÉN"]).clip(lower=0)
-    for frame in (mc, mc_prev):
-        pos = list(frame.columns).index("AVÍS")
-        frame.insert(pos, "PREVISIÓ", pd.array(previsio.round(), dtype="Int64"))
-        frame.insert(pos + 1, "A COMPRAR", pd.array(a_comprar.round(), dtype="Int64"))
-    for av in prev_avisos:
-        print("AVÍS:", av)
     write_html(sku, mc, title, subtitle, warnings, html_path,
                totals={"stock_zld": snap_meta["total"], "venda_setm": info["venda_setm_total"]}, sel_key=args.date, prev=prev,
                mc_prev=mc_prev)
