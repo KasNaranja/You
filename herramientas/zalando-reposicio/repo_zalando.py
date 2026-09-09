@@ -92,8 +92,8 @@ COL_HELP = {
     "ACUM'25": "Unitats venudes del model_color durant tot el 2025 (Venda 2025.xlsx).",
     "ACUM'26": "Unitats venudes del model_color el 2026 fins a la setmana de referència (suma de tots els fitxers setmanals).",
     "ACUM HI": "Unitats venudes del model_color des de l'1 de setembre (inici de la temporada d'hivern) fins a l'última setmana carregada, per data de comanda. Cada setmana s'hi va sumant.",
-    "ACUM ES": "Unitats venudes del model_color de l'1 de març al 31 d'agost (temporada d'estiu) de l'any en curs, per data de comanda. Cada setmana s'hi va sumant fins que acaba l'agost.",
-    "PREVISIÓ": "Parells que es preveu vendre des de l'última setmana carregada fins al final de la temporada: hivern (models HI) fins al 31/12 a partir d'ACUM HI; estiu (models ES) fins al 31/8 a partir d'ACUM ES. Càlcul: acumulat ÷ (part de la corba de la col·lecció ja transcorreguda) × (% dels mesos de la temporada) − acumulat. Corba del gènere i col·lecció de la pestanya Previsió demanda (genèrica del gènere si la col·lecció no hi és). 0 si la temporada ja s'ha acabat; buit si no hi ha corba o venda acumulada.",
+    "ACUM ES": "Unitats venudes del model_color des de l'1 de març de l'any en curs fins a l'última setmana carregada, per data de comanda. Cada setmana s'hi va sumant.",
+    "PREVISIÓ": "Parells que es preveu vendre des de l'última setmana carregada fins al 31/12: hivern (models HI) a partir d'ACUM HI i la corba de setembre a desembre; estiu (models ES) a partir d'ACUM ES i la corba de març a desembre. Càlcul: acumulat ÷ (part de la corba de la col·lecció ja transcorreguda) × (% dels mesos de la temporada fins al desembre) − acumulat. Corba del gènere i col·lecció de la pestanya Previsió demanda (genèrica del gènere si la col·lecció no hi és). Buit si no hi ha corba o venda acumulada.",
     "A COMPRAR": "PREVISIÓ − STOCK ZLD − ENV PENDENTS − DISPONIBLE ALMACÉN, si és positiu: parells que faltarien per cobrir la previsió fins al 31/12 amb el stock que ja tenim.",
     "VENDA 4 SETM": "Suma de les últimes 4 setmanes de venda del model_color. Només informativa.",
     "MULT": "Multiplicador de la venda setmanal. Surt de 'VENTA POR MES.xlsx' segons el mes de la data de càlcul (p.ex. setembre 3, abril 5). Es pot canviar per model_color a 'Ajustos repo.xlsx'.",
@@ -803,7 +803,7 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     mc_26 = lines.groupby("MODEL_COLOR")["units"].sum()
     hi_lines = lines[lines["data"] >= pd.Timestamp(hi_start)] if hi_start else lines.iloc[0:0]
     mc_hi = hi_lines.groupby("MODEL_COLOR")["units"].sum()
-    es_lines = lines[(lines["data"] >= pd.Timestamp(es_start)) & (lines["data"] <= pd.Timestamp(es_end))] if (es_start and es_end) else lines.iloc[0:0]
+    es_lines = lines[lines["data"] >= pd.Timestamp(es_start)] if es_start else lines.iloc[0:0]   # des de l'1/3 fins a l'última setmana
     mc_es = es_lines.groupby("MODEL_COLOR")["units"].sum()
     sku_week = lw.groupby(["MODEL_COLOR", "TALLA"])["units"].sum()
     sku_26 = lines.groupby(["MODEL_COLOR", "TALLA"])["units"].sum()
@@ -1811,11 +1811,12 @@ def main():
     if mult is None:
         mult, mult_src = 3.0, "per defecte"
 
-    # temporades: hivern 1/9-31/12 (de l'any de càlcul si ja hi som, si no de l'anterior); estiu 1/3-31/8 de l'any de càlcul
+    # temporades: hivern acumula des de l'1/9 (de l'any de càlcul si ja hi som, si no de l'anterior) i preveu fins al 31/12;
+    # estiu acumula des de l'1/3 de l'any de càlcul i també preveu fins al 31/12 (la cua de venda de setembre a desembre)
     calc_year = dt.date.today().year
     hi_start = dt.date(calc_year if month >= 9 else calc_year - 1, 9, 1)
     hi_end = dt.date(hi_start.year, 12, 31)
-    es_start, es_end = dt.date(calc_year, 3, 1), dt.date(calc_year, 8, 31)
+    es_start, es_end = dt.date(calc_year, 3, 1), dt.date(calc_year, 12, 31)
 
     print("Calculant...")
     sku, mc, fora, info = compute(models, levels, lines, acum25, stock_tp, snap, pending, pend_labels, adjust,
@@ -1885,9 +1886,9 @@ def main():
         ("Creats Zalando HI26", f"{len(created)} model_color a la llista; {int((mc['CREAT HI26'] == 'SÍ').sum())} són a Models a reposar" if created else "fitxer no trobat"),
         ("Previsió demanda", f"{prev['fitxer']} ({len(prev['blocks'])} blocs)" if prev else "fitxer no trobat"),
         ("ACUM HI", f"unitats per data de comanda des del {hi_start.strftime('%d/%m/%Y')} fins al {info['setmana_fi']} (última setmana carregada)"),
-        ("ACUM ES", f"unitats per data de comanda del {es_start.strftime('%d/%m/%Y')} al {es_end.strftime('%d/%m/%Y')} (temporada d'estiu)"),
+        ("ACUM ES", f"unitats per data de comanda des del {es_start.strftime('%d/%m/%Y')} fins al {info['setmana_fi']} (última setmana carregada)"),
         ("PREVISIÓ / A COMPRAR", "PREVISIÓ = acumulat de la temporada / (part de la corba de la col·lecció ja transcorreguda) x (% dels mesos de la temporada) - acumulat; "
-                                 f"hivern (models HI): ACUM HI, de l'1/9 al 31/12; estiu (models ES): ACUM ES, de l'1/3 al 31/8; dades fins al {info['setmana_fi']}. "
+                                 f"hivern (models HI): ACUM HI, de l'1/9 al 31/12; estiu (models ES): ACUM ES, de l'1/3 al 31/12; dades fins al {info['setmana_fi']}. "
                                  "A COMPRAR = PREVISIÓ - STOCK ZLD - ENV PENDENTS - DISPONIBLE ALMACÉN (>= 0). "
                                  + (" | ".join(prev_avisos) if prev_avisos else "")),
         ("Disponible almacén (Previsió demanda)", f"{almacen_meta['fitxer']}: {almacen_meta['skus']} SKUs, {almacen_meta['total']} parells disponibles" if almacen_meta else "fitxer no trobat"),
