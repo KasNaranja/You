@@ -100,12 +100,12 @@ COL_HELP = {
     "OBJECTIU": "VENDA SET × MULT: parells que hauria d'haver-hi a Zalando del model_color.",
     "NIVELL": "Nivell de NIVEL.xlsx escollit: el primer amb què la suma de les talles del model cobreix l'OBJECTIU (HAURIA ≥ OBJECTIU). Mínim 6 per dona i home i 2 per nens, encara que no hi hagi venda.",
     "HAURIA": "Parells que hauria d'haver-hi a Zalando segons el desglossament per talla del NIVELL a NIVEL.xlsx. A la vista model_color és la suma de totes les talles del model.",
-    "STOCK ZLD": "Stock total a Zalando segons el snapshot (offerable + non-offerable, tots els magatzems).",
-    "OFFERABLE": "Part del STOCK ZLD que Zalando té disponible per vendre.",
+    "STOCK ZLD": "Stock total a Zalando segons el snapshot (offerable + non-offerable, tots els magatzems). Informatiu: la reposició (DIF/REPO) es calcula amb OFFERABLE.",
+    "OFFERABLE": "Part del STOCK ZLD que Zalando té disponible per vendre. És el stock que es descompta per calcular DIF i REPO (des del 16/09/2026; abans es descomptava el STOCK ZLD total).",
     "NON OFFERABLE": "Part del STOCK ZLD no disponible per vendre (en moviment intern, devolucions en procés, etc.).",
     "ENV PENDENTS": "Suma dels enviaments pendents: parells que ja han sortit de Toni Pons però encara no compten al stock de Zalando.",
     "COBERTURA SET": "Setmanes de venda que cobreix el stock: 2 × (STOCK ZLD + ENV PENDENTS) / VENDA SET. El ×2 compensa les devolucions, que tornen a estar disponibles. Buit si no hi ha venda. En vermell si és menys de 4 setmanes. Només informativa.",
-    "DIF": "HAURIA − STOCK ZLD − ENV PENDENTS, talla per talla. Negatiu vol dir que sobra stock d'aquesta talla. A la vista model_color és el net de totes les talles.",
+    "DIF": "HAURIA − OFFERABLE − ENV PENDENTS, talla per talla (el stock non-offerable no es descompta). Negatiu vol dir que sobra stock d'aquesta talla. A la vista model_color és el net de totes les talles.",
     "REPO": "Parells a reposar: el DIF de cada talla quan és positiu (si no, 0). A la vista model_color és la suma de les talles que van curtes. 0 si CREAT A ZLD? = NO CONSTA.",
     "STOCK TP 01 02": "Stock físic al magatzem de Toni Pons (columna 'Stock 01 02' de l'export SAP), sumat per EAN.",
     "DISPO 30 DIES": "Stock disponible a Toni Pons a 30 dies (columna 'Stock Disponible 30 Dies' de l'export SAP): el que queda lliure després de reservar les comandes dels propers 30 dies. A la vista model_color, en vermell si el model té menys de 100 parells.",
@@ -898,7 +898,8 @@ def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.
     df["CREAT A ZLD?"] = np.where(not_created, "NO CONSTA", "SÍ")
     df["CREAT HI26"] = np.where(df["model_color"].astype(str).str.strip().str.upper().isin(created or set()), "SÍ", "")
 
-    df["DIF"] = df["HAURIA"] - df["STOCK ZLD"] - df["ENV PENDENTS"]
+    # des del 16/09/2026 es descompta l'OFFERABLE (stock disponible per vendre), no el STOCK ZLD total (Oriol)
+    df["DIF"] = df["HAURIA"] - df["OFFERABLE"] - df["ENV PENDENTS"]
     df["REPO"] = np.where(df["CREAT A ZLD?"] == "SÍ", df["DIF"].clip(lower=0), 0).astype(int)
     df["PREPARABLE"] = np.minimum(df["REPO"], df["DISPO 30 DIES"]).astype(int)
     df["FALTA STOCK TP"] = (df["REPO"] - df["PREPARABLE"]).astype(int)
@@ -1508,8 +1509,8 @@ function build(id, spec, rows){
     if(!out.length){ alert('No hi ha cap SKU per exportar: marca model_color a la pestanya «Per model_color».'); return; }
     const sheet1 = { name: 'REPO SKU', header: cols.map(c => c.l), rows: out.map(r => cols.map(c => (r[c.k] === null || r[c.k] === undefined) ? '' : r[c.k])),
                      widths: cols.map(c => Math.min(45, Math.max(8, Math.round((WIDTHS[c.k] || 100) / 7)))) };
-    const mcSel = DATA.mc.filter(r => SEL.has(r.model_color)).map(r => [r.model_color, r['GÈNERE'], r['VENDA SET'], r.NIVELL, r.HAURIA, r['STOCK ZLD'], r['ENV PENDENTS'], r.REPO, r.PREPARABLE, r.DTE || '']);
-    const sheet2 = { name: 'MODEL_COLOR', header: ['model_color','GÈNERE','VENDA SET','NIVELL','HAURIA','STOCK ZLD','ENV PENDENTS','REPO','PREPARABLE','DTE %'], rows: mcSel, widths: [24,10,10,8,9,10,13,8,12,7] };
+    const mcSel = DATA.mc.filter(r => SEL.has(r.model_color)).map(r => [r.model_color, r['GÈNERE'], r['VENDA SET'], r.NIVELL, r.HAURIA, r['STOCK ZLD'], r.OFFERABLE, r['ENV PENDENTS'], r.REPO, r.PREPARABLE, r.DTE || '']);
+    const sheet2 = { name: 'MODEL_COLOR', header: ['model_color','GÈNERE','VENDA SET','NIVELL','HAURIA','STOCK ZLD','OFFERABLE','ENV PENDENTS','REPO','PREPARABLE','DTE %'], rows: mcSel, widths: [24,10,10,8,9,10,10,13,8,12,7] };
     const sap = out.filter(r => r.REPO > 0).map(r => [r.EAN, r.SKU, r.model_color, r.talla, r.REPO, r.PREPARABLE]);
     const sheet3 = { name: 'SAP', header: ['EAN','SKU','model_color','talla','REPO','PREPARABLE'], rows: sap, widths: [16,26,24,8,8,12] };
     downloadBlob(buildXlsx([sheet1, sheet2, sheet3]), 'REPO ZALANDO ' + (DATA.dateLabel || '') + ' - seleccio.xlsx');
@@ -1871,7 +1872,7 @@ def main():
         ("Regla", f"objectiu = venda setmanal del model_color x {mult:g}; nivell = primer nivell de la taula del gènere amb què la suma de les talles del model (HAURIA) cobreix l'objectiu, o sigui HAURIA >= objectiu; HAURIA = desglossament per talla d'aquest nivell"),
         ("Nivell mínim adults / nens", f"{args.min_level} / {args.min_level_kids} (0 = sense venda no es reposa)"),
         ("Nivell màxim", str(args.max_level) if args.max_level else "sense límit (el de la taula)"),
-        ("DIF", "per talla: HAURIA - STOCK ZLD (total, offerable + non-offerable) - ENV PENDENTS; a la vista model_color, net de totes les talles"),
+        ("DIF", "per talla: HAURIA - OFFERABLE (stock disponible per vendre a Zalando; el non-offerable no es descompta) - ENV PENDENTS; a la vista model_color, net de totes les talles"),
         ("REPO", "per talla: DIF si és positiu (si no, 0); a la vista model_color, suma de les talles curtes; els HI26 NOU sense marca a 'es pot enviar?' (CREAT A ZLD? = NO CONSTA) es deixen a 0"),
         ("PREPARABLE", "min(REPO, Stock Disponible 30 Dies a Toni Pons), talla per talla"),
         ("COBERTURA SET", f"{COBERTURA_FACTOR} x (STOCK ZLD + ENV PENDENTS) / VENDA SET, en setmanes; el x{COBERTURA_FACTOR} compensa les devolucions, que tornen a estar disponibles. Només informativa"),
