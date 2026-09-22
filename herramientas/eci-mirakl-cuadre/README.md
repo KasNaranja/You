@@ -80,3 +80,43 @@ Excel (`fullCalcOnLoad`).
   `Incidencia abierta` con motivo `Devolución` es una devolución en curso.
   ECI documenta cada paso con un talón (venta, cumplimentación, abono,
   recogida) que el export trae con su fecha.
+
+## Cuadre de las liquidaciones de ECI con los pedidos
+
+Script `cuadre_liquidacion_eci.py`: lee las liquidaciones «Explotaciones
+directas» de un mes (los `.xlsx` de España con hoja `Data`, los `.XLS` de
+Portugal, que son texto UTF-16 con tabuladores, y la subcarpeta `corners`) y
+las cuadra con el export de Mirakl.
+
+```
+python cuadre_liquidacion_eci.py --mirakl "pedidos 2026.xlsx" --liquidaciones "8 - AGOST" --periodo 2026-08
+```
+
+Salida `Cuadre_liquidacion_ECI_<periodo>.xlsx` en la carpeta de liquidaciones:
+`Resumen` (cada línea de liquidación frente a lo que sale de Mirakl, totales por
+país y departamento, posibles causas de diferencia), `Líneas mes` (todas las
+líneas de Mirakl con cumplimentación, abono o recogida en el mes, con su venta y
+abono en liquidación por fórmula y una columna `Revisar`) y `Liquidación ECI`
+(las líneas tal cual, con el nº de factura del fichero «total» si existe).
+
+### Cómo liquida ECI (deducido con agosto 2026, 28 de 37 líneas al céntimo)
+
+- Una línea de liquidación por **centro** y **departamento (UNECO)**. El centro
+  va codificado en el número de pedido de Mirakl, posiciones 4 a 7: `0090` venta
+  a distancia España, `0143` Portugal, `0005` Bilbao, `0011` Vigo… Las tiendas
+  son pedidos hechos desde la tienda, no las recogidas en tienda.
+- El departamento sale del producto: mujer o unisex → `0601`, hombre → `0602`,
+  niños → `0696` (el script lo infiere de la descripción).
+- **Venta bruta del mes** = importe de las líneas con `Fecha de cumplimentación`
+  en el mes, menos el `Importe total reembolsado` de las líneas con `Fecha de
+  abono 1` en el mes que tengan cumplimentación. Los reembolsos de líneas nunca
+  entregadas no restan. Un centro con neto negativo sale en una «liquidación
+  negativa» aparte (Vigo hombre, −45 € en agosto).
+- Participación ECI 30 % en España (IVA 21 % en la factura) y 29 % en Portugal
+  (IVA 23 % dentro de la venta, factura sin IVA). Los corners (UNECO 0598, 34 %)
+  son venta física y no se cruzan; gastos de envío y gestión de espacios tampoco.
+
+Quedó sin explicar en agosto: venta a distancia España +386 € sobre 71.103 €
+(0,5 %), Valderas +65 € (devolución recogida en agosto y abonada en Mirakl en
+septiembre) y Portugal +702 € sobre 6.006 €. La columna `Revisar` marca las
+líneas candidatas.
