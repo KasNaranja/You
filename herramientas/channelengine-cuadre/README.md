@@ -77,3 +77,15 @@ En el export, `Order.Status = CLOSED` con `Return.Id` en alguna línea es una
 devolución parcial (una línea devuelta y otra no). `RETURNED` es devolución
 completa. `Line.RefundAmount*` viene siempre vacío; el importe devuelto se toma
 de `Line.LineTotalInclVat` de las líneas con `Return.Id`.
+
+## Documento «Errores conector Channel Engine»
+
+`errores_conector.js` genera el Word `Errores conector Channel Engine.docx`
+(carpeta de trabajo de T:) con la librería `docx` de npm: cada página documenta
+un tipo de error del conector con un pedido real de ejemplo. La primera página
+es un pedido descartado por su estado (About You, ya RETURNED al entrar en CE).
+
+```
+npm install docx
+node errores_conector.js "T:\Online\Oriol\ERP\BC\Channel Engine\Errores conector Channel Engine.docx"
+```
