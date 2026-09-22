@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="860" viewBox="0 0 1400 860" font-family="Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="flecha" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L12,6 L0,12 z" fill="#1F4E78"/>
+    </marker>
+  </defs>
+  <rect width="1400" height="860" fill="#FFFFFF"/>
+
+  <text x="700" y="46" text-anchor="middle" font-size="26" font-weight="bold" fill="#1F4E78">Cuadre ChannelEngine vs Business Central · agosto 2026</text>
+  <text x="700" y="72" text-anchor="middle" font-size="14" fill="#595959">Dos fuentes en paralelo: el export de pedidos de Channel Engine y el log del conector de Business Central</text>
+
+  <!-- ===================== fuente 1: export Channel Engine ===================== -->
+  <rect x="120" y="100" width="480" height="122" rx="8" fill="#FFFFFF" stroke="#1F4E78" stroke-width="2"/>
+  <rect x="120" y="100" width="480" height="34" rx="8" fill="#1F4E78"/>
+  <rect x="120" y="120" width="480" height="14" fill="#1F4E78"/>
+  <text x="360" y="123" text-anchor="middle" font-size="16" font-weight="bold" fill="#FFFFFF">EXPORT CHANNEL ENGINE</text>
+  <text x="148" y="178" font-size="42" font-weight="bold" fill="#1F4E78">417</text>
+  <text x="240" y="160" font-size="15" fill="#000000">pedidos con fecha de pedido dentro del periodo</text>
+  <text x="240" y="181" font-size="15" fill="#000000">orders-report: una fila por línea, agregado por pedido</text>
+  <text x="148" y="208" font-size="13" fill="#595959">419 en el CSV: los 2 del 31/07 a las 22:12 UTC quedan fuera del mes</text>
+
+  <!-- ===================== fuente 2: log del conector BC ===================== -->
+  <rect x="800" y="100" width="480" height="122" rx="8" fill="#FFFFFF" stroke="#1F4E78" stroke-width="2"/>
+  <rect x="800" y="100" width="480" height="34" rx="8" fill="#1F4E78"/>
+  <rect x="800" y="120" width="480" height="14" fill="#1F4E78"/>
+  <text x="1040" y="123" text-anchor="middle" font-size="16" font-weight="bold" fill="#FFFFFF">LOG DEL CONECTOR BC</text>
+  <text x="828" y="178" font-size="42" font-weight="bold" fill="#1F4E78">417</text>
+  <text x="920" y="160" font-size="15" fill="#000000">pedidos recibidos de Channel Engine en el periodo</text>
+  <text x="920" y="181" font-size="15" fill="#000000">hoja «Cruce pedidos», UATS TONIPONS</text>
+  <text x="920" y="206" font-size="13" fill="#595959">fecha de pedido en UTC, del 01/08 al 31/08</text>
+
+  <!-- flechas hacia el cruce -->
+  <path d="M360,222 V252 H520 V276" fill="none" stroke="#1F4E78" stroke-width="2.5" marker-end="url(#flecha)"/>
+  <path d="M1040,222 V252 H880 V276" fill="none" stroke="#1F4E78" stroke-width="2.5" marker-end="url(#flecha)"/>
+
+  <!-- ===================== cruce ===================== -->
+  <rect x="350" y="280" width="700" height="132" rx="8" fill="#C6EFCE" stroke="#548235" stroke-width="2"/>
+  <rect x="350" y="280" width="700" height="34" rx="8" fill="#548235"/>
+  <rect x="350" y="300" width="700" height="14" fill="#548235"/>
+  <text x="700" y="303" text-anchor="middle" font-size="16" font-weight="bold" fill="#FFFFFF">CRUCE POR CHANNEL ORDER NO</text>
+  <text x="700" y="348" text-anchor="middle" font-size="22" font-weight="bold" fill="#375623">417 en ambos  ·  0 solo en Channel Engine  ·  0 solo en BC</text>
+  <text x="700" y="376" text-anchor="middle" font-size="15" fill="#000000">Importe CE 31.698,29 €  =  Importe BC 31.698,29 €   →   diferencia de importe 0,00 €</text>
+  <text x="700" y="399" text-anchor="middle" font-size="13" fill="#595959">Los mismos 417 pedidos y los mismos importes en las dos fuentes: no se ha perdido ningún pedido entre CE y BC</text>
+
+  <!-- conector en árbol hacia los tres resultados -->
+  <path d="M700,412 V447" fill="none" stroke="#1F4E78" stroke-width="2.5"/>
+  <path d="M250,447 H1150" fill="none" stroke="#1F4E78" stroke-width="2.5"/>
+  <path d="M250,447 V503" fill="none" stroke="#1F4E78" stroke-width="2.5" marker-end="url(#flecha)"/>
+  <path d="M700,447 V503" fill="none" stroke="#1F4E78" stroke-width="2.5" marker-end="url(#flecha)"/>
+  <path d="M1150,447 V503" fill="none" stroke="#1F4E78" stroke-width="2.5" marker-end="url(#flecha)"/>
+  <text x="714" y="438" font-size="14" font-style="italic" fill="#1F4E78">¿Qué hizo BC con cada uno de los 417?</text>
+
+  <!-- ===================== resultado 1: creados ===================== -->
+  <rect x="60" y="507" width="380" height="165" rx="8" fill="#C6EFCE" stroke="#548235" stroke-width="2"/>
+  <rect x="60" y="507" width="380" height="34" rx="8" fill="#548235"/>
+  <rect x="60" y="527" width="380" height="14" fill="#548235"/>
+  <text x="250" y="530" text-anchor="middle" font-size="15" font-weight="bold" fill="#FFFFFF">PEDIDO DE VENTA CREADO EN BC</text>
+  <text x="86" y="595" font-size="42" font-weight="bold" fill="#375623">372</text>
+  <text x="178" y="578" font-size="15" fill="#000000">Processed, con nº de pedido BC</text>
+  <text x="178" y="602" font-size="18" font-weight="bold" fill="#000000">27.871,46 €</text>
+  <text x="86" y="636" font-size="13" fill="#404040">Coinciden con Channel Engine al céntimo.</text>
+  <text x="86" y="656" font-size="13" fill="#404040">184 se han devuelto después: pendiente de abono en BC.</text>
+
+  <!-- ===================== resultado 2: error ===================== -->
+  <rect x="510" y="507" width="380" height="165" rx="8" fill="#F8CBAD" stroke="#C55A11" stroke-width="2"/>
+  <rect x="510" y="507" width="380" height="34" rx="8" fill="#C55A11"/>
+  <rect x="510" y="527" width="380" height="14" fill="#C55A11"/>
+  <text x="700" y="530" text-anchor="middle" font-size="15" font-weight="bold" fill="#FFFFFF">ERROR DE PROCESO · SIN PEDIDO EN BC</text>
+  <text x="536" y="595" font-size="42" font-weight="bold" fill="#843C0C">23</text>
+  <text x="606" y="578" font-size="15" fill="#000000">«Order has product mapping errors»</text>
+  <text x="606" y="602" font-size="18" font-weight="bold" fill="#000000">1.840,99 €</text>
+  <text x="536" y="636" font-size="13" fill="#404040">Ventas enviadas que faltan en BC: 27 variantes</text>
+  <text x="536" y="656" font-size="13" fill="#404040">(talla/color) sin mapear. Corregir mapeo y reprocesar.</text>
+
+  <!-- ===================== resultado 3: omitidos ===================== -->
+  <rect x="960" y="507" width="380" height="165" rx="8" fill="#DDEBF7" stroke="#2E75B6" stroke-width="2"/>
+  <rect x="960" y="507" width="380" height="34" rx="8" fill="#2E75B6"/>
+  <rect x="960" y="527" width="380" height="14" fill="#2E75B6"/>
+  <text x="1150" y="530" text-anchor="middle" font-size="15" font-weight="bold" fill="#FFFFFF">OMITIDOS POR BC · SIN PEDIDO</text>
+  <text x="986" y="595" font-size="42" font-weight="bold" fill="#1F4E78">22</text>
+  <text x="1056" y="578" font-size="15" fill="#000000">Skipped: estado CE no procesable</text>
+  <text x="1056" y="602" font-size="18" font-weight="bold" fill="#000000">1.985,84 €</text>
+  <text x="986" y="636" font-size="13" fill="#404040">19 ya devueltos al entrar en CE (RETURNED / CLOSED)</text>
+  <text x="986" y="656" font-size="13" fill="#404040">+ 3 sin stock en Bol.com (MANCO → CANCELED).</text>
+
+  <!-- ===================== resumen ===================== -->
+  <rect x="120" y="712" width="1160" height="96" rx="8" fill="#F2F2F2" stroke="#BFBFBF" stroke-width="1.5"/>
+  <text x="700" y="744" text-anchor="middle" font-size="15" font-weight="bold" fill="#1F4E78">417 recibidos por BC  =  372 creados  +  23 con error  +  22 omitidos      ·      31.698,29 €  =  27.871,46 €  +  1.840,99 €  +  1.985,84 €</text>
+  <text x="700" y="770" text-anchor="middle" font-size="15" fill="#000000">Pedidos de venta que BC debería tener: 395 (372 creados + 23 pendientes de corregir). Los 22 omitidos no son ventas: 19 devueltos y 3 cancelados.</text>
+  <text x="700" y="794" text-anchor="middle" font-size="12" fill="#7F7F7F">Fuente: Cuadre_CE_vs_BC_agosto_2026.xlsx (hoja Resumen) · export orders-report «todo agosto» · log del conector BC (UATS TONIPONS) · 22/09/2026</text>
+</svg>
