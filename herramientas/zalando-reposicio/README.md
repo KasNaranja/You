@@ -22,6 +22,7 @@ còpia versionada.
 | `Enviaments pendents/*.csv` | `ean;quantity` dels enviaments ja fets però encara no al snapshot |
 | `VENTA POR MES.xlsx` | multiplicador de la venda setmanal per mes: fila amb els mesos i fila amb els valors (gener 2 … abril i maig 5 … setembre 3). El script agafa el del mes de la data de càlcul; `--mult` el força |
 | `Ajustos repo.xlsx` (opcional) | `model_color`, `multiplicador`, `nivell`, `comentari` per forçar casos concrets |
+| `Previsió demanda/Disponible_model_color.xlsx` | stock disponible del magatzem per model, color i talla (pestanya `Detall`, columna J `Disponible`); s'actualitza cada setmana. Només variant Toni Pons i negatius a 0 → columna DISPONIBLE ALMACÉN (Previsió demanda) i A COMPRAR |
 
 ## Regla
 

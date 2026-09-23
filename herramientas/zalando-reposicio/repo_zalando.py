@@ -108,7 +108,7 @@ COL_HELP = {
     "STOCK TP 01 02": "Stock físic al magatzem de Toni Pons (columna 'Stock 01 02' de l'export SAP), sumat per EAN.",
     "DISPO 30 DIES": "Stock disponible a Toni Pons a 30 dies (columna 'Stock Disponible 30 Dies' de l'export SAP): el que queda lliure després de reservar les comandes dels propers 30 dies. A la vista model_color, en vermell si el model té menys de 100 parells.",
     "PREPARABLE": "Part del REPO que es pot preparar avui: el mínim entre REPO i DISPO 30 DIES, talla per talla.",
-    "DISPONIBLE ALMACÉN": "Stock disponible a Toni Pons segons 'Previsió demanda/almacen_taula.xlsx' (pestanya ESTOC, columna SumCantidad_disponible), sumat per SKU i per model_color. Només es mostra a la pestanya Previsió demanda.",
+    "DISPONIBLE ALMACÉN": "Stock disponible al magatzem segons 'Previsió demanda/Disponible_model_color.xlsx' (pestanya Detall, columna Disponible): suma de les talles del model_color que hi ha al llistat, només variant Toni Pons, i les talles en negatiu (compromès > estoc) compten 0. S'actualitza cada setmana. Només es mostra a la pestanya Previsió demanda.",
     "DTE": "% de descompte actual a Zalando Alemanya (país DE): (PVP − preu rebaixat) / PVP, del CSV més recent de la carpeta 'Informació models zalando'. 0 = sense descompte. A la vista model_color, el màxim de les seves talles.",
     "VENDA SKU 1 SETM": "Unitats venudes d'aquesta talla la setmana de referència.",
     "VENDA SKU ACUM'26": "Unitats venudes d'aquesta talla el 2026.",
@@ -629,33 +629,40 @@ def load_previsio(folder: str) -> dict | None:
 
 
 def load_almacen(folder: str) -> tuple[pd.DataFrame, dict]:
-    """Previsió demanda/almacen_taula.xlsx, pestanya ESTOC: [SumCantidad_disponible] per codi d'article SAP (SKU)."""
-    files = [f for f in glob.glob(os.path.join(folder, "almacen*.xlsx")) if not os.path.basename(f).startswith("~$")]
-    empty = pd.DataFrame({"SKU": pd.Series(dtype=str), "DISPONIBLE ALMACÉN": pd.Series(dtype=float)})
+    """Previsió demanda/Disponible_model_color*.xlsx (el més recent), pestanya Detall: columna 'Disponible' (J) per Model, Color i Talla.
+    Des del 23/09/2026 substitueix almacen_taula.xlsx (Oriol). Només la variant Toni Pons (les altres marques no es poden enviar a
+    Zalando) i els negatius (compromès > estoc) compten 0. Retorna model_color + talla + DISPONIBLE ALMACÉN."""
+    files = [f for f in glob.glob(os.path.join(folder, "Disponible_model_color*.xlsx")) if not os.path.basename(f).startswith("~$")]
+    empty = pd.DataFrame({"model_color": pd.Series(dtype=str), "talla": pd.Series(dtype=str), "DISPONIBLE ALMACÉN": pd.Series(dtype=float)})
     if not files:
         return empty, {}
     path = max(files, key=os.path.getmtime)
     wb = openpyxl.load_workbook(readable_copy(path), read_only=True, data_only=True)
-    sheet = next((s for s in wb.sheetnames if norm(s) in ("estoc", "stock")), None)
+    sheet = next((s for s in wb.sheetnames if norm(s) == "detall"), None)
     if sheet is None:
-        raise SystemExit(f"{os.path.basename(path)}: no té la pestanya ESTOC")
-    ws = wb[sheet]
-    it = ws.iter_rows(values_only=True)
-    i_sku = i_disp = None
-    for r in it:  # la capçalera és la primera fila que conté el codi d'article i el disponible
-        hs = [norm(v) if isinstance(v, str) else "" for v in r]
-        for j, h in enumerate(hs):
-            if "codigo de articulo" in h or "código de artículo" in h:
-                i_sku = j
-            if "sumcantidad_disponible" in h:
-                i_disp = j
-        if i_sku is not None and i_disp is not None:
-            break
-    if i_sku is None or i_disp is None:
-        raise SystemExit(f"{os.path.basename(path)}: no trobo 'Código de artículo' i 'SumCantidad_disponible' a ESTOC")
-    recs = [(str(r[i_sku]).strip(), r[i_disp]) for r in it if len(r) > max(i_sku, i_disp) and r[i_sku] and isinstance(r[i_disp], (int, float))]
-    out = pd.DataFrame(recs, columns=["SKU", "DISPONIBLE ALMACÉN"]).groupby("SKU", as_index=False).sum()
-    meta = {"fitxer": os.path.basename(path), "skus": int(len(out)), "total": int(out["DISPONIBLE ALMACÉN"].sum())}
+        raise SystemExit(f"{os.path.basename(path)}: no té la pestanya Detall")
+    it = wb[sheet].iter_rows(values_only=True)
+    hdr = [norm(v) if isinstance(v, str) else "" for v in next(it, [])]
+    col = {k: (hdr.index(k) if k in hdr else None) for k in ("model", "color", "talla", "disponible", "variant")}
+    missing = [k for k in ("model", "color", "talla", "disponible") if col[k] is None]
+    if missing:
+        raise SystemExit(f"{os.path.basename(path)}: a la pestanya Detall falten les columnes {missing}")
+    recs, altres, negatius = [], 0, 0
+    for r in it:
+        if not r or r[col["model"]] in (None, ""):
+            continue
+        if col["variant"] is not None and r[col["variant"]] and norm(r[col["variant"]]) != "toni pons":
+            altres += 1
+            continue
+        d = r[col["disponible"]]
+        if not isinstance(d, (int, float)):
+            continue
+        if d < 0:
+            negatius += 1
+        recs.append((f"{str(r[col['model']]).strip()}_{str(r[col['color']]).strip()}".upper(), str(r[col["talla"]]).strip().upper(), max(0.0, float(d))))
+    out = pd.DataFrame(recs, columns=["model_color", "talla", "DISPONIBLE ALMACÉN"]).groupby(["model_color", "talla"], as_index=False).sum()
+    meta = {"fitxer": os.path.basename(path), "data": dt.date.fromtimestamp(os.path.getmtime(path)).strftime("%d/%m/%Y"), "files": len(recs),
+            "altres_variants": altres, "negatius": negatius, "model_colors": int(out["model_color"].nunique()), "total": int(out["DISPONIBLE ALMACÉN"].sum())}
     return out, meta
 
 
@@ -1870,7 +1877,7 @@ def main():
         print("AVÍS: no trobo 'Previsió demanda/Càlcul venda per col·leccio <any>.xlsx'; la pestanya Previsió demanda sortirà buida")
     almacen, almacen_meta = load_almacen(os.path.join(data, "Previsió demanda"))
     if not almacen_meta:
-        print("AVÍS: no trobo 'Previsió demanda/almacen_taula.xlsx'; DISPONIBLE ALMACÉN quedarà a 0")
+        print("AVÍS: no trobo 'Previsió demanda/Disponible_model_color.xlsx'; DISPONIBLE ALMACÉN quedarà a 0")
 
     # multiplicador: línia d'ordres > VENTA POR MES.xlsx (mes de la data de càlcul) > 3
     mult, mult_src = args.mult, "línia d'ordres"
@@ -1898,11 +1905,15 @@ def main():
                                   hi_start=hi_start, es_start=es_start, es_end=es_end)
 
     # model_color per a la secció de Previsió demanda: les mateixes columnes + DISPONIBLE ALMACÉN (només HTML)
-    disp_mc = sku[["SKU", "model_color"]].merge(almacen, on="SKU", how="left").fillna({"DISPONIBLE ALMACÉN": 0}) \
+    # disponible per (model_color, talla) del fitxer, sumat només sobre les talles que hi ha al llistat
+    keys = sku[["model_color", "talla"]].copy()
+    keys["model_color"] = keys["model_color"].astype(str).str.strip().str.upper()
+    keys["talla"] = keys["talla"].astype(str).str.strip().str.upper()
+    disp_mc = keys.merge(almacen, on=["model_color", "talla"], how="left").fillna({"DISPONIBLE ALMACÉN": 0}) \
         .groupby("model_color")["DISPONIBLE ALMACÉN"].sum()
     mc_prev = mc.copy()
     mc_prev.insert(list(mc_prev.columns).index("DISPO 30 DIES") + 1, "DISPONIBLE ALMACÉN",
-                   mc_prev["model_color"].map(disp_mc).fillna(0).astype(int))
+                   mc_prev["model_color"].astype(str).str.strip().str.upper().map(disp_mc).fillna(0).astype(int))
     # PREVISIÓ fins al 31/12 i A COMPRAR (net del stock que ja tenim), a les dues taules de model_color
     cover_end = dt.date.fromisoformat(info["setmana_fi"])
     seasons = (prev or {}).get("seasons", {})
@@ -1964,7 +1975,9 @@ def main():
                                  f"hivern (models HI): ACUM HI, de l'1/9 al 31/12; estiu (models ES): ACUM ES, de l'1/3 al 31/12; dades fins al {cover_end.strftime('%d/%m/%Y')}. "
                                  "A COMPRAR = PREVISIÓ - STOCK ZLD - ENV PENDENTS - DISPONIBLE ALMACÉN (>= 0). "
                                  + (" | ".join(prev_avisos) if prev_avisos else "")),
-        ("Disponible almacén (Previsió demanda)", f"{almacen_meta['fitxer']}: {almacen_meta['skus']} SKUs, {almacen_meta['total']} parells disponibles" if almacen_meta else "fitxer no trobat"),
+        ("Disponible almacén (Previsió demanda)", (f"{almacen_meta['fitxer']} ({almacen_meta['data']}), pestanya Detall, columna Disponible: {almacen_meta['model_colors']} model_color, "
+                                                  f"{almacen_meta['total']} parells (variant Toni Pons; {almacen_meta['altres_variants']} files d'altres marques fora; "
+                                                  f"{almacen_meta['negatius']} talles en negatiu comptades com a 0)") if almacen_meta else "fitxer no trobat"),
         ("Informació models zalando (DTE)", (f"{zinfo_meta['fitxer']} ({zinfo_meta['data']}), país {zinfo_meta['pais']}: {zinfo_meta['eans']} EANs, "
                                              f"{zinfo_meta['amb_dte']} amb descompte; {int((mc['DTE'] > 0).sum())} model_color del llistat amb DTE")
                                             if zinfo_meta else "cap fitxer; DTE = 0"),
