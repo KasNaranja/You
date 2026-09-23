@@ -31,7 +31,7 @@ objectiu   = venda setmanal del model_color x MULT (el del mes a VENTA POR MES.x
 nivell     = primer nivell de la taula del gènere amb què la suma de les talles del model (HAURIA) cobreix l'objectiu (HAURIA >= objectiu)
 HAURIA     = desglossament per talla d'aquest nivell
 DIF        = HAURIA - OFFERABLE (stock disponible per vendre a Zalando; des del 16/09/2026, abans el stock total) - enviaments pendents
-REPO       = DIF si > 0 (HI26 NOU sense marca a "es pot enviar?" -> 0)
+REPO       = DIF si > 0; 0 si CREAT = NO (columna "es pot enviar?" de Models a reposar amb #N/A o buida; amb el nom del model, CREAT = SÍ)
 nivell mínim per defecte: 6 dona i home, 2 nens (encara que no hi hagi venda)
 PREPARABLE = min(REPO, stock disponible 30 dies a Toni Pons)
 ```
