@@ -1826,7 +1826,7 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
                         {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums,
                        (("model_color", "CREAT", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc.columns[-1], "green")) + orange_cols, red=RED_RULES_MC,
                        extra={"defaultHidden": ["ACUM HI", "ACUM ES", "PREVISIÓ", "A COMPRAR"]}),
-        "skuSpec": spec(sku, num_sku, "VENDA SET", True, ["GÈNERE", "SEASON", "TEMPORADA", "CREAT"], ["EAN", "SKU", "model_color", "model", "color", "talla", "AVÍS"],
+        "skuSpec": spec(sku, num_sku, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "CREAT"],   # totes les talles dels models marcats, també amb REPO 0 (Oriol, 23/09/2026) ["EAN", "SKU", "model_color", "model", "color", "talla", "AVÍS"],
                         [{"k": "__rows__", "l": "SKUs amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 30d)"},
                          {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"}], sum_cols - {"VENDA SET", "VENDA 4 SETM", "ACUM'25", "ACUM'26"},
                         (("EAN", "CREAT", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", sku.columns[-1], "green"), ("DTE", "DTE", "orange")),
