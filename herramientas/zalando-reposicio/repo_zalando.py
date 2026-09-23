@@ -1857,7 +1857,7 @@ def main():
     snap_date = dt.date.fromisoformat(snap_meta["data"])
     if (dt.date.today() - snap_date).days > 3:
         warnings.append(f"El snapshot de stock Zalando utilitzat és del {snap_date.strftime('%d.%m.%Y')} ({(dt.date.today()-snap_date).days} dies).")
-    no_created = int((mc["CREAT"] == "NO CONSTA").sum())
+    no_created = int((mc["CREAT"] == "NO").sum())
     unmatched_env = int(pending.loc[~pending["EAN"].isin(set(models["EAN"].dropna())), "ENV PENDENTS"].sum()) if len(pending) else 0
     if unmatched_env:
         warnings.append(f"{unmatched_env} parells dels enviaments pendents tenen EANs que no són a 'Models a reposar' (no es resten enlloc).")
