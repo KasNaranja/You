@@ -1098,6 +1098,22 @@ table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%
 th{position:sticky;top:0;background:var(--head);color:#fff;padding:6px 8px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;z-index:2;border-right:1px solid rgba(255,255,255,.12)}
 th.num{text-align:right}th .arr{opacity:.7;font-size:10px;margin-left:3px}
 th.hg-grey{background:#d9d9d9;color:#1c2430}th.hg-yellow{background:#ffe699;color:#1c2430}th.hg-green{background:#c6e0b4;color:#1c2430}th.hg-orange{background:#f8cbad;color:#1c2430}
+th{padding-right:26px}
+th .fl{position:absolute;top:50%;right:10px;transform:translateY(-50%);width:15px;height:15px;line-height:15px;border-radius:3px;font-size:9px;text-align:center;color:#fff;background:rgba(255,255,255,.18);cursor:pointer;opacity:.85}
+th .fl:hover{opacity:1;background:rgba(255,255,255,.4)}th .fl.on{background:#ffd966;color:#1c2430;opacity:1}
+th.filt{text-decoration:underline dotted rgba(255,255,255,.7)}
+.flpick{position:fixed;z-index:120;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:10px;width:280px;box-sizing:border-box;font-size:12.5px;user-select:none;text-align:left}
+.flp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px}
+.flp-x{border:none;background:#f1f4f8;border-radius:50%;width:24px;height:24px;font-size:16px;line-height:1;cursor:pointer;color:#4a5c7a}.flp-x:hover{background:#e3e9f1}
+.flp-range{display:flex;gap:6px;align-items:center;margin-bottom:6px;color:var(--muted)}
+.flp-range input{width:84px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;font:inherit}
+.flp-q{width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid var(--line);border-radius:6px;margin-bottom:6px;font:inherit}
+.flp-list{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+.flpick label{display:flex;gap:6px;align-items:center;white-space:nowrap;cursor:pointer;padding:2px 0;color:var(--ink);font-size:12.5px;overflow:hidden;text-overflow:ellipsis}
+.flpick label.all{font-weight:600;padding:2px 6px 4px}.flpick input[type=checkbox]{margin:0;accent-color:#1f3864}
+.flp-actions{display:flex;gap:8px;align-items:center;margin-top:8px}.flp-n{flex:1;color:var(--muted);font-size:11.5px}
+.flp-actions button{padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:#f1f4f8;cursor:pointer;font:inherit;font-size:12.5px}
+.flp-actions button.primary{background:#1f3864;color:#fff;border-color:#1f3864}
 td.mclink{cursor:pointer;color:#1f3864;font-weight:600}td.mclink:hover{text-decoration:underline}
 .modal{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
 .modal .card{background:#fff;border-radius:14px;box-shadow:0 24px 70px rgba(0,0,0,.35);width:min(900px,96vw);max-height:94vh;overflow:auto;padding:18px 22px 16px}
@@ -1350,12 +1366,27 @@ function build(id, spec, rows){
     if(own){ hiddenOwn = next; storeSet(spec.colsKey, JSON.stringify([...next])); renderPicker(); renderHead(); render(); }
     else setHidden(next);
   }
-  const state = {q:'', sortKey: spec.defaultSort, sortDir: -1, onlyRepo: spec.onlyRepoDefault, filters:{}};
+  const state = {q:'', sortKey: spec.defaultSort, sortDir: -1, onlyRepo: spec.onlyRepoDefault, cf:{}};   // cf: filtres per columna (estil Excel)
   let suppressSort = false, lastOut = [], dirty = false;
-  const facets = spec.facets.map(f => ({key:f, values:[...new Set(rows.map(r=>r[f]).filter(v=>v!==null && v!==''))].sort()}));
+  const FV = v => (v === null || v === undefined || v === '') ? '(buit)' : String(v);   // clau d’un valor a la llista del filtre
+  const cfActive = k => { const f = state.cf[k]; return !!f && (f.set !== null || f.min !== null || f.max !== null); };
+  function passCF(r, except){
+    for(const k in state.cf){
+      if(k === except) continue; const f = state.cf[k]; if(!f) continue; const v = r[k];
+      if(f.set && !f.set.has(FV(v))) return false;
+      if(f.min !== null && !(typeof v === 'number' && v >= f.min)) return false;
+      if(f.max !== null && !(typeof v === 'number' && v <= f.max)) return false;
+    }
+    return true;
+  }
+  function baseRows(except){   // files que passen cerca, «només REPO», selecció i tots els filtres de columna menys el d’«except»
+    const q = state.q.toLowerCase();
+    return rows.filter(r => (!selFilter || SEL.has(r.model_color)) && (!state.onlyRepo || r.REPO > 0) && passCF(r, except)
+      && (!q || spec.search.some(k => r[k] !== null && String(r[k]).toLowerCase().includes(q))));
+  }
   let html = '<div class="kpis" id="k-'+id+'"></div><div class="bar">';
   html += '<input type="text" id="q-'+id+'" placeholder="Cerca (model, color, EAN, SKU...)">';
-  facets.forEach(f => { html += '<select data-f="'+esc(f.key)+'"><option value="">'+esc(f.key)+': tots</option>'+f.values.map(v=>'<option>'+esc(v)+'</option>').join('')+'</select>'; });
+  html += '<button type="button" class="btn small" id="cf-'+id+'" hidden title="Treu tots els filtres de columna">Netejar filtres</button>';
   html += '<label><input type="checkbox" id="r-'+id+'" '+(state.onlyRepo?'checked':'')+'> només REPO &gt; 0</label>';
   html += '<div class="colwrap"><button type="button" class="btn" id="cb-'+id+'">Columnes ▾</button><div class="colpick" id="cp-'+id+'" hidden></div></div>';
   html += '<span class="selinfo" id="si-'+id+'"></span>';
@@ -1412,8 +1443,14 @@ function build(id, spec, rows){
   function renderHead(){
     const cols = visCols();
     let h = hasSel ? '<th class="selcol sticky" style="left:0" title="Marca o desmarca tots els model_color de la vista actual (respecta filtres i cerca)"><input type="checkbox" id="sa-'+id+'"></th>' : '';
-    h += cols.map((c,i) => '<th class="'+(c.n?'num':'')+(c.hg?' hg-'+c.hg:'')+(i===0?' sticky':'')+'"'+(i===0?' style="left:'+stickyLeft+'px"':'')+' data-k="'+esc(c.k)+'" title="'+esc(c.h||c.l)+'">'+esc(c.l)+'<span class="arr"></span><span class="rs" title="Arrossega per canviar l’amplada · doble clic: ajustar"></span></th>').join('');
+    h += cols.map((c,i) => '<th class="'+(c.n?'num':'')+(c.hg?' hg-'+c.hg:'')+(i===0?' sticky':'')+'"'+(i===0?' style="left:'+stickyLeft+'px"':'')+' data-k="'+esc(c.k)+'" title="'+esc(c.h||c.l)+'">'+esc(c.l)+'<span class="arr"></span><span class="fl" title="Filtrar aquesta columna">▾</span><span class="rs" title="Arrossega per canviar l’amplada · doble clic: ajustar"></span></th>').join('');
+    closeFilter();
     thead.innerHTML = h;
+    thead.querySelectorAll('th .fl').forEach(b => {
+      b.addEventListener('mousedown', e => e.stopPropagation());
+      b.addEventListener('click', e => { e.stopPropagation(); const k = b.parentElement.dataset.k; if(flCol === k && !flpick.hidden) closeFilter(); else openFilter(k, b); });
+    });
+    refreshIcons();
     thead.querySelectorAll('th[data-k]').forEach(th => th.addEventListener('click', () => {
       if(suppressSort) return;
       const k = th.dataset.k;
@@ -1449,6 +1486,69 @@ function build(id, spec, rows){
       if(all) keys.forEach(k => next.delete(k)); else keys.forEach(k => next.add(k));
       setSel(next);
     });
+  }
+  // ---- filtre per columna (estil Excel): llista de valors amb caselles, cerca dins la llista i rang per a les numèriques
+  const flpick = document.createElement('div'); flpick.className = 'flpick'; flpick.hidden = true; panel.appendChild(flpick);
+  flpick.addEventListener('click', e => e.stopPropagation());
+  let flCol = null, flTimer = null, flAnchor = null;
+  function closeFilter(){ flpick.hidden = true; flCol = null; flAnchor = null; }
+  function place(){   // col·loca el desplegable sota la icona; si la icona surt de la vista (scroll), es tanca
+    if(flpick.hidden || !flAnchor) return;
+    const r = flAnchor.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+    if(r.right < wr.left + (hasSel ? SELW : 0) || r.left > wr.right || r.bottom < wr.top || r.top > wr.bottom){ closeFilter(); return; }
+    const W = flpick.offsetWidth || 280, H = flpick.offsetHeight;
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - W - 8)); let top = r.bottom + 4;
+    if(top + H > window.innerHeight - 8) top = Math.max(8, window.innerHeight - H - 8);
+    flpick.style.left = left + 'px'; flpick.style.top = top + 'px';
+  }
+  function refreshIcons(){
+    thead.querySelectorAll('th[data-k]').forEach(th => { const on = cfActive(th.dataset.k); th.classList.toggle('filt', on); const i = th.querySelector('.fl'); if(i) i.classList.toggle('on', on); });
+    const n = Object.keys(state.cf).filter(cfActive).length; const b = panel.querySelector('#cf-'+id);
+    if(b){ b.hidden = n === 0; b.textContent = 'Netejar filtres' + (n ? ' (' + n + ')' : ''); }
+  }
+  function disp(c, v){   // com es veu el valor a la llista (igual que a la cel·la)
+    if(v === null || v === undefined || v === '') return '(buit)';
+    if(c.fmt === 'pct') return typeof v === 'number' ? NUMFMT.format(v) + '%' : String(v);
+    if(c.n && typeof v === 'number') return Number.isInteger(v) ? NUMFMT.format(v) : v.toFixed(1);
+    return String(v);
+  }
+  function openFilter(k, anchor){
+    const c = spec.cols.find(x => x.k === k); if(!c) return;
+    flCol = k;
+    const f = state.cf[k] || {set:null, min:null, max:null};
+    const seen = new Map();   // clau -> valor real (la llista surt de les files que passen la resta de filtres, com a l’Excel)
+    baseRows(k).forEach(r => { const key = FV(r[k]); if(!seen.has(key)) seen.set(key, r[k]); });
+    if(f.set) f.set.forEach(key => { if(!seen.has(key)) seen.set(key, key === '(buit)' ? null : (c.n ? Number(key) : key)); });
+    const blank = x => x[1] === null || x[1] === undefined || x[1] === '';
+    const items = [...seen.entries()].sort((a,b) => { if(blank(a) !== blank(b)) return blank(a) ? -1 : 1; if(c.n) return (Number(a[1])||0) - (Number(b[1])||0); return String(a[1]).localeCompare(String(b[1]), 'ca', {numeric:true}); });
+    let h = '<div class="flp-head"><b>'+esc(c.l)+'</b><button type="button" class="flp-x" title="Tancar (Esc)">×</button></div>';
+    if(c.n) h += '<div class="flp-range">Entre <input type="number" data-r="min" placeholder="mín" value="'+(f.min === null ? '' : f.min)+'"> i <input type="number" data-r="max" placeholder="màx" value="'+(f.max === null ? '' : f.max)+'"></div>';
+    h += '<input type="text" class="flp-q" placeholder="Cerca valors…">';
+    h += '<label class="all"><input type="checkbox" class="flp-all"> (Selecciona-ho tot)</label>';
+    h += '<div class="flp-list">' + items.map(it => '<label><input type="checkbox" value="'+esc(it[0])+'"'+((!f.set || f.set.has(it[0])) ? ' checked' : '')+'> '+esc(disp(c, it[1]))+'</label>').join('') + '</div>';
+    h += '<div class="flp-actions"><span class="flp-n"></span><button type="button" data-a="clear">Netejar filtre</button><button type="button" data-a="ok" class="primary">D’acord</button></div>';
+    flpick.innerHTML = h;
+    const boxes = [...flpick.querySelectorAll('.flp-list input')], all = flpick.querySelector('.flp-all'), q = flpick.querySelector('.flp-q'), nlab = flpick.querySelector('.flp-n');
+    const visible = () => boxes.filter(b => !b.parentElement.hidden);
+    function syncAll(){ const v = visible(); const n = v.filter(b => b.checked).length; all.checked = v.length > 0 && n === v.length; all.indeterminate = n > 0 && n < v.length; nlab.textContent = items.length + ' valors'; }
+    function afterChange(){
+      if(f.set === null && f.min === null && f.max === null) delete state.cf[k]; else state.cf[k] = f;
+      refreshIcons(); render();
+    }
+    function applyList(){ const on = boxes.filter(b => b.checked).map(b => b.value); f.set = on.length === boxes.length ? null : new Set(on); syncAll(); afterChange(); }
+    boxes.forEach(b => b.addEventListener('change', applyList));
+    all.addEventListener('change', () => { visible().forEach(b => { b.checked = all.checked; }); applyList(); });
+    q.addEventListener('input', () => { const s = q.value.toLowerCase(); boxes.forEach(b => { b.parentElement.hidden = s !== '' && !b.parentElement.textContent.toLowerCase().includes(s); }); syncAll(); });
+    flpick.querySelectorAll('.flp-range input').forEach(inp => inp.addEventListener('input', () => {
+      clearTimeout(flTimer);
+      flTimer = setTimeout(() => { const v = inp.value.trim() === '' ? null : Number(inp.value); f[inp.dataset.r] = (v === null || Number.isNaN(v)) ? null : v; afterChange(); }, 250);
+    }));
+    flpick.querySelector('.flp-x').addEventListener('click', closeFilter);
+    flpick.querySelector('[data-a="ok"]').addEventListener('click', closeFilter);
+    flpick.querySelector('[data-a="clear"]').addEventListener('click', () => { delete state.cf[k]; refreshIcons(); render(); openFilter(k, anchor); });
+    syncAll();
+    flAnchor = anchor; flpick.hidden = false; place();
+    setTimeout(() => q.focus(), 0);
   }
   function fitHeight(){
     if(spec.fullHeight){   // taula al mig d'una pàgina llarga: alçada gairebé de tota la finestra, independent d'on estigui
@@ -1498,14 +1598,7 @@ function build(id, spec, rows){
   }
   function render(){
     const cols = visCols();
-    const q = state.q.toLowerCase();
-    let out = rows.filter(r => {
-      if(selFilter && !SEL.has(r.model_color)) return false;
-      if(state.onlyRepo && !(r.REPO > 0)) return false;
-      for(const k in state.filters){ if(state.filters[k] && String(r[k]) !== state.filters[k]) return false; }
-      if(!q) return true;
-      return spec.search.some(k => r[k] !== null && String(r[k]).toLowerCase().includes(q));
-    });
+    let out = baseRows(null);
     const sk = state.sortKey, sd = state.sortDir;
     out.sort((a,b) => { const x=a[sk], y=b[sk]; if(x===y) return 0; if(x===null||x===undefined) return 1; if(y===null||y===undefined) return -1; return (x>y?1:-1)*sd; });
     lastOut = out;
@@ -1565,10 +1658,12 @@ function build(id, spec, rows){
   tbody.addEventListener('click', e => { const td = e.target.closest ? e.target.closest('td.mclink') : null; if(td) openChart(td.textContent.trim()); });
   panel.querySelector('#q-'+id).addEventListener('input', e => { state.q = e.target.value; render(); });
   panel.querySelector('#r-'+id).addEventListener('change', e => { state.onlyRepo = e.target.checked; render(); });
-  panel.querySelectorAll('select').forEach(s => s.addEventListener('change', e => { state.filters[e.target.dataset.f] = e.target.value; render(); }));
-  colbtn.addEventListener('click', e => { e.stopPropagation(); colpick.hidden = !colpick.hidden; });
+  panel.querySelector('#cf-'+id).addEventListener('click', () => { state.cf = {}; closeFilter(); refreshIcons(); render(); });
+  colbtn.addEventListener('click', e => { e.stopPropagation(); closeFilter(); colpick.hidden = !colpick.hidden; });
   colpick.addEventListener('click', e => e.stopPropagation());
-  document.addEventListener('click', () => { colpick.hidden = true; });
+  document.addEventListener('click', () => { colpick.hidden = true; closeFilter(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') closeFilter(); });
+  wrap.addEventListener('scroll', place); window.addEventListener('scroll', place, true); window.addEventListener('resize', place);
   let syncing = false;
   topscroll.addEventListener('scroll', () => { if(syncing) return; syncing = true; wrap.scrollLeft = topscroll.scrollLeft; syncing = false; });
   wrap.addEventListener('scroll', () => { if(syncing) return; syncing = true; topscroll.scrollLeft = wrap.scrollLeft; syncing = false; });
