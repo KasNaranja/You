@@ -120,3 +120,18 @@ Quedó sin explicar en agosto: venta a distancia España +386 € sobre 71.103 �
 (0,5 %), Valderas +65 € (devolución recogida en agosto y abonada en Mirakl en
 septiembre) y Portugal +702 € sobre 6.006 €. La columna `Revisar` marca las
 líneas candidatas.
+
+## Documento «Errores conector El Corte Inglés»
+
+`errores_conector_eci.js` genera el Word (carpeta de trabajo de T:) con la
+librería `docx` de npm, cinco páginas con un caso real cada una: conector parado
+desde el 28/07 (agosto en Pending), cliente C0001883 sin grupo de registro,
+serie V-DEV sin números (ninguna devolución en BC), 380 EAN sin mapear y
+pedidos cancelados o rechazados con pedido creado en BC. `ean_top10.json` lleva
+la tabla de la página 4; la lista completa está en el Excel «EAN sin mapear
+ECI» de la carpeta de trabajo.
+
+```
+npm install docx
+node errores_conector_eci.js "T:\Online\Oriol\ERP\BC\ECI\Errores conector El Corte Inglés.docx"
+```
