@@ -51,3 +51,10 @@ Sortides: `Vendes/2026/Venda 2026 dd.mm.xlsx` (un per data de càlcul, el bo és
 FORA LLISTA, PARÀMETRES, NIVELLS) i `REPO/REPO ZALANDO dd.mm.html` (les dues vistes,
 filtrables i ordenables, sense dependències externes).
 COBERTURA SET (només informativa) = 2 x (stock Zalando + enviaments pendents) / venda setmanal; el x2 compensa les devolucions que tornen a estoc.
+
+NIVELL manual a l'HTML: a les pestanyes Per model_color i Detall per SKU, la cel·la NIVELL és un desplegable amb tots els
+nivells de la taula del gènere (NIVEL.xlsx), amb els parells que donaria cada nivell al model i la marca ✓ si cobreix
+l'objectiu. En triar-ne un es recalculen HAURIA, DIF, REPO i PREPARABLE del model_color i de totes les seves talles
+(mateixa regla que el Python), els totals i el botó "Generar excel REPO" (que afegeix NIVELL CÀLCUL i NIVELL MANUAL).
+El canvi queda desat al navegador per a la repo d'aquella data i surt en taronja; "Desfer nivells manuals" els torna
+tots al càlcul. No modifica el `REPO ZALANDO dd.mm.xlsx`; per fixar un nivell cada setmana hi ha `Ajustos repo.xlsx`.

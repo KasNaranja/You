@@ -96,7 +96,7 @@ COL_HELP = {
     "VENDA 4 SETM": "Suma de les últimes 4 setmanes de venda del model_color. Només informativa.",
     "MULT": "Multiplicador de la venda setmanal. Surt de 'VENTA POR MES.xlsx' segons el mes de la data de càlcul (p.ex. setembre 3, abril 5). Es pot canviar per model_color a 'Ajustos repo.xlsx'.",
     "OBJECTIU": "VENDA SET × MULT: parells que hauria d'haver-hi a Zalando del model_color.",
-    "NIVELL": "Nivell de NIVEL.xlsx escollit: el primer amb què la suma de les talles del model cobreix l'OBJECTIU (HAURIA ≥ OBJECTIU). Mínim 6 per dona i home i 2 per nens, encara que no hi hagi venda.",
+    "NIVELL": "Nivell de NIVEL.xlsx escollit: el primer amb què la suma de les talles del model cobreix l'OBJECTIU (HAURIA ≥ OBJECTIU). Mínim 6 per dona i home i 2 per nens, encara que no hi hagi venda. A l'HTML es pot canviar amb el desplegable (tots els nivells de la taula del gènere): es recalculen HAURIA, DIF, REPO i PREPARABLE del model_color i de les seves talles, i el canvi queda desat al navegador per a aquesta repo.",
     "HAURIA": "Parells que hauria d'haver-hi a Zalando segons el desglossament per talla del NIVELL a NIVEL.xlsx. A la vista model_color és la suma de totes les talles del model.",
     "STOCK ZLD": "Stock total a Zalando segons el snapshot (offerable + non-offerable, tots els magatzems). Informatiu: la reposició (DIF/REPO) es calcula amb OFFERABLE.",
     "OFFERABLE": "Part del STOCK ZLD que Zalando té disponible per vendre. És el stock que es descompta per calcular DIF i REPO (des del 16/09/2026; abans es descomptava el STOCK ZLD total).",
@@ -763,14 +763,43 @@ def pick_level(levels: list[int], totals: dict, target: float, min_level: int) -
     return top, f"objectiu {int(target)} > màxim de la taula ({totals.get(top, 0)} parells, nivell {top})"
 
 
-def size_qty(table: dict, group: str, gender: str, talla: str) -> tuple[int, str]:
+def size_key(table: dict, group: str, gender: str, talla: str) -> str | None:
+    """Fila de la taula de nivells que correspon a una talla (unisex 46-47 = 45; nens < 25 = 25), o None si no hi és."""
     if talla in table:
-        return table[talla], ""
+        return talla
     if gender == "UNISEX" and talla.isdigit() and int(talla) > 45 and "45" in table:
-        return table["45"], "talles 46-47 = talla 45"
+        return "45"
     if group == "NIÑO" and talla.isdigit() and int(talla) < 25 and "25" in table:
-        return table["25"], "talles <25 = talla 25"
-    return 0, f"talla {talla} fora de taula"
+        return "25"
+    return None
+
+
+def size_qty(table: dict, group: str, gender: str, talla: str) -> tuple[int, str]:
+    k = size_key(table, group, gender, talla)
+    if k is None:
+        return 0, f"talla {talla} fora de taula"
+    if k == talla:
+        return table[k], ""
+    return table[k], ("talles 46-47 = talla 45" if k == "45" else "talles <25 = talla 25")
+
+
+def level_choices(sku: pd.DataFrame, levels: dict) -> dict:
+    """Dades per al desplegable NIVELL de l'HTML: les taules de NIVEL.xlsx dels grups que surten al llistat i, per a cada
+    model_color amb taula, el grup, el nivell calculat i la fila de la taula que correspon a cada talla."""
+    used, per_mc = {}, {}
+    for mc, g_df in sku.groupby("model_color", sort=False):
+        gender = g_df["GÈNERE"].iloc[0]
+        g = GENDER_GROUP.get(gender, "?")
+        if not g or g == "?" or g not in levels or not levels[g]["levels"]:
+            continue
+        tbl0 = levels[g]["table"][levels[g]["levels"][0]]
+        calc = g_df["NIVELL"].iloc[0]
+        per_mc[mc] = {"g": g, "calc": None if pd.isna(calc) else int(calc),
+                      "sizes": {str(t): size_key(tbl0, g, gender, str(t)) for t in g_df["talla"]}}
+        used[g] = levels[g]
+    return {"groups": {g: {"levels": [int(L) for L in d["levels"]], "table": {str(L): d["table"][L] for L in d["levels"]}}
+                       for g, d in used.items()},
+            "mc": per_mc}
 
 
 def compute(models: pd.DataFrame, levels: dict, lines: pd.DataFrame, acum25: pd.Series,
@@ -1105,6 +1134,20 @@ table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%
 th{position:sticky;top:0;background:var(--head);color:#fff;padding:6px 8px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;z-index:2;border-right:1px solid rgba(255,255,255,.12)}
 th.num{text-align:right}th .arr{opacity:.7;font-size:10px;margin-left:3px}
 th.hg-grey{background:#d9d9d9;color:#1c2430}th.hg-yellow{background:#ffe699;color:#1c2430}th.hg-green{background:#c6e0b4;color:#1c2430}th.hg-orange{background:#f8cbad;color:#1c2430}
+td.lvlcell{padding:2px 5px;overflow:visible}
+.lvlbtn{display:flex;align-items:center;justify-content:flex-end;gap:5px;width:100%;box-sizing:border-box;padding:2px 6px;border:1px solid var(--line);border-radius:5px;background:#fff;cursor:pointer;font-variant-numeric:tabular-nums;line-height:1.35}
+.lvlbtn i{font-style:normal;font-size:9px;color:var(--muted)}
+.lvlbtn:hover{border-color:#1f3864;background:#f1f4f8}
+td.lvlman .lvlbtn{background:#fce4d6;border-color:#c55a11;color:#843c0c;font-weight:700}td.lvlman .lvlbtn i{color:#c55a11}
+.btn.lvreset{border-color:#c55a11;color:#843c0c;background:#fce4d6}
+.lvlpick{position:fixed;z-index:120;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:10px;width:260px;box-sizing:border-box;font-size:12.5px;text-align:left}
+.lvp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:13px}
+.lvp-sub{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+.lvp-list{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.lvp-opt{display:flex;align-items:center;gap:8px;width:100%;padding:5px 8px;border:none;border-bottom:1px solid #eef1f5;background:#fff;cursor:pointer;font:inherit;font-size:12.5px;text-align:left;color:var(--ink)}
+.lvp-opt:hover{background:#eef3fb}.lvp-opt.cur{background:#1f3864;color:#fff}
+.lvp-l{font-weight:700;min-width:24px;text-align:right;font-variant-numeric:tabular-nums}.lvp-p{flex:1;font-variant-numeric:tabular-nums}
+.lvp-tag{font-size:10.5px;background:#ffe699;color:#1c2430;border-radius:8px;padding:1px 7px}
 th{padding-right:26px}
 th .fl{position:absolute;top:50%;right:10px;transform:translateY(-50%);width:15px;height:15px;line-height:15px;border-radius:3px;font-size:9px;text-align:center;color:#fff;background:rgba(255,255,255,.18);cursor:pointer;opacity:.85}
 th .fl:hover{opacity:1;background:rgba(255,255,255,.4)}th .fl.on{background:#ffd966;color:#1c2430;opacity:1}
@@ -1212,6 +1255,83 @@ function setSel(next){ SEL = next; saveSel(); Object.values(VIEWS).forEach(v => 
 function esc(v){ return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 const MINW = 40, MAXW_AUTO = 360, SELW = 36;
 const REPO_BY_MC = {}; DATA.mc.forEach(r => { REPO_BY_MC[r.model_color] = r.REPO || 0; });
+
+// ---------- NIVELL manual: es pot triar qualsevol nivell de la taula (NIVEL.xlsx) i es recalculen HAURIA, DIF, REPO i PREPARABLE ----------
+const LVL = DATA.lvl || {groups:{}, mc:{}};
+const LVL_KEY = 'repo-zld-nivell-' + (DATA.dateLabel || '');
+const SKU_BY_MC = {}; DATA.sku.forEach(r => { (SKU_BY_MC[r.model_color] = SKU_BY_MC[r.model_color] || []).push(r); });
+const MC_ROW = {}; DATA.mc.forEach(r => { MC_ROW[r.model_color] = r; });
+let LVL_OVR = {};   // model_color -> nivell triat a mà (es desa al navegador amb la data de la repo)
+try { const s = storeGet(LVL_KEY); if(s) LVL_OVR = JSON.parse(s) || {}; } catch(e) { LVL_OVR = {}; }
+function lvlQty(info, L, talla){   // parells de la talla amb el nivell L (mateixa regla que el Python: unisex 46-47 = 45, nens < 25 = 25)
+  const g = LVL.groups[info.g]; const t = (g && L !== null && L !== undefined) ? g.table[String(L)] : null;
+  const k = info.sizes[String(talla)];
+  return (t && k !== null && k !== undefined) ? (t[k] || 0) : 0;
+}
+function lvlOpts(mc){   // [[nivell, parells del model_color amb aquest nivell], ...]
+  const info = LVL.mc[mc]; const g = info && LVL.groups[info.g]; if(!g) return [];
+  const skus = SKU_BY_MC[mc] || [];
+  return g.levels.map(L => [L, skus.reduce((a, r) => a + lvlQty(info, L, r.talla), 0)]);
+}
+function lvlManual(mc){ return Object.prototype.hasOwnProperty.call(LVL_OVR, mc); }
+function applyLevel(mc, L){   // recalcula les talles i el model_color amb el nivell L
+  const info = LVL.mc[mc]; if(!info) return;
+  let H = 0, D = 0, R = 0, P = 0;
+  (SKU_BY_MC[mc] || []).forEach(r => {
+    r.NIVELL = L;
+    r.HAURIA = lvlQty(info, L, r.talla);
+    r.DIF = r.HAURIA - (Number(r.OFFERABLE) || 0) - (Number(r['ENV PENDENTS']) || 0);
+    r.REPO = r.CREAT === 'SÍ' ? Math.max(0, r.DIF) : 0;
+    r.PREPARABLE = Math.min(r.REPO, Number(r['DISPO 30 DIES']) || 0);
+    H += r.HAURIA; D += r.DIF; R += r.REPO; P += r.PREPARABLE;
+  });
+  const m = MC_ROW[mc];
+  if(m){ m.NIVELL = L; m.HAURIA = H; m.DIF = D; m.REPO = R; m.PREPARABLE = P; }
+  REPO_BY_MC[mc] = R;
+}
+function saveLvl(){ storeSet(LVL_KEY, JSON.stringify(LVL_OVR)); }
+function lvlChanged(){ Object.values(VIEWS).forEach(v => { if(v.onData) v.onData(); }); }
+function setLevel(mc, L){
+  const info = LVL.mc[mc]; if(!info) return;
+  if(L === info.calc) delete LVL_OVR[mc]; else LVL_OVR[mc] = L;
+  saveLvl(); applyLevel(mc, L); lvlChanged();
+}
+function resetLevels(){
+  Object.keys(LVL_OVR).forEach(mc => { const info = LVL.mc[mc]; if(info) applyLevel(mc, info.calc); });
+  LVL_OVR = {}; saveLvl(); lvlChanged();
+}
+// nivells manuals desats: s’apliquen abans de construir les vistes (si el model o el nivell ja no hi són, es descarten)
+Object.keys(LVL_OVR).forEach(mc => {
+  const info = LVL.mc[mc]; const g = info && LVL.groups[info.g]; const L = LVL_OVR[mc];
+  if(!g || g.levels.indexOf(L) < 0 || L === info.calc){ delete LVL_OVR[mc]; return; }
+  applyLevel(mc, L);
+});
+// desplegable de nivells (un de sol per a tota la pàgina)
+const lvlpick = document.createElement('div'); lvlpick.className = 'lvlpick'; lvlpick.hidden = true; document.body.appendChild(lvlpick);
+lvlpick.addEventListener('click', e => e.stopPropagation());
+let lvlMc = null;
+function closeLvl(){ lvlpick.hidden = true; lvlMc = null; }
+function openLvl(mc, anchor){
+  const info = LVL.mc[mc]; if(!info) return;
+  const m = MC_ROW[mc] || {}; const cur = m.NIVELL, obj = Number(m.OBJECTIU) || 0;
+  const calcTxt = info.calc === null ? '—' : info.calc;
+  let h = '<div class="lvp-head"><div><b>'+esc(mc)+'</b><div class="lvp-sub">Objectiu '+NUMFMT.format(obj)+' parells · càlcul: nivell '+calcTxt+'<br>✓ = el nivell cobreix l’objectiu</div></div><button type="button" class="flp-x" title="Tancar (Esc)">×</button></div>';
+  h += '<div class="lvp-list">' + lvlOpts(mc).map(o => '<button type="button" class="lvp-opt'+(o[0]===cur?' cur':'')+'" data-l="'+o[0]+'"><span class="lvp-l">'+o[0]+'</span><span class="lvp-p">'+NUMFMT.format(o[1])+' parells'+(o[1] >= obj && obj > 0 ? ' ✓' : '')+'</span>'+(o[0]===info.calc?'<span class="lvp-tag">càlcul</span>':'')+'</button>').join('') + '</div>';
+  if(lvlManual(mc)) h += '<div class="flp-actions"><button type="button" data-a="calc">Tornar al càlcul (nivell '+calcTxt+')</button></div>';
+  lvlpick.innerHTML = h; lvlMc = mc;
+  lvlpick.querySelector('.flp-x').addEventListener('click', closeLvl);
+  lvlpick.querySelectorAll('.lvp-opt').forEach(b => b.addEventListener('click', () => { const L = Number(b.dataset.l); closeLvl(); setLevel(mc, L); }));
+  const back = lvlpick.querySelector('[data-a="calc"]'); if(back) back.addEventListener('click', () => { closeLvl(); setLevel(mc, info.calc); });
+  lvlpick.hidden = false;
+  const r = anchor.getBoundingClientRect(); const W = lvlpick.offsetWidth || 260, H = lvlpick.offsetHeight;
+  let top = r.bottom + 4; if(top + H > window.innerHeight - 8) top = Math.max(8, r.top - H - 4);
+  lvlpick.style.left = Math.max(8, Math.min(r.left, window.innerWidth - W - 8)) + 'px'; lvlpick.style.top = top + 'px';
+  const list = lvlpick.querySelector('.lvp-list'), c = lvlpick.querySelector('.lvp-opt.cur');
+  if(list && c) list.scrollTop = Math.max(0, c.offsetTop - list.offsetTop - list.clientHeight / 2 + c.offsetHeight / 2);
+}
+document.addEventListener('click', closeLvl);
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeLvl(); });
+window.addEventListener('resize', closeLvl);
 
 // ---------- Escriptor XLSX sense dependències (zip "stored" + XML) ----------
 const CRC_TABLE = (() => { const t = new Uint32Array(256); for(let n = 0; n < 256; n++){ let c = n; for(let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();
@@ -1394,6 +1514,7 @@ function build(id, spec, rows){
   let html = '<div class="kpis" id="k-'+id+'"></div><div class="bar">';
   html += '<input type="text" id="q-'+id+'" placeholder="Cerca (model, color, EAN, SKU...)">';
   html += '<button type="button" class="btn small" id="cf-'+id+'" hidden title="Treu tots els filtres de columna">Netejar filtres</button>';
+  if(spec.lvlEdit) html += '<button type="button" class="btn small lvreset" id="lv-'+id+'" hidden title="Torna tots els nivells triats a mà al nivell calculat">Desfer nivells manuals</button>';
   html += '<label><input type="checkbox" id="r-'+id+'" '+(state.onlyRepo?'checked':'')+'> només REPO &gt; 0</label>';
   html += '<div class="colwrap"><button type="button" class="btn" id="cb-'+id+'">Columnes ▾</button><div class="colpick" id="cp-'+id+'" hidden></div></div>';
   html += '<span class="selinfo" id="si-'+id+'"></span>';
@@ -1597,8 +1718,9 @@ function build(id, spec, rows){
     if(!out.length){ alert('No hi ha cap SKU per exportar: marca model_color a la pestanya «Per model_color».'); return; }
     const sheet1 = { name: 'REPO SKU', header: cols.map(c => c.l), rows: out.map(r => cols.map(c => (r[c.k] === null || r[c.k] === undefined) ? '' : r[c.k])),
                      widths: cols.map(c => Math.min(45, Math.max(8, Math.round((WIDTHS[c.k] || 100) / 7)))) };
-    const mcSel = DATA.mc.filter(r => SEL.has(r.model_color)).map(r => [r.model_color, r['GÈNERE'], r['VENDA SET'], r.NIVELL, r.HAURIA, r['STOCK ZLD'], r.OFFERABLE, r['ENV PENDENTS'], r.REPO, r.PREPARABLE, r.DTE || '']);
-    const sheet2 = { name: 'MODEL_COLOR', header: ['model_color','GÈNERE','VENDA SET','NIVELL','HAURIA','STOCK ZLD','OFFERABLE','ENV PENDENTS','REPO','PREPARABLE','DTE %'], rows: mcSel, widths: [24,10,10,8,9,10,10,13,8,12,7] };
+    const calcOf = mc => { const i = LVL.mc[mc]; const v = i ? i.calc : (MC_ROW[mc] || {}).NIVELL; return (v === null || v === undefined) ? '' : v; };
+    const mcSel = DATA.mc.filter(r => SEL.has(r.model_color)).map(r => [r.model_color, r['GÈNERE'], r['VENDA SET'], r.NIVELL === null ? '' : r.NIVELL, calcOf(r.model_color), lvlManual(r.model_color) ? 'SÍ' : '', r.HAURIA, r['STOCK ZLD'], r.OFFERABLE, r['ENV PENDENTS'], r.REPO, r.PREPARABLE, r.DTE || '']);
+    const sheet2 = { name: 'MODEL_COLOR', header: ['model_color','GÈNERE','VENDA SET','NIVELL','NIVELL CÀLCUL','NIVELL MANUAL','HAURIA','STOCK ZLD','OFFERABLE','ENV PENDENTS','REPO','PREPARABLE','DTE %'], rows: mcSel, widths: [24,10,10,8,13,14,9,10,10,13,8,12,7] };
     const sap = out.filter(r => r.REPO > 0).map(r => [r.EAN, r.SKU, r.model_color, r.talla, r.REPO, r.PREPARABLE]);
     const sheet3 = { name: 'SAP', header: ['EAN','SKU','model_color','talla','REPO','PREPARABLE'], rows: sap, widths: [16,26,24,8,8,12] };
     downloadBlob(buildXlsx([sheet1, sheet2, sheet3]), 'REPO ZALANDO ' + (DATA.dateLabel || '') + ' - seleccio.xlsx');
@@ -1631,7 +1753,11 @@ function build(id, spec, rows){
         if(v === null || v === undefined) v = '';
         else if(c.fmt === 'pct') v = (typeof v === 'number' && v > 0) ? NUMFMT.format(v) + '%' : '';
         else if(c.n && typeof v === 'number') v = Number.isInteger(v) ? NUMFMT.format(v) : v.toFixed(1);
-        h += '<td class="'+cls+'"'+(i===0?' style="left:'+stickyLeft+'px"':'')+' title="'+esc(v)+'">'+esc(v)+'</td>';
+        const stl = i===0 ? ' style="left:'+stickyLeft+'px"' : '';
+        if(c.k === 'NIVELL' && spec.lvlEdit && LVL.mc[r.model_color]){   // desplegable de nivell
+          const man = lvlManual(r.model_color), calc = LVL.mc[r.model_color].calc;
+          h += '<td class="'+cls+' lvlcell'+(man?' lvlman':'')+'"'+stl+' title="'+(man ? 'Nivell triat a mà (el càlcul donava '+(calc === null ? '—' : calc)+'). Clic per canviar-lo' : 'Nivell calculat. Clic per triar-ne un altre')+'"><span class="lvlbtn" data-lvl="'+esc(r.model_color)+'">'+esc(v === '' ? '—' : v)+'<i>▾</i></span></td>';
+        } else h += '<td class="'+cls+'"'+stl+' title="'+esc(v)+'">'+esc(v)+'</td>';
       });
       h += '</tr>';
     }
@@ -1644,6 +1770,8 @@ function build(id, spec, rows){
     });
     tfoot.innerHTML = f;
     document.getElementById('c-'+id).textContent = out.length + ' files' + (out.length>MAX ? ' (es mostren '+MAX+')' : '');
+    const lvb = panel.querySelector('#lv-'+id);
+    if(lvb){ const n = Object.keys(LVL_OVR).length; lvb.hidden = n === 0; lvb.textContent = 'Desfer nivells manuals (' + n + ')'; }
     renderKpis();
     updateSelUI();
     applyWidths();
@@ -1662,7 +1790,15 @@ function build(id, spec, rows){
     panel.querySelector('#sc-'+id).addEventListener('click', () => setSel(new Set()));
   }
   if(selFilter) panel.querySelector('#xl-'+id).addEventListener('click', exportXlsx);
-  tbody.addEventListener('click', e => { const td = e.target.closest ? e.target.closest('td.mclink') : null; if(td) openChart(td.textContent.trim()); });
+  tbody.addEventListener('click', e => {
+    const lb = e.target.closest ? e.target.closest('.lvlbtn') : null;
+    if(lb){ e.stopPropagation(); closeFilter(); colpick.hidden = true; if(lvlMc === lb.dataset.lvl && !lvlpick.hidden) closeLvl(); else openLvl(lb.dataset.lvl, lb); return; }
+    const td = e.target.closest ? e.target.closest('td.mclink') : null; if(td) openChart(td.textContent.trim());
+  });
+  if(spec.lvlEdit) panel.querySelector('#lv-'+id).addEventListener('click', () => {
+    const n = Object.keys(LVL_OVR).length;
+    if(n && window.confirm('Vols tornar al nivell calculat els ' + n + ' model_color amb el nivell triat a mà?')) resetLevels();
+  });
   panel.querySelector('#q-'+id).addEventListener('input', e => { state.q = e.target.value; render(); });
   panel.querySelector('#r-'+id).addEventListener('change', e => { state.onlyRepo = e.target.checked; render(); });
   panel.querySelector('#cf-'+id).addEventListener('click', () => { state.cf = {}; closeFilter(); refreshIcons(); render(); });
@@ -1671,6 +1807,7 @@ function build(id, spec, rows){
   document.addEventListener('click', () => { colpick.hidden = true; closeFilter(); });
   document.addEventListener('keydown', e => { if(e.key === 'Escape') closeFilter(); });
   wrap.addEventListener('scroll', place); window.addEventListener('scroll', place, true); window.addEventListener('resize', place);
+  wrap.addEventListener('scroll', closeLvl);
   let syncing = false;
   topscroll.addEventListener('scroll', () => { if(syncing) return; syncing = true; wrap.scrollLeft = topscroll.scrollLeft; syncing = false; });
   wrap.addEventListener('scroll', () => { if(syncing) return; syncing = true; topscroll.scrollLeft = wrap.scrollLeft; syncing = false; });
@@ -1681,6 +1818,7 @@ function build(id, spec, rows){
     refresh(){ renderPicker(); renderHead(); render(); },
     syncWidths(){ applyWidths(); fitHeight(); },
     onSel(){ if(panel.classList.contains('active')) render(); else dirty = true; },
+    onData(){ if(panel.classList.contains('active')) render(); else dirty = true; },   // han canviat valors (nivell manual)
     show(){ if(dirty) render(); else { applyWidths(); fitHeight(); } },
     exportXlsx, buildForTest(){ return { cols: visCols(), out: lastOut }; }
   };
@@ -1746,9 +1884,9 @@ function buildPrev(){
   }));
 }
 buildPrev();
-const NOVIEW = { fit(){}, refresh(){}, syncWidths(){}, onSel(){}, show(){} };
+const NOVIEW = { fit(){}, refresh(){}, syncWidths(){}, onSel(){}, onData(){}, show(){} };
 VIEWS.pmc = (DATA.pmcSpec && document.getElementById('p-pmc')) ? build('pmc', DATA.pmcSpec, DATA.mc) : NOVIEW;
-VIEWS.prev = { fit(){ VIEWS.pmc.fit(); }, refresh(){}, syncWidths(){ VIEWS.pmc.syncWidths(); }, onSel(){}, show(){ VIEWS.pmc.show(); } };
+VIEWS.prev = { fit(){ VIEWS.pmc.fit(); }, refresh(){}, syncWidths(){ VIEWS.pmc.syncWidths(); }, onSel(){}, onData(){}, show(){ VIEWS.pmc.show(); } };
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='p-'+t.dataset.t));
@@ -1760,7 +1898,8 @@ window.addEventListener('pageshow', () => { const sl = storeGet(SEL_KEY); if(sl)
 
 
 def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, warnings: list[str], path: str, totals: dict | None = None,
-               sel_key: str = "", prev: dict | None = None, mc_prev: pd.DataFrame | None = None, chart: dict | None = None):
+               sel_key: str = "", prev: dict | None = None, mc_prev: pd.DataFrame | None = None, chart: dict | None = None,
+               lvl: dict | None = None):
     totals = totals or {}
     if mc_prev is None:
         mc_prev = mc
@@ -1811,6 +1950,7 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
         "dateLabel": sel_key,
         "prev": prev,
         "chart": chart or {},
+        "lvl": lvl or {"groups": {}, "mc": {}},   # desplegable NIVELL (canvi manual i recàlcul a l'HTML)
         "pmcSpec": spec(mc_prev, num_prev, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "COL·LECCIÓ", "CREAT"],
                         ["model_color", "model", "color", "COL·LECCIÓ", "AVÍS"], [], mc_sums | {"DISPONIBLE ALMACÉN", "ACUM HI", "ACUM ES", "PREVISIÓ", "A COMPRAR"},
                         (("model_color", "CREAT", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc_prev.columns[-1], "green")) + orange_cols,
@@ -1825,12 +1965,12 @@ def write_html(sku: pd.DataFrame, mc: pd.DataFrame, title: str, subtitle: str, w
                         {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"},
                         {"k": "ENV PENDENTS", "l": "env. pendents"}], mc_sums,
                        (("model_color", "CREAT", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", mc.columns[-1], "green")) + orange_cols, red=RED_RULES_MC,
-                       extra={"defaultHidden": ["ACUM HI", "ACUM ES", "PREVISIÓ", "A COMPRAR"]}),
+                       extra={"defaultHidden": ["ACUM HI", "ACUM ES", "PREVISIÓ", "A COMPRAR"], "lvlEdit": True}),
         "skuSpec": spec(sku, num_sku, "VENDA SET", False, ["GÈNERE", "SEASON", "TEMPORADA", "CREAT"], ["EAN", "SKU", "model_color", "model", "color", "talla", "AVÍS"],   # False: totes les talles dels models marcats, també amb REPO 0 (Oriol, 23/09/2026)
                         [{"k": "__rows__", "l": "SKUs amb REPO"}, {"k": "REPO", "l": "parells REPO"}, {"k": "PREPARABLE", "l": "preparables (stock 30d)"},
                          {"k": "STOCK ZLD", "l": "stock Zalando (tot)", "total": totals.get("stock_zld"), "sub": "del llistat"}], sum_cols - {"VENDA SET", "VENDA 4 SETM", "ACUM'25", "ACUM'26"},
                         (("EAN", "CREAT", "grey"), ("VENDA SET", "OBJECTIU", "yellow"), ("DIF", sku.columns[-1], "green"), ("DTE", "DTE", "orange")),
-                        extra={"defaultHidden": ["ACUM HI", "ACUM ES"]}),
+                        extra={"defaultHidden": ["ACUM HI", "ACUM ES"], "lvlEdit": True}),
     }
     warn_html = "".join(f'<div class="warn">{html.escape(w)}</div>' for w in warnings)
     page = (HTML_TEMPLATE.replace("__TITLE__", html.escape(title)).replace("__SUBTITLE__", html.escape(subtitle))
@@ -2000,7 +2140,8 @@ def main():
                 f"regla venda x{mult:g} ({mult_src}) → nivell · generat {dt.datetime.now():%d/%m/%Y %H:%M}")
     write_html(sku, mc, title, subtitle, warnings, html_path,
                totals={"stock_zld": snap_meta["total"], "venda_setm": info["venda_setm_total"]}, sel_key=args.date, prev=prev,
-               mc_prev=mc_prev, chart={"year": info["any"], "coverEnd": info["setmana_fi"], "months": info["mc_months"], "forecast": prev_detail})
+               mc_prev=mc_prev, chart={"year": info["any"], "coverEnd": info["setmana_fi"], "months": info["mc_months"], "forecast": prev_detail},
+               lvl=level_choices(sku, levels))
 
     # resum
     print()
