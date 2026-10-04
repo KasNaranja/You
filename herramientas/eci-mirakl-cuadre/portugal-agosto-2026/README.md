@@ -12,6 +12,9 @@ pedidos de Mirakl y el log del conector. Los datos se quedan en
   fila de BC con fórmulas, líneas reconstruidas, pendientes, comisión e IVA,
   preguntas para IT y ECI). La hoja «PDF vs BC» la añade `hoja_pdf_vs_bc.py`: cada columna
   de los PDF de Portugal frente al campo de BC equivalente, con fórmulas.
+- `resumen_liquidacion_bc.js <salida.pptx> <apply_theme.js de la skill pptx>`: presentación
+  «RESUMEN LIQUIDACION BC» de 7 diapositivas (la primera, el cuadro PDF vs BC); necesita
+  `npm install pptxgenjs` y NODE_PATH apuntando a ese node_modules.
 - `informe_motivos_pt.js <salida.docx>`: informe Word de 8 páginas (la 2, apaisada, con el cuadro PDF vs BC) (`npm install docx`).
 
 ## Reglas de ECI comprobadas en Portugal
