@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, AlignmentType,
-        BorderStyle, ShadingType, LevelFormat, PageNumber, Footer, VerticalAlign, TableLayoutType } = require('docx');
+        BorderStyle, ShadingType, LevelFormat, PageNumber, Footer, VerticalAlign, TableLayoutType, PageOrientation } = require('docx');
 
 const OUT = process.argv[2];
 const AZUL = '1F4E78', GRIS = 'F2F2F2', BORDE = 'BFBFBF', font = 'Arial';
@@ -56,6 +56,41 @@ const sep = () => par('', { spacing: { after: 60 } });
 const numCfg = (ref) => ({ reference: ref, levels: [{ level: 0, format: LevelFormat.DECIMAL, text: '%1.', alignment: AlignmentType.START,
   style: { paragraph: { indent: { left: 500, hanging: 300 } } } }] });
 
+
+const pie = () => ({ default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [
+  run('Liquidación ECI Portugal · agosto 2026 · página ', { size: 16, color: '808080' }),
+  new TextRun({ children: [PageNumber.CURRENT], font, size: 16, color: '808080' })] })] }) });
+const MARGEN = { top: 1134, bottom: 1134, left: 1134, right: 1134 };
+const PDFBC = [
+  ['Venta total con IVA', 'VENDA TOTAL', 'Importe liquidable', '4.922,72', '4.922,72', '0,00', '981,56', '981,56', '0,00', '101,87', '101,87', '0,00', '6.006,15', '6.006,15', '0,00'],
+  ['Venta neta sin IVA', 'NETA', 'Base imponible comisión', '4.002,21', '4.888,76', '+886,55', '798,02', '981,56', '+183,54', '82,82', '101,87', '+19,05', '4.883,05', '5.972,19', '+1.089,14'],
+  ['IVA de la venta (23 %)', 'IVA (23.00)', 'no existe en BC', '920,51', '—', '—', '183,54', '—', '—', '19,05', '—', '—', '1.123,10', '—', '—'],
+  ['% participación ECI', '%', 'Comisión esperada / base', '29 %', '29,00 %', '0', '29 %', '29,00 %', '0', '29 %', '29,01 %', '+0,01', '29 %', '29,00 %', '0'],
+  ['Participación ECI', 'PARTICIP.ECI EUROS', 'Comisión esperada', '1.160,64', '1.417,74', '+257,10', '231,43', '284,68', '+53,25', '24,02', '29,55', '+5,53', '1.416,09', '1.731,97', '+315,88'],
+  ['Importe a facturar', 'A FACTURAR IMPORTE', 'Importe neto esperado', '2.841,57', '3.504,98', '+663,41', '566,59', '696,88', '+130,29', '58,80', '72,32', '+13,52', '3.466,96', '4.274,18', '+807,22'],
+  ['IVA a facturar (0 %)', 'IVA (0.00)', 'IVA comisión esperado', '0,00', '0,00', '0,00', '0,00', '0,00', '0,00', '0,00', '0,00', '0,00', '0,00', '0,00', '0,00'],
+  ['Total factura', 'TOTAL FRA', 'Importe neto esperado', '2.841,57', '3.504,98', '+663,41', '566,59', '696,88', '+130,29', '58,80', '72,32', '+13,52', '3.466,96', '4.274,18', '+807,22'],
+];
+const FILL_PDFBC = [VERDE, AMARILLO, GRIS, VERDE, AMARILLO, AMARILLO, VERDE, AMARILLO];
+const SECCION_PDF_BC = {
+  properties: { page: { size: { width: 11906, height: 16838, orientation: PageOrientation.LANDSCAPE }, margin: MARGEN } },
+  footers: pie(),
+  children: [
+    h1('Cuadro: columnas del PDF de ECI frente a BC'),
+    par('Cada fila es una columna de los PDF de liquidación de Portugal. A su lado, el campo de BC que le corresponde y la diferencia (BC − PDF). Los valores de BC son la suma de las filas de Portugal del informe (centros 0140 + 0142 + 0143), porque ECI liquida todo en 0143.'),
+    grid(['Columna del PDF', 'Nombre en el PDF', 'Campo en BC', '601 PDF', '601 BC', '601 dif.', '602 PDF', '602 BC', '602 dif.', '696 PDF', '696 BC', '696 dif.', 'Total PDF', 'Total BC', 'Total dif.'],
+      PDFBC.map((r, i) => (i === 7 ? r.map((v) => [run(v, { bold: true, size: 15 })]) : r)), [1550, 1300, 1450, 830, 830, 800, 780, 780, 760, 720, 720, 700, 870, 870, 820], 15, FILL_PDFBC),
+    sep(),
+    bullet([B('Venta con IVA: '), run('coincide al céntimo en los tres departamentos.')]),
+    bullet([B('Venta neta: '), run('BC no quita el IVA. Su base de comisión es el importe con IVA, y además deja fuera las líneas sin vincular (601: 4.922,72 − 4.888,76 = 33,96 €).')]),
+    bullet([B('IVA de la venta: '), run('BC no lo calcula ni lo muestra en este informe.')]),
+    bullet([B('Porcentaje: '), run('el mismo 29 % en los dos. La diferencia está en la base sobre la que se aplica.')]),
+    bullet([B('Participación, importe a facturar y total factura: '), run('BC sale por encima en todos: 315,88 € más de comisión y 807,22 € más de neto que lo que se factura a ECI (facturas 260007291, 260007292 y 260007293, 3.466,96 €).')]),
+    bullet([B('IVA a facturar: '), run('vale 0 en los dos, pero no es el mismo concepto. En el PDF es el IVA de la factura de Toni Pons, 0 % porque Portugal se factura sin IVA. En BC es el IVA de la comisión.')]),
+    par([run('Verde: coincide. Amarillo: diferencia. Gris: BC no tiene el dato. El mismo cuadro, con fórmulas y el detalle por centro de BC, está en la hoja «PDF vs BC» del Excel.', { size: 18, color: '595959' })], { spacing: { before: 120 } }),
+  ],
+};
+
 const doc = new Document({
   creator: 'Oriol Terradas', title: 'Liquidación ECI Portugal agosto 2026: motivos',
   styles: {
@@ -71,9 +106,7 @@ const doc = new Document({
       style: { paragraph: { indent: { left: 500, hanging: 300 } } } }] }] },
   sections: [{
     properties: { page: { margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 } } },
-    footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [
-      run('Liquidación ECI Portugal · agosto 2026 · página ', { size: 16, color: '808080' }),
-      new TextRun({ children: [PageNumber.CURRENT], font, size: 16, color: '808080' })] })] }) },
+    footers: pie(),
     children: [
       // ================================================================== 1. resumen
       new Paragraph({ heading: HeadingLevel.TITLE, children: [run('Liquidación ECI Portugal, agosto 2026: motivos de las diferencias', { size: 40, bold: true, color: AZUL })] }),
@@ -87,13 +120,13 @@ const doc = new Document({
         ['696 niños', '137,83 − 35,96 = 101,87 €', '101,87 €', '0,00'],
       ], [1800, 3900, 2400, 1538], 18, [VERDE, VERDE, VERDE]),
       sep(),
-      par('Los avisos del informe no son errores de importe de venta. Salen de la comparación de cada línea EDI con su tramo de Mirakl y de lo que BC ha convertido en documento. Además, BC calcula mal la comisión de Portugal. En total hay cinco motivos:'),
+      par('Los avisos del informe no son errores de importe de venta. Salen de la comparación de cada línea EDI con su tramo de Mirakl y de lo que BC ha convertido en documento. Además, BC calcula mal la comisión de Portugal (cuadro de la página 2). En total hay cinco motivos:'),
       grid(['Motivo', 'Filas afectadas', 'Importe', 'Página'], [
-        ['1. BC calcula la comisión y el neto sobre el importe con IVA', 'todas', '807,22 € de neto de más', '2'],
-        ['2. Líneas EDI sin vincular: pedidos anteriores al conector o que el conector dejó de actualizar', '0143 mujer (6), 0142 Gaia (1)', '7 líneas, neto 33,96 €', '3'],
-        ['3. Tramos sin procesar: devoluciones que ECI liquida en agosto sin abono de agosto en Mirakl', '0142 Gaia (3), 0143 mujer (1)', '4 devoluciones, 299,80 €', '4'],
-        ['4. Devoluciones hechas en tienda: BC las pone en 0140 y 0142, ECI las liquida en 0143', '0140, 0142', '23 líneas, 1.431,68 €', '5'],
-        ['5. Reglas de ECI que hacen que EDI y Mirakl no coincidan línea a línea', '0143', 'explica el resto', '6'],
+        ['1. BC calcula la comisión y el neto sobre el importe con IVA', 'todas', '807,22 € de neto de más', '3'],
+        ['2. Líneas EDI sin vincular: pedidos anteriores al conector o que el conector dejó de actualizar', '0143 mujer (6), 0142 Gaia (1)', '7 líneas, neto 33,96 €', '4'],
+        ['3. Tramos sin procesar: devoluciones que ECI liquida en agosto sin abono de agosto en Mirakl', '0142 Gaia (3), 0143 mujer (1)', '4 devoluciones, 299,80 €', '5'],
+        ['4. Devoluciones hechas en tienda: BC las pone en 0140 y 0142, ECI las liquida en 0143', '0140, 0142', '23 líneas, 1.431,68 €', '6'],
+        ['5. Reglas de ECI que hacen que EDI y Mirakl no coincidan línea a línea', '0143', 'explica el resto', '7'],
       ], [4600, 2200, 2000, 838], 17),
       sep(),
       grid(['Fila BC', 'Estado', 'Qué hay detrás'], [
@@ -106,8 +139,13 @@ const doc = new Document({
       ], [1400, 1200, 7038], 17, [VERDE, VERDE, AMARILLO, AMARILLO, VERDE, VERDE]),
       par([run('El detalle línea a línea está en el Excel «Motivos liquidación ECI Portugal agosto 2026». Reconstruye desde Mirakl todas las líneas EDI y reproduce cada fila de BC, salvo lo que se marca como pendiente.', { size: 18, color: '595959' })], { spacing: { before: 120 } }),
 
+    ],
+  }, SECCION_PDF_BC, {
+    properties: { page: { margin: MARGEN } },
+    footers: pie(),
+    children: [
       // ================================================================== 2. comisión
-      h1('1. BC calcula la comisión y el neto sobre el importe con IVA', true),
+      h1('1. BC calcula la comisión y el neto sobre el importe con IVA'),
       par('ECI cobra una participación del 29 % en Portugal. La calcula sobre la venta neta, después de quitar el IVA portugués del 23 %. Toni Pons factura a ECI Portugal el resto sin IVA. BC, en cambio, aplica el 29 % al importe con IVA y da como «Importe neto esperado» el importe con IVA menos esa comisión.'),
       grid(['Departamento', 'Venta ECI (con IVA)', 'Neta sin IVA', 'Participación ECI', 'A facturar (ECI)', 'Comisión esperada BC', 'Neto esperado BC', 'Neto BC de más'], [
         ['601', '4.922,72', '4.002,21', '1.160,64', '2.841,57', '1.417,74', '3.504,98', '663,41'],
@@ -161,7 +199,7 @@ const doc = new Document({
       par([B('Lo comprobado. '), run('Las devoluciones EDI de Portugal suman 34 líneas y 2.088,76 €. Las devoluciones de agosto que hay en Mirakl, cumplimentadas y realmente devueltas, explican 30 de esas líneas, por 1.788,96 €. Las 4 que faltan suman 299,80 € y coinciden en número, importe y centro con los 4 tramos sin procesar. Son, por tanto, devoluciones que ECI liquida en agosto pero que en Mirakl, a 21/09, no tienen talón de abono de agosto.')]),
       par([B('Lo que no se puede saber con estos datos. '), run('Qué líneas son. En Gaia hay una ambigüedad: tres devoluciones de agosto en Incidencia abierta (talones 02654478, 02655550 y 02695702) suman también 219,85 €. Puede que sean esas tres las que están sin procesar y que las tres líneas «extra» sí se hayan procesado. En 0143 la devolución de 79,95 € podría intercambiarse con la de junio del mismo importe.')]),
       h2('Petición para IT'),
-      par('Para 0142 / 601 y 0143 / 601: lista de líneas EDI con su Mirakl Line Id, talón, importe, tramo vinculado y estado de proceso, con el mensaje de error de los tramos no procesados. Con esa lista se cierran los 299,80 € y también la venta de 65 € de 0143 / 602 de la página 6.'),
+      par('Para 0142 / 601 y 0143 / 601: lista de líneas EDI con su Mirakl Line Id, talón, importe, tramo vinculado y estado de proceso, con el mensaje de error de los tramos no procesados. Con esa lista se cierran los 299,80 € y también la venta de 65 € de 0143 / 602 de la página 7.'),
 
       // ================================================================== 5. tiendas
       h1('4. Devoluciones hechas en las tiendas de Lisboa y Gaia', true),
@@ -169,7 +207,7 @@ const doc = new Document({
       grid(['Centro BC', 'Departamento', 'Líneas', 'Importe', 'Cómo se reconoce en Mirakl'], [
         ['0140 Lisboa', '601', '9', '−622,80 €', 'talón de abono de las cajas 0247, 0558, 0559 y 0561'],
         ['0140 Lisboa', '696', '1', '−35,96 €', 'talón 03594705 (caja 0359)'],
-        ['0142 Gaia', '601', '13', '−772,92 €', '10 con talón de las cajas 0265, 0266, 0269 y 0617; 3 sin identificar (página 4)'],
+        ['0142 Gaia', '601', '13', '−772,92 €', '10 con talón de las cajas 0265, 0266, 0269 y 0617; 3 sin identificar (página 5)'],
         ['0143 online', '601 y 602', '11', '−657,08 €', 'talón de abono que empieza por 9'],
       ], [1500, 1400, 900, 1300, 4538], 17),
       sep(),

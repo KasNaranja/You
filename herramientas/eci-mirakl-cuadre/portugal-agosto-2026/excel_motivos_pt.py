@@ -235,6 +235,10 @@ for i, q in enumerate(qs, 4):
         cel(ws5, i, j, v, wrap=True)
     ws5.row_dimensions[i].height = 45
 
+sys.path.insert(0, SC + "/pt")
+from hoja_pdf_vs_bc import anadir
+anadir(wb, bc, 1)
+
 for w in (ws, ws3, ws4, ws5):
     w.sheet_view.showGridLines = False
 wb.calculation.fullCalcOnLoad = True

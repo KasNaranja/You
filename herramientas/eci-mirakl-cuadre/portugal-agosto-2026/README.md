@@ -10,8 +10,9 @@ pedidos de Mirakl y el log del conector. Los datos se quedan en
   la puede vincular, con las reglas comprobadas.
 - `excel_motivos_pt.py <scratchpad> <salida.xlsx>`: Excel de detalle (resumen por
   fila de BC con fórmulas, líneas reconstruidas, pendientes, comisión e IVA,
-  preguntas para IT y ECI).
-- `informe_motivos_pt.js <salida.docx>`: informe Word de 7 páginas (`npm install docx`).
+  preguntas para IT y ECI). La hoja «PDF vs BC» la añade `hoja_pdf_vs_bc.py`: cada columna
+  de los PDF de Portugal frente al campo de BC equivalente, con fórmulas.
+- `informe_motivos_pt.js <salida.docx>`: informe Word de 8 páginas (la 2, apaisada, con el cuadro PDF vs BC) (`npm install docx`).
 
 ## Reglas de ECI comprobadas en Portugal
 
