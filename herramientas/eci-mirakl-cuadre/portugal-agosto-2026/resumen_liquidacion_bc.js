@@ -93,7 +93,7 @@ pres.addSection({ title: 'Resumen' });
     ['0,00 €', 'diferencia en la venta con IVA', '6.006,15 € en el PDF y en BC (centros 0140 + 0142 + 0143)', '2E7D4F', VERDE_T],
     ['+807,22 €', 'neto esperado de BC por encima de lo facturado', 'BC calcula comisión y neto sobre el importe con IVA', 'B3261E', ROJO_T],
     ['7 líneas', 'EDI sin vincular con Mirakl', 'Pedidos anteriores al conector o congelados en él (neto 33,96 €)', 'C98A00', 'FFF4D6'],
-    ['299,80 €', '4 devoluciones sin procesar en BC', 'ECI las liquida en agosto sin abono de agosto en Mirakl', 'C98A00', 'FFF4D6'],
+    ['299,80 €', '4 devoluciones sin procesar en BC', 'ECI las abona, pero en Mirakl no hay devolución', 'C98A00', 'FFF4D6'],
   ];
   stats.forEach(([big, lab, det, col, bg], i) => {
     const x = 0.6 + i * 3.1;
@@ -142,10 +142,10 @@ pres.addSection({ title: 'Motivos' });
 {
   const s = pres.addSlide({ masterName: 'TITULO', sectionTitle: 'Motivos' });
   s.addText('7 líneas EDI sin vincular: pedidos de antes de julio', { placeholder: 'title' });
-  s.addText('Sin tramo de Mirakl, BC no puede vincular la línea EDI y la deja fuera de la base de comisión', { placeholder: 'body' });
+  s.addText('BC no las vincula con Mirakl y las deja fuera de la base de comisión', { placeholder: 'body' });
   const bloques = [
-    ['A', 'Pedidos anteriores al conector', '220,82 €', '4 ventas en 0143 mujer',
-      ['3 entregas de pedidos de enero, febrero y mayo, registrados en SAP (160,87 €)', 'Una cuarta de 59,95 € aún sin identificar']],
+    ['A', 'Ventas de pedidos de enero a junio', '220,82 €', '4 ventas en 0143 mujer',
+      ['3 entregas de pedidos de enero, febrero y mayo, registrados en SAP (160,87 €)', '1 pedido del 15/06 que BC ya tiene como venta 124836, pero no vincula (59,95 €)']],
     ['B', 'Pedidos congelados en el conector', '−186,86 €', '3 devoluciones (0143 y Gaia)',
       ['Pedidos creados hasta el 28/06: el conector dejó de actualizarlos el 29-30/06', 'No ve sus devoluciones y no crea el tramo (79,95 + 71,96 + 34,95 €)']],
   ];
@@ -162,30 +162,35 @@ pres.addSection({ title: 'Motivos' });
   });
   txt(s, [{ text: 'Seguirá pasando: ', options: { bold: true } }, { text: 'en julio hay al menos 12 devoluciones más de pedidos congelados.' }],
     { x: 0.6, y: 6.05, w: 12.1, h: 0.4, fontSize: 15, color: C.accent3 });
-  s.addNotes('Neto sin vincular: 0143/601 = 220,82 − 151,91 = +68,91 € (liquidable 6.318,44 − base de comisión 6.249,53); 0142/601 = −34,95 € (772,92 − 737,97). Petición a IT: por qué el conector dejó de refrescar los pedidos creados hasta el 28/06; relectura o abonos a mano; cómo registrar en BC las entregas de pedidos de SAP.');
+  s.addNotes('Ventas sin vincular (0143/601): 00401430766493020260112191028_1-A-1 (26,96), 00401430762747320260220131747_1-A-2 (63,96), 00401430760456120260512181250_1-A-1 (69,95) y 00401430752499520260615175342_1-A-1 (59,95, venta BC 124836). Devoluciones sin vincular: 00401430758314520260624160644_1-A-1 (79,95, online), 00401430753352420260626123836_1-A-1 (71,96, online) y 00401430750680520260627151042_1-A-2 (34,95, Gaia). Neto sin vincular: 0143/601 = 220,82 − 151,91 = +68,91 €; 0142/601 = −34,95 €. Petición a IT: por qué el conector dejó de refrescar los pedidos creados hasta el 28/06; por qué la venta 124836 no se vincula; cómo registrar en BC las entregas de pedidos de SAP.');
 }
 
 // ===================================================================== 5. sin procesar
 {
   const s = pres.addSlide({ masterName: 'TITULO', sectionTitle: 'Motivos' });
-  s.addText('4 devoluciones sin procesar por 299,80 €', { placeholder: 'title' });
-  s.addText('ECI las liquida en agosto, pero en Mirakl no tienen abono de agosto: BC no crea el documento y las cuenta a 0', { placeholder: 'body' });
-  card(s, 0.6, 1.85, 4.2, 4.3, 'FFF4D6', 'cifra sin procesar');
-  txt(s, '299,80 €', { x: 0.9, y: 2.2, w: 3.6, h: 1.1, fontSize: 48, bold: true, color: C.accent4, fontFace: THEME.headFontFace });
-  txt(s, 'en 4 tramos de devolución vinculados y sin documento en BC', { x: 0.9, y: 3.35, w: 3.6, h: 0.9, fontSize: 16, bold: true, valign: 'top' });
-  txt(s, 'Los 10 tramos sin procesar del informe (6 de España y 4 de Portugal) son todos devoluciones.', { x: 0.9, y: 4.4, w: 3.6, h: 1.4, fontSize: 14, color: C.accent5, valign: 'top' });
-  const H = (t, al = 'left') => ({ text: t, options: { bold: true, color: 'FFFFFF', fill: { color: '1F4E78' }, align: al } });
-  s.addTable([
-    [H('Fila BC'), H('Tramos'), H('Importe EDI', 'right'), H('Qué sabemos')],
-    ['0142 Gaia / 601', '3', { text: '219,85 €', options: { align: 'right' } }, 'Ambigüedad: otras 3 devoluciones de Gaia en incidencia suman también 219,85 €'],
-    ['0143 online / 601', '1', { text: '79,95 €', options: { align: 'right' } }, 'Puede intercambiarse con una devolución de junio del mismo importe'],
-  ], { x: 5.2, y: 1.85, w: 7.5, colW: [1.9, 0.9, 1.3, 3.4], fontSize: 14, fontFace: 'Calibri', color: '1F2933', rowH: [0.45, 0.8, 0.8],
-    fill: { color: GRIS_T }, border: { type: 'solid', pt: 0.75, color: 'FFFFFF' }, valign: 'middle', objectName: 'tabla sin procesar' });
-  card(s, 5.2, 4.35, 7.5, 1.8, AZUL_T, 'petición IT sin procesar');
-  txt(s, 'Qué pedir a IT', { x: 5.45, y: 4.5, w: 7.0, h: 0.4, fontSize: 17, bold: true, color: C.accent1 });
-  txt(s, 'Para 0142 / 601 y 0143 / 601, la lista de líneas EDI con su Mirakl Line Id, talón, importe, tramo vinculado y estado de proceso, con el error de los no procesados.',
-    { x: 5.45, y: 4.95, w: 7.0, h: 1.1, fontSize: 15, valign: 'top' });
-  s.addNotes('Las devoluciones EDI de Portugal son 34 líneas por 2.088,76 €. Las devoluciones de agosto de Mirakl explican 30 por 1.788,96 €; las 4 restantes (299,80 €) coinciden en número, importe y centro con los tramos sin procesar. Con la lista de IT se cierra también la venta de 65 € de 0143/602.');
+  s.addText('4 devoluciones sin procesar: ECI las abona y Mirakl no las tiene', { placeholder: 'title' });
+  s.addText('BC solo crea la devolución si existe en Mirakl. Las 4 están en el EDI de ECI, pero no en Mirakl', { placeholder: 'body' });
+  const casos = [
+    ['0142 Gaia · 3 líneas', '219,85 €', '00401430751578320260801170207',
+      ['Según el EDI, la clienta devolvió los 3 pares en la tienda de Gaia el 10/08', 'En Mirakl el pedido sigue «Recibido»: sin devolución, sin incidencia y sin mensajes']],
+    ['0143 online · 1 línea', '79,95 €', '00401430764858020260717201700_1-A-1',
+      ['El EDI del 05/08 abona las 2 líneas del pedido: esta y la de 75 €', 'Mirakl solo reembolsó la de 75 €; esta sigue «Recibido»']],
+  ];
+  casos.forEach(([tit, imp, ped, puntos], i) => {
+    const x = 0.6 + i * 6.2;
+    card(s, x, 1.85, 5.9, 2.65, 'FFF4D6', `caso sin procesar ${i + 1}`);
+    txt(s, tit, { x: x + 0.3, y: 2.0, w: 3.2, h: 0.45, fontSize: 17, bold: true, color: C.accent1, valign: 'middle' });
+    txt(s, imp, { x: x + 3.4, y: 1.95, w: 2.2, h: 0.55, fontSize: 28, bold: true, color: C.accent4, align: 'right', valign: 'middle', fontFace: THEME.headFontFace });
+    txt(s, [{ text: 'Pedido ', options: { color: C.accent5 } }, { text: ped, options: { bold: true } }], { x: x + 0.3, y: 2.6, w: 5.3, h: 0.4, fontSize: 14 });
+    txt(s, puntos.map((p, k) => ({ text: p, options: { bullet: true, breakLine: k < puntos.length - 1 } })),
+      { x: x + 0.3, y: 3.1, w: 5.3, h: 1.3, fontSize: 15, paraSpaceAfter: 6, valign: 'top' });
+  });
+  card(s, 0.6, 4.8, 12.1, 1.15, AZUL_T, 'petición ECI sin procesar');
+  txt(s, [
+    { text: 'Qué pedir a ECI: ', options: { bold: true, color: C.accent1 } },
+    { text: 'si las devoluciones se hicieron, el talón de abono y registrarlas en Mirakl para poder recoger la mercancía. Si no se hicieron, regularizar los 299,80 € en la liquidación.' },
+  ], { x: 0.9, y: 4.9, w: 11.5, h: 0.95, fontSize: 15, valign: 'middle' });
+  s.addNotes('Identificadas con el detalle de la comparación operativa de BC (filas 0142/601 y 0143/601). Gaia: informe EDI 20260811035705067032352, líneas 1, 2 y 4; EAN 8434530939677, 8434530688612 y 8434530872639; talón de venta 07515783; BC las vincula por el talón de venta porque no hay talón de abono. Online: informe EDI 20260806042406067032352; EAN 8434530946972; la hermana 2-A-1 (75 €, talón de abono 92363569) sí está procesada (documento 6245). Las 7 incidencias abiertas de Gaia sí están procesadas en BC.');
 }
 
 // ===================================================================== 6. tiendas
@@ -214,7 +219,38 @@ pres.addSection({ title: 'Motivos' });
     txt(s, t, { x: 7.55, y: y + 0.12, w: 4.95, h: 0.38, fontSize: 16, bold: true, color: C.accent1 });
     txt(s, d, { x: 7.55, y: y + 0.5, w: 4.95, h: 0.75, fontSize: 13.5, valign: 'top' });
   });
-  s.addNotes('0140 Lisboa: 9 líneas mujer (622,80 €) + 1 niños (35,96 €). 0142 Gaia: 13 líneas (772,92 €), 10 identificadas en Mirakl. 0143 online: 8 líneas mujer (474,67 €) + 3 hombre (182,41 €). Las ventas finalizadas y las rescisiones van siempre al centro del pedido (0143). Pregunta a ECI: confirmar que Portugal se factura por departamento consolidado.');
+  s.addNotes('0140 Lisboa: 9 líneas mujer (622,80 €) + 1 niños (35,96 €). 0142 Gaia: 13 líneas (772,92 €), todas identificadas con el detalle de BC. 0143 online: 8 líneas mujer (474,67 €) + 3 hombre (182,41 €). Las ventas finalizadas y las rescisiones van siempre al centro del pedido (0143). Pregunta a ECI: confirmar que Portugal se factura por departamento consolidado.');
+}
+
+// ===================================================================== 7. R01 / R02 / R03
+{
+  const s = pres.addSlide({ masterName: 'TITULO', sectionTitle: 'Motivos' });
+  s.addText('Devolución en tienda: cada sistema la registra en un paso distinto', { placeholder: 'title' });
+  s.addText('ECI la liquida con la R01, BC la crea con la incidencia y Mirakl reembolsa con la R03, semanas después', { placeholder: 'body' });
+  const pasos = [
+    ['R01', 'Devolución en tienda', 'El cliente devuelve en una tienda de ECI y le abonan por el TPV. Mirakl abre una incidencia.',
+      [['ECI', 'la liquida ese mes'], ['BC', 'puede crear la devolución']]],
+    ['R02', 'Llega al almacén', 'La mercancía llega al almacén de MRW. En agosto tardó entre 5 y 7 semanas.', []],
+    ['R03', 'Toni Pons la recoge', 'Se cierra la devolución.', [['Mirakl', 'hace el reembolso']]],
+  ];
+  s.addShape(pres.shapes.LINE, { x: 1.4, y: 2.35, w: 9.9, h: 0, line: { color: '6B7785', width: 2, endArrowType: 'triangle' }, objectName: 'línea de tiempo' });
+  pasos.forEach(([cod, tit, det, quien], i) => {
+    const x = 0.6 + i * 4.15;
+    s.addShape(pres.shapes.OVAL, { x: x + 0.3, y: 1.9, w: 0.9, h: 0.9, fill: { color: '1F4E78' }, line: { color: 'FFFFFF', width: 3 }, objectName: `paso ${cod}` });
+    txt(s, cod, { x: x + 0.3, y: 1.9, w: 0.9, h: 0.9, fontSize: 18, bold: true, color: 'FFFFFF', align: 'center', valign: 'middle' });
+    card(s, x, 3.0, 3.85, 2.75, AZUL_T, `detalle ${cod}`);
+    txt(s, tit, { x: x + 0.25, y: 3.12, w: 3.35, h: 0.45, fontSize: 18, bold: true, color: C.accent1 });
+    txt(s, det, { x: x + 0.25, y: 3.6, w: 3.35, h: 1.15, fontSize: 14, valign: 'top' });
+    quien.forEach(([sis, que], k) => {
+      txt(s, [{ text: sis + ' ', options: { bold: true, color: C.accent2 } }, { text: que }],
+        { x: x + 0.25, y: 4.8 + k * 0.42, w: 3.35, h: 0.38, fontSize: 15 });
+    });
+  });
+  txt(s, [
+    { text: 'Ejemplo, pedido 00401430750813420260714121528: ', options: { bold: true } },
+    { text: 'R01 el 27/07, R02 el 24/08 y R03 el 31/08. Mirakl hace el reembolso el 31/08, pero ECI no lo liquida en agosto porque la R01 es de julio.' },
+  ], { x: 0.6, y: 5.95, w: 12.1, h: 0.75, fontSize: 14, color: C.accent5, valign: 'top' });
+  s.addNotes('Entre la R01 y la R03, Mirakl muestra la línea como «Incidencia abierta» con reembolso 0. Comprobado: el reembolso de Mirakl (motivo REFUND_04, solo devoluciones de tienda) se crea a la misma hora que la R03, por lotes en los días de recogida (26/06, 24/07, 31/07, 31/08). Tres devoluciones de Lisboa con R01 en julio y R03 en agosto no están en el EDI de agosto. BC procesó las 7 incidencias abiertas de Gaia sin esperar al reembolso. A 01/09 BC no tenía ninguna devolución de Portugal procesada: se procesaron entre el 01/09 y el 02/10. Riesgo: BC crea la devolución antes de saber el importe reembolsado (p. ej. 00401430763049820260801022856: 2 líneas de 150 € con 75 € reembolsados en cada una).');
 }
 
 // ===================================================================== 7. peticiones
@@ -228,22 +264,28 @@ pres.addSection({ title: 'Siguientes pasos' });
       'Comisión sobre la venta sin IVA del país y neto de Portugal sin IVA',
       'Revisar el 29 % de niños en España (ECI aplica 30 %)',
       'Por qué el conector dejó de actualizar los pedidos creados hasta el 28/06',
-      'Lista de tramos de 0142 y 0143 con Mirakl Line Id y estado de proceso',
+      'Por qué la venta 124836 (pedido del 15/06) no se vincula con su línea EDI',
       'Qué línea es el «producto sin relacionar» de 0143 / 601',
     ]],
     ['ECI', 'FFF4D6', [
       'Confirmar que Portugal se factura por departamento, con las tiendas dentro de 0143',
-      'Si IT no puede sacarlo de BC: detalle EDI de las 4 devoluciones liquidadas sin abono de agosto en Mirakl',
+      'Gaia: devolución del 10/08 del pedido 00401430751578320260801170207 (219,85 €), que no está en Mirakl',
+      'Online: abono del 05/08 de la línea 00401430764858020260717201700_1-A-1 (79,95 €), sin reembolso en Mirakl',
+      'Las devoluciones en tienda tardan de 5 a 7 semanas en llegar al almacén (R02)',
     ]],
   ];
   cols.forEach(([t, bg, items], i) => {
     const x = 0.6 + i * 6.2, w = 5.9;
-    card(s, x, 1.85, w, 3.9, bg, `peticiones ${t}`);
+    card(s, x, 1.85, w, 4.25, bg, `peticiones ${t}`);
     txt(s, t, { x: x + 0.3, y: 2.05, w: w - 0.6, h: 0.45, fontSize: 19, bold: true, color: C.accent1 });
     txt(s, items.map((p, k) => ({ text: p, options: { bullet: { type: 'number' }, breakLine: k < items.length - 1 } })),
-      { x: x + 0.3, y: 2.6, w: w - 0.6, h: 3.5, fontSize: 15, paraSpaceAfter: 8, valign: 'top' });
+      { x: x + 0.3, y: 2.6, w: w - 0.6, h: 3.4, fontSize: 15, paraSpaceAfter: 8, valign: 'top' });
   });
-  s.addNotes('Detalle completo en el informe Word «Informe motivos liquidación ECI Portugal agosto 2026» y en el Excel «Motivos liquidación ECI Portugal agosto 2026» (hoja PDF vs BC para el cuadro de la primera diapositiva).');
+  txt(s, [
+    { text: 'Resuelto, sin acción: ', options: { bold: true } },
+    { text: 'la venta de 65 € de hombre del pedido 00401430757641420260826172900 se entregó el 31/08 y se confirmó a las 23:52. ECI la liquida en agosto y Mirakl la fecha el 01/09: es el corte de fin de mes.' },
+  ], { x: 0.6, y: 6.25, w: 12.1, h: 0.6, fontSize: 12, color: C.accent5, valign: 'top' });
+  s.addNotes('Detalle completo en el informe Word «Informe motivos liquidación ECI Portugal agosto 2026 (v3)» y en el Excel «Motivos liquidación ECI Portugal agosto 2026 (v2)».');
 }
 
 (async () => {
