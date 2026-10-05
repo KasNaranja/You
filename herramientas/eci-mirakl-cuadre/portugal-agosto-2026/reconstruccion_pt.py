@@ -59,7 +59,7 @@ for _, r in pt.iterrows():
                          'motivo': 'Pedido del mes (no entra en la liquidación)'})
         else:
             rows.append({**base, 'concepto': 'Fuera del EDI de agosto', 'centro': '0143', 'importe_edi': 0.0, 'vinculo': '',
-                         'motivo': 'Pedido de la última hora del 31/08 o cobrado en septiembre: ECI cierra el día hacia las 23:30 y lo pasa a septiembre'})
+                         'motivo': 'Pedido cobrado en la última media hora del 31/08 o en septiembre: para el «en proceso», ECI cierra el día de cobro hacia las 23:30 y lo pasa a septiembre'})
     if ago(r['Fecha de cumplimentación_d']):
         if r['Estado'] == 'Rechazado':
             rows.append({**base, 'concepto': 'Excluida del finalizado', 'centro': '0143', 'importe_edi': 0.0, 'vinculo': '',
@@ -86,8 +86,12 @@ for _, r in pt.iterrows():
             if pd.notna(r['Fecha de creación_d']) and r['Fecha de creación_d'] < CORTE_CONECTOR:
                 v, m = 'Sin vincular', 'Devolución de un pedido creado antes del 29/06: el conector dejó de actualizar esos pedidos y no tiene tramo de devolución'
             else:
-                extra = (' (Incidencia abierta: Mirakl aún no ha reembolsado, pero ECI la liquida por el importe completo)'
-                         if r['Estado'] == 'Incidencia abierta' else '')
+                extra = ''
+                if r['Estado'] == 'Incidencia abierta' and r['Importe total reembolsado (impuestos incluidos)'] == 0:
+                    extra = ' (Incidencia abierta: Mirakl aún no ha reembolsado, pero ECI la liquida por el importe completo)'
+                elif r['Estado'] == 'Incidencia abierta':
+                    extra = (f' (devolución parcial: {q:g} de {r["Cantidad"]:g} uds; incidencia abierta con {imp:.2f}'.replace('.', ',') + ' € ya reembolsados, '
+                             'el mismo importe que liquida ECI)')
                 v, m = 'Vinculada', 'Devolución con tramo Mirakl procesado' + extra
             if c != '0143':
                 m += f'. Devolución hecha en tienda ({"Lisboa" if c == "0140" else "Gaia"}): EDI la pone en el centro {c}; ECI la liquida dentro de 0143'

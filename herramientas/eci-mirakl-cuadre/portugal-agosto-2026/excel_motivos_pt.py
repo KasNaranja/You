@@ -48,7 +48,7 @@ extra = [
      'El EDI del 05/08 abona las dos líneas del pedido; en Mirakl solo se reembolsó la 2-A-1 (75 €) y esta sigue «Recibido». '
      'BC la vincula por el talón de venta y no puede procesarla. Pregunta a ECI.'),
     ('00401430757641420260826172900_1-A-1', 'Venta finalizada', '0143', 65.00,
-     'Corte de fin de mes: recepción el 31/08 a las 23:52. Mirakl fecha el talón de cumplimentación el 01/09, pero ECI la liquida en agosto (EDI del 31/08).'),
+     'Corte de fin de mes: entregada el 31/08 a las 18:47 y recepción confirmada a las 23:52. Mirakl fecha el talón de cumplimentación el 01/09, pero ECI la liquida en agosto (EDI del 31/08).'),
 ]
 rec = pd.concat([rec, pd.DataFrame([{**base(a), 'concepto': c, 'centro': ce, 'importe_edi': imp, 'vinculo': 'Vinculada',
                                      'motivo': mot + ' (identificada con el detalle de BC)'} for a, c, ce, imp, mot in extra])], ignore_index=True)
@@ -173,7 +173,7 @@ motivos = {
                       '3 sin procesar (219,85): pedido 00401430751578320260801170207, devuelto en Gaia el 10/08 según el EDI y sin devolución en Mirakl.'),
     ('0143', '601'): ('Aviso. 6 líneas sin vincular (neto +68,91): 4 ventas de pedidos de enero a junio (220,82) y 2 devoluciones de pedidos de junio congelados en el conector (151,91). '
                       '1 devolución sin procesar (79,95): línea 00401430764858020260717201700_1-A-1, abonada por ECI y sin reembolso en Mirakl. 1 producto sin relacionar sin localizar.'),
-    ('0143', '602'): 'Cuadrado. Incluye la venta de 65,00 del pedido 00401430757641420260826172900: recepción el 31/08 a las 23:52, que Mirakl fecha el 01/09 y ECI liquida en agosto.',
+    ('0143', '602'): 'Cuadrado. Incluye la venta de 65,00 del pedido 00401430757641420260826172900: entregada el 31/08 a las 18:47 y recepción a las 23:52; Mirakl la fecha el 01/09 y ECI la liquida en agosto.',
     ('0143', '696'): 'Cuadrado. Sin incidencias.',
 }
 r = 5
@@ -225,7 +225,7 @@ ws.freeze_panes = 'C5'
 ws.sheet_view.showGridLines = False
 
 # ---------------------------------------------------------------- hoja 3: pendiente de identificar
-ws3['A1'] = 'Líneas que no salían de las reglas, identificadas con el detalle de la comparación operativa de BC (05/10/2026)'
+ws3['A1'] = 'Líneas añadidas o aclaradas con el detalle de la comparación operativa de BC (05/10/2026)'
 ws3['A1'].font = T
 cab(ws3, 3, ['Fila BC', 'Línea de Mirakl', 'Importe EDI', 'Qué es', 'Estado', 'Qué hacer'], [10, 40, 11, 80, 14, 60])
 pend = [
@@ -255,7 +255,7 @@ for i, p in enumerate(pend, 4):
     ws3.row_dimensions[i].height = 90
 
 # ---------------------------------------------------------------- hoja 6: devoluciones en tienda
-ws6['A1'] = 'Devoluciones en tienda de Gaia: mensajes R01, R02 y R03 de Mirakl'
+ws6['A1'] = 'Devoluciones en tienda de Gaia con la incidencia abierta en agosto, y dos de julio: mensajes R01, R02 y R03 de Mirakl'
 ws6['A1'].font = T
 ws6['A2'] = ('R01: el cliente devuelve en la tienda y le abonan por el TPV (ECI la liquida en ese mes). R02: la mercancía llega al almacén de MRW. '
              'R03: Toni Pons la recoge y Mirakl crea el reembolso. Fechas de los mensajes de Mirakl consultados el 05/10/2026.')
@@ -277,9 +277,9 @@ for i, t in enumerate(tienda, 5):
     for j, v in enumerate(t, 1):
         cel(ws6, i, j, v, EUR if j == 3 else None)
 r = 5 + len(tienda) + 1
-for t in ['Las 7 líneas de agosto no tienen R03 (ni reembolso en Mirakl) y aun así están en el EDI de agosto y procesadas en BC: ECI liquida con la R01 y BC no espera al reembolso.',
+for t in ['Las 7 líneas de agosto con la incidencia abierta no tienen R03 (ni reembolso en Mirakl) y aun así están en el EDI de agosto y procesadas en BC: ECI liquida con la R01 y BC no espera al reembolso.',
           'Las dos de julio tienen la R03 y el reembolso en julio o agosto, pero no están en la liquidación de agosto: ECI las liquida en el mes de la R01.',
-          'En agosto la mercancía tardó entre 5 y 7 semanas en llegar al almacén (R02), y en tres casos todavía no ha llegado.']:
+          'En estas devoluciones de agosto la mercancía tardó entre 5 y 8 semanas en llegar al almacén (R02), y en tres casos todavía no ha llegado.']:
     ws6.cell(row=r, column=1, value=t).font = NOTA
     r += 1
 
@@ -321,13 +321,13 @@ qs = [
     ('IT', 'Pedidos congelados en el conector', 'Los pedidos creados hasta el 28/06 dejaron de actualizarse en el conector: sus devoluciones posteriores no generan tramo y salen como líneas EDI sin vincular. Forzar una relectura de esos pedidos o crear el abono a mano. En julio hay al menos 12 devoluciones más en esta situación.'),
     ('IT', 'Ventas de pedidos anteriores al conector', 'ECI sigue liquidando entregas de pedidos de enero a mayo (registrados en SAP). Definir cómo se registran en BC: vínculo manual o documento manual.'),
     ('IT', 'Venta 124836 sin vincular', 'La venta del pedido 00401430752499520260615175342 (15/06) está en BC desde junio, pero su línea EDI del 25/08 no se vincula. Confirmar si es porque el conector no tiene su talón de cumplimentación (pedido congelado) y vincularla.'),
-    ('IT', 'Devoluciones antes del reembolso', 'BC crea la devolución con la incidencia abierta, antes de que Mirakl reembolse (el reembolso llega con la R03, semanas después). Revisar cómo se corrige si el importe reembolsado es distinto (p. ej. 00401430763049820260801022856: 2 líneas de 150 € con 75 € reembolsados en cada una).'),
+    ('IT', 'Devoluciones antes del reembolso', 'BC crea la devolución con la incidencia abierta, antes de que Mirakl reembolse (el reembolso llega con la R03, semanas después). Confirmar qué importe usa y cómo se corrige si el reembolso final es distinto.'),
     ('IT', 'Producto sin relacionar', 'Indicar qué línea o EAN cuenta como «producto sin relacionar» en 0143/601 y si bloquea la vinculación.'),
     ('IT', 'Cantidades devueltas en España', 'Algunas filas de España tienen cantidades devueltas imposibles (0037/601: -223 uds en 28 líneas; 0003/601: -214 en 16). Revisar el campo cantidad en la importación EDI.'),
     ('ECI', 'Liquidación por centro', 'Los PDF dicen «facturar independientemente por centro» pero solo traen 0143, con las devoluciones de las tiendas de Lisboa y Gaia dentro. Confirmar que se factura por departamento consolidado.'),
     ('ECI', 'Devolución en Gaia sin registrar en Mirakl', 'El EDI del 10/08 abona en la tienda de Gaia el pedido 00401430751578320260801170207 (3 líneas, 219,85 €), que en Mirakl sigue «Recibido» sin devolución ni mensajes. Confirmar si se hizo y pasar el talón de abono; si se hizo, registrarla en Mirakl; si no, regularizar.'),
     ('ECI', 'Abono online sin reembolso en Mirakl', 'El EDI del 05/08 abona la línea 00401430764858020260717201700_1-A-1 (79,95 €) junto a su hermana de 75 €, pero en Mirakl solo se reembolsó la de 75 €. Confirmar si se devolvió.'),
-    ('ECI', 'Plazo de las devoluciones en tienda', 'La mercancía devuelta en tienda tarda de 5 a 7 semanas en llegar al almacén (R02). Mientras tanto Mirakl no refleja el reembolso.'),
+    ('ECI', 'Plazo de las devoluciones en tienda', 'En las devoluciones de agosto en Gaia, la mercancía tardó de 5 a 8 semanas en llegar al almacén (R02) y tres aún no han llegado. Mientras tanto Mirakl no refleja el reembolso.'),
 ]
 for i, q in enumerate(qs, 4):
     for j, v in enumerate(q, 1):
